@@ -1,0 +1,40 @@
+[project]
+name = "parsehub"
+version = "1.0.0"
+description = "支持AI总结的社交媒体聚合解析器"
+readme = "README.md"
+requires-python = ">=3.10.11"
+dependencies = [
+    "aiocache>=0.12.3",
+    "aiofiles>=24.1.0",
+    "apscheduler>=4.0.0a5",
+    "beautifulsoup4==4.12.3",
+    "dynamicadaptor>=0.5.2",
+    "dynrender-skia>=0.2.5",
+    "langchain>=0.2.5",
+    "langchain-core>=0.2.8",
+    "langchain-openai>=0.1.14",
+    "loguru>=0.6.0",
+    "openai>=1.54.5",
+    "opencv-python>=4.10.0.84",
+    "playwright>=1.48.0",
+    "pydub>=0.25.1",
+    "python-dotenv>=1.0.1",
+    "tenacity>=8.5.0",
+    "urlextract>=1.9.0",
+    "yt-dlp>=2024.11.18.232921.dev0",
+    "pydantic>=1.10.19",
+    "textual<=0.63.0",
+    "pyperclip>=1.9.0",
+    "lxml>=5.3.0",
+    "pyyaml>=6.0.2",
+    "aiosqlite>=0.20.0",
+    "click>=8.1.7",
+    "rookiepy>=0.5.6",
+    "fastapi>=0.112.1",
+    "uvicorn>=0.30.6",
+    "emoji>=2.14.0",
+    "instaloader>=4.14",
+]
+[tool.hatch.build.targets.wheel]
+packages = ["src/parsehub"]
