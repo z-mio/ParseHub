@@ -226,7 +226,7 @@ class DownloadResult(Generic[T]):
         ]
 
         template = [
-            SystemMessage(PROMPT),
+            SystemMessage(ParseHubConfig.prompt or PROMPT),
             HumanMessage(content=content + imgs),
             HumanMessage(content=[{"type": "text", "text": "请对以上内容进行总结！"}]),
         ]

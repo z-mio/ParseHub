@@ -29,3 +29,9 @@ class ParseHubConfig:
 
     model = getenv("MODEL", "gpt-4o-mini")
     """AI总结模型名称"""
+
+    prompt = getenv("PROMPT")
+    """AI总结提示词"""
+
+    yt_dlp_duration_limit = int(getenv("YT_DLP_DURATION_LIMIT", 0))
+    """使用yt-dlp下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制"""

@@ -116,10 +116,13 @@ class YtVideoParseResult(VideoParseResult):
         yto["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         text = "下载合并中...请耐心等待..."
-        # if self.dl.duration > 1800:
-        #     # 视频超过30分钟，获取最低画质
-        #     text += "\n视频超过30分钟，获取最低画质"
-        #     yto["format"] = "worstvideo* + worstaudio / worst"
+        if (
+            ParseHubConfig.yt_dlp_duration_limit
+            and self.dl.duration > ParseHubConfig.yt_dlp_duration_limit
+        ):
+            # 视频超过限制时长，获取最低画质
+            text += f"\n视频超过{ParseHubConfig.yt_dlp_duration_limit}秒，获取最低画质"
+            yto["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:
             await callback(0, 0, text, *callback_args)
