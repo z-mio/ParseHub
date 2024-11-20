@@ -1,7 +1,6 @@
 import asyncio
 
 from loguru import logger
-
 from src.parsehub.main import ParseHub
 
 ph = ParseHub()
@@ -21,17 +20,20 @@ test = {
 
 @logger.catch
 async def test_parse_hub():
-    # for k, v in test.items():
-    #     try:
-    #         result = await ph.parse(v)
-    #         print(f"{k}: {result.title}")
-    #     except Exception as e:
-    #         print(f"{k}: {e}")
-    # print(ph.supported_platforms())
-    r = await ph.parse(test["tieba"])
-    print(r)
-    m = await r.summary()
-    print(m)
+    # for i in ph.supported_platforms():
+    #     print(i)
+
+    for k, v in test.items():
+        try:
+            result = await ph.parse(v)
+            print(f"{k}: {result.title}")
+        except Exception as e:
+            print(f"{k}: {e}")
+
+    # r = await ph.parse(test["tieba"])
+    # print(r)
+    # m = await r.summary()
+    # print(m)
 
 
 if __name__ == "__main__":
