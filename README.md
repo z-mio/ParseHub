@@ -4,6 +4,12 @@
 
 > 视频总结会调用 `whisper-1` 模型
 
+## 安装
+
+`pip install parsehub`
+
+## 使用
+
 ```python
 from parsehub import ParseHub
 from parsehub.config import ParseHubConfig
