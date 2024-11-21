@@ -33,8 +33,8 @@ async def test_parse_hub():
 
     r = await ph.parse(test["tieba"])
     print(r)
-    s = await r.summary()
-    print(s)
+    # s = await r.summary()
+    # print(s)
 
 
 if __name__ == "__main__":

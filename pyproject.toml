@@ -10,7 +10,7 @@ authors = [
 license = { text = "MIT" }
 dependencies = [
     "aiocache>=0.12.3",
-    "aiofiles>=24.1.0",
+    "aiofiles>=23.2,<24.dev0",
     "beautifulsoup4==4.12.3",
     "dynamicadaptor>=0.5.2",
     "dynrender-skia>=0.2.5",
@@ -25,8 +25,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "tenacity>=8.5.0",
     "urlextract>=1.9.0",
-    "yt-dlp>=2024.11.18.232921.dev0",
-    "pydantic>=1.10.19",
+    "yt-dlp",
     "textual<=0.63.0",
     "pyperclip>=1.9.0",
     "lxml>=5.3.0",
@@ -38,6 +37,7 @@ dependencies = [
     "uvicorn>=0.30.6",
     "emoji>=2.14.0",
     "instaloader>=4.14",
+    "pydantic>=1.10.19",
 ]
 [tool.hatch.build.targets.wheel]
 packages = ["src/parsehub"]
