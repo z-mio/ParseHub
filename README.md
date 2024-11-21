@@ -3,6 +3,9 @@
 **支持AI总结的社交媒体聚合解析器**
 > 视频总结会调用 `whisper-1` 模型
 
+**基于该项目开发的 Tg Bot:**   
+[@ParsehubBot](https://t.me/ParsehubBot) | https://github.com/z-mio/parse_hub_bot
+
 **支持的平台:**  
 `Twitter 视频|图文`  
 `Instagram 视频|图文`  
@@ -13,7 +16,7 @@
 `Facebook 视频`  
 `Bilibili 视频|动态`  
 `抖音|TikTok 视频|图文`  
-`......`  
+`......`
 
 ## 安装
 
