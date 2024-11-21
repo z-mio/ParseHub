@@ -135,7 +135,9 @@ class YtVideoParseResult(VideoParseResult):
             v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))
         ) and await ImgHost().catbox(v[0])
         return DownloadResult(
-            self, Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb)
+            self,
+            Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb),
+            dir_,
         )
 
 

@@ -127,7 +127,7 @@ class BiliVideoParseResult(YtVideoParseResult):
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         r = await super().download(path, callback, callback_args, proxies, config)
-        return BiliDownloadResult(r.pr, r.media)
+        return BiliDownloadResult(r.pr, r.media, r.save_dir)
 
 
 class BiliImageParseResult(YtImageParseResult): ...

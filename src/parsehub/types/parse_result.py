@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+from pathlib import Path
 from typing import Callable, Generic, TypeVar, Literal
 from .media import Media, Video
 from ..utiles.utile import progress, img2base64
@@ -84,7 +85,7 @@ class ParseResult(ABC):
                         progress(len(path_list), len(self.media), "数量"),
                         *callback_args,
                     )
-            return DownloadResult(self, path_list)
+            return DownloadResult(self, path_list, op)
         else:
             if not self.media.is_url:
                 return self.media
@@ -175,13 +176,19 @@ class MultimediaParseResult(ParseResult):
 
 
 class DownloadResult(Generic[T]):
-    """下载结果"""
-
-    def __init__(self, parse_result: T, media: list[MediaT] | MediaT):
+    def __init__(
+        self, parse_result: T, media: list[MediaT] | MediaT, save_dir: str | Path = None
+    ):
+        """
+        下载结果
+        :param parse_result: 解析结果
+        :param media: 本地媒体路径
+        :param save_dir: 保存目录
+        """
         self.pr = parse_result
         """解析结果"""
         self.media = media
-        """本地媒体路径"""
+        self.save_dir = Path(save_dir).resolve() if save_dir else None
 
     def exists(self) -> bool:
         """是否存在本地文件"""
@@ -282,6 +289,8 @@ class DownloadResult(Generic[T]):
 
     def delete(self):
         """删除文件"""
+        if self.save_dir:
+            return shutil.rmtree(self.save_dir)
 
         if isinstance(self.media, list):
             p = [i.path for i in self.media if i.exists()]
