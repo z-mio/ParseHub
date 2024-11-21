@@ -9,7 +9,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-DOWNLOAD_DIR = getenv("DOWNLOAD_DIR", Path(sys.argv[0]).parent / Path("downloads/"))
+DOWNLOAD_DIR = (
+    Path(getenv("DOWNLOAD_DIR"))
+    if getenv("DOWNLOAD_DIR")
+    else Path(sys.argv[0]).parent / Path("downloads/")
+)
 """默认下载目录"""
 
 

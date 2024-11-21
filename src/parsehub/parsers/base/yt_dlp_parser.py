@@ -3,7 +3,7 @@ from ...utiles.img_host import ImgHost
 import time
 from dataclasses import dataclass
 from typing import Union, Callable
-
+from pathlib import Path
 from yt_dlp import YoutubeDL
 
 from .base import Parser
@@ -96,7 +96,7 @@ class YtVideoParseResult(VideoParseResult):
 
     async def download(
         self,
-        path: str = None,
+        path: str | Path = None,
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
@@ -107,7 +107,7 @@ class YtVideoParseResult(VideoParseResult):
             return self.media
 
         # 创建保存目录
-        dir_ = (DOWNLOAD_DIR if path is None else path).joinpath(f"{time.time_ns()}")
+        dir_ = (DOWNLOAD_DIR if path is None else Path(path)).joinpath(f"{time.time_ns()}")
         dir_.mkdir(parents=True, exist_ok=True)
 
         # 输出模板

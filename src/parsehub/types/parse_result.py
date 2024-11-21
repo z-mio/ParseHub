@@ -46,7 +46,7 @@ class ParseResult(ABC):
 
     async def download(
         self,
-        path: str = None,
+        path: str | Path = None,
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
@@ -66,7 +66,7 @@ class ParseResult(ABC):
         """
         if isinstance(self.media, list):
             path_list = []
-            op = DOWNLOAD_DIR / f"{time.time_ns()}" if path is None else path
+            op = DOWNLOAD_DIR / f"{time.time_ns()}" if path is None else Path(path)
             for i, image in enumerate(self.media):
                 if not image.is_url:
                     path_list.append(image)

@@ -1,6 +1,6 @@
 import re
 from typing import Union, Callable
-
+from pathlib import Path
 import httpx
 import skia
 from dynamicadaptor.DynamicConversion import formate_message
@@ -120,7 +120,7 @@ class BiliDownloadResult(DownloadResult):
 class BiliVideoParseResult(YtVideoParseResult):
     async def download(
         self,
-        path: str = None,
+        path: str | Path = None,
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
