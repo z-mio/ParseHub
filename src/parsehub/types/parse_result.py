@@ -15,14 +15,6 @@ from .summary_result import SummaryResult
 from ..config.config import DOWNLOAD_DIR, DownloadConfig, SummaryConfig
 from ..utiles.utile import video_to_png
 
-CN_PROMPT = """
-你是一个有用的助手，总结文章和视频字幕的要点。
-用“简体中文”总结3到8个要点，并在最后总结全部。
-"""
-PROMPT = """
-You are a useful assistant to summarize the main points of articles and video captions.
-Summarize 3 to 8 points in "Simplified Chinese" and summarize them all at the end.
-""".strip()
 
 T = TypeVar("T", bound="ParseResult")
 
@@ -57,7 +49,7 @@ class ParseResult(ABC):
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
-        config: DownloadConfig = DownloadConfig,
+        config: DownloadConfig = DownloadConfig(),
     ) -> "DownloadResult":
         """
         :param path: 保存路径
@@ -126,7 +118,7 @@ class ParseResult(ABC):
         model: str = None,
         provider: Literal["openai"] = None,
         prompt: str = None,
-        download_config: DownloadConfig = DownloadConfig,
+        download_config: DownloadConfig = DownloadConfig(),
     ) -> "SummaryResult":
         """总结解析结果
         :param api_key: API密钥
@@ -213,13 +205,14 @@ class DownloadResult(Generic[T]):
         :param provider: 语言模型提供商
         :param prompt: 提示词
         """
-        api_key = api_key or SummaryConfig.api_key
-        base_url = base_url or SummaryConfig.base_url
-        model = model or SummaryConfig.model
-        provider = provider or SummaryConfig.provider
-        prompt = prompt or SummaryConfig.prompt or PROMPT
+        sc = SummaryConfig()
+        api_key = api_key or sc.api_key
+        base_url = base_url or sc.base_url
+        model = model or sc.model
+        provider = provider or sc.provider
+        prompt = prompt or sc.prompt
 
-        if api_key or base_url:
+        if not api_key or not base_url:
             raise ValueError("AI总结未配置")
 
         media = self.media if isinstance(self.media, list) else [self.media]

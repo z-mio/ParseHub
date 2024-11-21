@@ -100,7 +100,7 @@ class YtVideoParseResult(VideoParseResult):
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
-        config: DownloadConfig = DownloadConfig,
+        config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         """下载视频"""
         if not self.media.is_url:

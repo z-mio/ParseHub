@@ -24,14 +24,15 @@ async def test_parse_hub():
     ph = ParseHub(cfg)
     print("支持的平台: ", ph.get_supported_platforms())
 
-    for k, v in test.items():
-        try:
-            result = await ph.parse(v)
-            print(f"{k}: {result}")
-        except Exception as e:
-            print(f"{k}: {e}")
+    # for k, v in test.items():
+    #     try:
+    #         result = await ph.parse(v)
+    #         print(f"{k}: {result}")
+    #     except Exception as e:
+    #         print(f"{k}: {e}")
 
-    r = await ph.parse(test["twitter"])
+    r = await ph.parse(test["tieba"])
+    print(r)
     s = await r.summary()
     print(s)
 
