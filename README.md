@@ -48,7 +48,10 @@
 >> ubuntu用户
 >
 >```bash
+># Ubuntu 22 安装
 >apt install libgl1-mesa-glx
+># Ubuntu 24 安装
+>apt install libgl1 libglx-mesa0
 >```
 >
 >> ArchLinux用户
