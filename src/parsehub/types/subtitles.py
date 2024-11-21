@@ -1,7 +1,7 @@
-from pathlib import Path
-from xml.etree import ElementTree
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
+from xml.etree import ElementTree
 
 
 @dataclass

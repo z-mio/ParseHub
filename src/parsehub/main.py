@@ -3,11 +3,13 @@ from typing import Type
 from .parsers.base.base import Parser
 from .types.parse_result import ParseResult
 from .utiles.utile import get_all_subclasses, match_url
+from .config import ParseConfig
 
 
 class ParseHub:
-    def __init__(self):
+    def __init__(self, config: ParseConfig = None):
         """初始化解析器"""
+        self.config = config
         self.__parsers: list[Type[Parser]] = self.__load_parser()
 
     def _select_parser(self, url: str) -> Type[Parser] | None:
@@ -28,10 +30,10 @@ class ParseHub:
         :param url: 分享链接
         """
         if parser := self._select_parser(url):
-            return await parser().parse(url)
+            return await parser(parse_config=self.config).parse(url)
         raise ValueError("不支持的平台")
 
-    def supported_platforms(self) -> list[str]:
+    def get_supported_platforms(self) -> list[str]:
         """获取支持的平台列表"""
         return [
             f"{parser.__platform__}: {'|'.join(parser.__supported_type__)}"

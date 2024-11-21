@@ -4,7 +4,7 @@ from urllib.parse import urlparse, parse_qs
 
 import httpx
 
-from ...config.config import UA
+from ...config.config import UA, ParseConfig
 from ...types import ParseResult
 
 
@@ -19,6 +19,11 @@ class Parser(ABC):
     """要保留的参数, 例如翻页. 默认清除全部参数"""
     __redirect_keywords__: list[str] = []
     """如果链接包含其中之一, 则遵循重定向规则"""
+
+    def __init__(self, parse_config: ParseConfig = None):
+        if parse_config is None:
+            parse_config = ParseConfig()
+        self.cfg = parse_config
 
     def match(self, url: str) -> bool:
         """判断是否匹配该解析器"""

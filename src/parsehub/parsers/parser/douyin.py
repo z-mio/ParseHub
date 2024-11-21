@@ -4,7 +4,6 @@ from typing import Union
 import httpx
 
 from ..base.base import Parser
-from ...config.config import ParseHubConfig
 from ...types import VideoParseResult, ImageParseResult, ParseError, Video, Image
 
 
@@ -28,15 +27,14 @@ class DouyinParser(Parser):
             case _:
                 raise ValueError(f"未知类型: {data.type}")
 
-    @staticmethod
-    async def parse_api(url) -> "DYResult":
-        if not ParseHubConfig.douyin_api:
+    async def parse_api(self, url) -> "DYResult":
+        if not self.cfg.douyin_api:
             raise ParseError("抖音解析API未配置")
 
         async with httpx.AsyncClient(timeout=10) as client:
             params = {"url": url, "minimal": False}
             response = await client.get(
-                f"{ParseHubConfig.douyin_api}/api/hybrid/video_data", params=params
+                f"{self.cfg.douyin_api}/api/hybrid/video_data", params=params
             )
         if response.status_code != 200:
             raise ParseError("抖音解析失败")

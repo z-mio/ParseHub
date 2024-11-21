@@ -1,7 +1,7 @@
 import os
 import shutil
 import time
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, TypeVar, Literal
 from .media import Media, Video
 from ..utiles.utile import progress, img2base64
 from ..utiles.download_file import download_file
@@ -12,7 +12,7 @@ from ..tools import LLM, Transcriptions
 from .media import Image, MediaT
 from .subtitles import Subtitles, Subtitle
 from .summary_result import SummaryResult
-from ..config.config import ParseHubConfig
+from ..config.config import DOWNLOAD_DIR, DownloadConfig, SummaryConfig
 from ..utiles.utile import video_to_png
 
 CN_PROMPT = """
@@ -57,12 +57,14 @@ class ParseResult(ABC):
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
+        config: DownloadConfig = DownloadConfig,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
         :param proxies: 代理设置
+        :param config: 下载配置
         :return: 本地视频路径
 
         .. note::
@@ -71,11 +73,7 @@ class ParseResult(ABC):
         """
         if isinstance(self.media, list):
             path_list = []
-            op = (
-                ParseHubConfig.DOWNLOAD_DIR / f"{time.time_ns()}"
-                if path is None
-                else path
-            )
+            op = DOWNLOAD_DIR / f"{time.time_ns()}" if path is None else path
             for i, image in enumerate(self.media):
                 if not image.is_url:
                     path_list.append(image)
@@ -121,10 +119,25 @@ class ParseResult(ABC):
                 raise Exception("下载失败")
             return DownloadResult(self, self.media.__class__(r, ext=self.media.ext))
 
-    async def summary(self) -> "SummaryResult":
-        """总结解析结果"""
-        dr = await self.download()
-        sr = await dr.summary()
+    async def summary(
+        self,
+        api_key: str = None,
+        base_url: str = None,
+        model: str = None,
+        provider: Literal["openai"] = None,
+        prompt: str = None,
+        download_config: DownloadConfig = DownloadConfig,
+    ) -> "SummaryResult":
+        """总结解析结果
+        :param api_key: API密钥
+        :param base_url: API地址
+        :param model: 语言模型
+        :param provider: 语言模型提供商
+        :param prompt: 提示词
+        :param download_config: 下载配置
+        """
+        dr = await self.download(config=download_config)
+        sr = await dr.summary(api_key, base_url, model, provider, prompt)
         dr.delete()
         return sr
 
@@ -185,9 +198,28 @@ class DownloadResult(Generic[T]):
         else:
             return self.media.exists()
 
-    async def summary(self) -> "SummaryResult":
-        """总结解析结果"""
-        if not ParseHubConfig.api_key or not ParseHubConfig.base_url:
+    async def summary(
+        self,
+        api_key: str = None,
+        base_url: str = None,
+        model: str = None,
+        provider: Literal["openai"] = None,
+        prompt: str = None,
+    ) -> "SummaryResult":
+        """总结解析结果
+        :param api_key: API密钥
+        :param base_url: API地址
+        :param model: 语言模型
+        :param provider: 语言模型提供商
+        :param prompt: 提示词
+        """
+        api_key = api_key or SummaryConfig.api_key
+        base_url = base_url or SummaryConfig.base_url
+        model = model or SummaryConfig.model
+        provider = provider or SummaryConfig.provider
+        prompt = prompt or SummaryConfig.prompt or PROMPT
+
+        if api_key or base_url:
             raise ValueError("AI总结未配置")
 
         media = self.media if isinstance(self.media, list) else [self.media]
@@ -195,7 +227,7 @@ class DownloadResult(Generic[T]):
         tasks = []
         for i in media:
             if isinstance(i, Video):
-                subtitles = await self._video_to_subtitles(i)
+                subtitles = await self._video_to_subtitles(i, api_key, base_url)
                 if not subtitles:
                     img = await asyncio.to_thread(video_to_png, i.path)
                     tasks.append(img2base64(img))
@@ -226,27 +258,27 @@ class DownloadResult(Generic[T]):
         ]
 
         template = [
-            SystemMessage(ParseHubConfig.prompt or PROMPT),
+            SystemMessage(prompt),
             HumanMessage(content=content + imgs),
             HumanMessage(content=[{"type": "text", "text": "请对以上内容进行总结！"}]),
         ]
 
         llm = LLM(
-            ParseHubConfig.provider,
-            ParseHubConfig.api_key,
-            ParseHubConfig.base_url,
-            ParseHubConfig.model,
+            provider,
+            api_key,
+            base_url,
+            model,
         )
         model = llm.provider
         answer = await model.ainvoke(template)
         return SummaryResult(answer.content)
 
     @staticmethod
-    async def _video_to_subtitles(media_: Media) -> str:
+    async def _video_to_subtitles(media_: Media, api_key: str, base_url: str) -> str:
         if not media_.subtitles:
-            tr = await Transcriptions(
-                api_key=ParseHubConfig.api_key, base_url=ParseHubConfig.base_url
-            ).transcription(media_.path)
+            tr = await Transcriptions(api_key=api_key, base_url=base_url).transcription(
+                media_.path
+            )
             media_.subtitles = Subtitles(
                 [
                     Subtitle(begin=str(c.begin), end=str(c.end), text=c.text)

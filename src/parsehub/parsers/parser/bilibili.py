@@ -7,13 +7,11 @@ from dynamicadaptor.DynamicConversion import formate_message
 from dynrender_skia.Core import DynRender
 
 from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
-from ...config.config import ParseHubConfig
+from ...config.config import DOWNLOAD_DIR, DownloadConfig
 from ...types import DownloadResult
 from ...types.summary_result import SummaryResult
 from ...utiles.bilibili_api import BiliAPI
 from ...utiles.utile import timestamp_to_time
-
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 
 
 class BiliParse(YtParser):
@@ -72,7 +70,7 @@ class BiliParse(YtParser):
             array=img,
             colorType=skia.ColorType.kRGBA_8888_ColorType,
         )
-        op = ParseHubConfig.DOWNLOAD_DIR.joinpath(f"{dyn_id}/{dyn_id}.png")
+        op = DOWNLOAD_DIR.joinpath(f"{dyn_id}/{dyn_id}.png")
         op.parent.mkdir(parents=True, exist_ok=True)
         img.save(str(op))
         return str(op)
@@ -90,7 +88,7 @@ class BiliParse(YtParser):
 
 
 class BiliDownloadResult(DownloadResult):
-    async def summary(self) -> SummaryResult:
+    async def summary(self, **kwargs) -> SummaryResult:
         bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
         r = await BiliAPI().ai_summary(bvid)
 
@@ -126,8 +124,9 @@ class BiliVideoParseResult(YtVideoParseResult):
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
+        config: DownloadConfig = DownloadConfig,
     ) -> DownloadResult:
-        r = await super().download(path, callback, callback_args, proxies)
+        r = await super().download(path, callback, callback_args, proxies, config)
         return BiliDownloadResult(r.pr, r.media)
 
 

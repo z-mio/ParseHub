@@ -7,7 +7,7 @@ from typing import Union, Callable
 from yt_dlp import YoutubeDL
 
 from .base import Parser
-from ...config.config import ParseHubConfig
+from ...config.config import DOWNLOAD_DIR, DownloadConfig
 from ...types import (
     VideoParseResult,
     ImageParseResult,
@@ -100,15 +100,14 @@ class YtVideoParseResult(VideoParseResult):
         callback: Callable = None,
         callback_args: tuple = (),
         proxies: dict | str = None,
+        config: DownloadConfig = DownloadConfig,
     ) -> DownloadResult:
         """下载视频"""
         if not self.media.is_url:
             return self.media
 
         # 创建保存目录
-        dir_ = (ParseHubConfig.DOWNLOAD_DIR if path is None else path).joinpath(
-            f"{time.time_ns()}"
-        )
+        dir_ = (DOWNLOAD_DIR if path is None else path).joinpath(f"{time.time_ns()}")
         dir_.mkdir(parents=True, exist_ok=True)
 
         # 输出模板
@@ -117,11 +116,11 @@ class YtVideoParseResult(VideoParseResult):
 
         text = "下载合并中...请耐心等待..."
         if (
-            ParseHubConfig.yt_dlp_duration_limit
-            and self.dl.duration > ParseHubConfig.yt_dlp_duration_limit
+            config.yt_dlp_duration_limit
+            and self.dl.duration > config.yt_dlp_duration_limit
         ):
             # 视频超过限制时长，获取最低画质
-            text += f"\n视频超过{ParseHubConfig.yt_dlp_duration_limit}秒，获取最低画质"
+            text += f"\n视频超过{config.yt_dlp_duration_limit}秒，获取最低画质"
             yto["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:
