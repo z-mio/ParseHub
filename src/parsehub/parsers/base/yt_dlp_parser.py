@@ -129,7 +129,7 @@ class YtVideoParseResult(VideoParseResult):
         with YoutubeDL(yto) as ydl:
             await asyncio.to_thread(ydl.download, [self.media.path])
 
-        video_path = (v := list(dir_.glob("*.mp4"))) and v[0]
+        video_path = (v := list(dir_.glob("*.mp4")) or list(dir_.glob("*.mkv"))) and v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
         thumb = (
             v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))
