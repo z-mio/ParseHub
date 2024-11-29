@@ -91,7 +91,7 @@ class Twitter:
 
     @staticmethod
     def get_id_by_url(url: str):
-        return re.match(r"\d+", url.split("/")[-1])[0]
+        return re.search(r"status/(\d+)", url)[1]
 
     async def get_guest_token(self):
         headers = {
