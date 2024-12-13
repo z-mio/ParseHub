@@ -15,18 +15,26 @@ class WXParser(Parser):
     __supported_type__ = ["图文"]
     __match__ = r"^(http(s)?://)mp.weixin.qq.com/s/.*"
 
-    async def parse(self, url: str) -> ImageParseResult:
+    async def parse(self, url: str) -> "WXImageParseResult":
         url = await self.get_raw_url(url)
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             html = response.text
             wx = parse_html(html)
-            return ImageParseResult(
+            return WXImageParseResult(
                 title=wx.title,
                 photo=wx.imgs,
                 desc=wx.text_content,
                 raw_url=url,
             )
+
+
+class WXImageParseResult(ImageParseResult):
+    def __init__(
+        self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX" = None
+    ):
+        super().__init__(title, photo, desc, raw_url)
+        self.wx = wx
 
 
 class WXConverter(MarkdownConverter):
