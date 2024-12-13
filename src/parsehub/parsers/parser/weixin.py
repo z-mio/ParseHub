@@ -26,12 +26,13 @@ class WXParser(Parser):
                 photo=wx.imgs,
                 desc=wx.text_content,
                 raw_url=url,
+                wx=wx,
             )
 
 
 class WXImageParseResult(ImageParseResult):
     def __init__(
-        self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX" = None
+        self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX"
     ):
         super().__init__(title, photo, desc, raw_url)
         self.wx = wx
