@@ -73,7 +73,7 @@ class ParseResult(ABC):
                     continue
 
                 f = await download_file(
-                    image.path, f"{op}/{i}.{image.ext}", proxies=proxies
+                    image.path, DOWNLOAD_DIR / f"{op}/{i}.{image.ext}", proxies=proxies
                 )
 
                 path_list.append(image.__class__(f, ext=image.ext))
@@ -100,7 +100,7 @@ class ParseResult(ABC):
 
             r = await download_file(
                 self.media.path,
-                f"{time.time_ns()}.{self.media.ext}",
+                DOWNLOAD_DIR / f"{time.time_ns()}.{self.media.ext}",
                 proxies=proxies,
                 progress=_callback if callback else None,
                 progress_args=callback_args,
