@@ -2,7 +2,7 @@ import asyncio
 
 from loguru import logger
 from src.parsehub.main import ParseHub
-from src.parsehub.config import ParseConfig, GlobalConfig
+from src.parsehub.config import ParseConfig
 
 test = {
     "bilibili": "https://www.bilibili.com/opus/1010846782483070978",
@@ -21,7 +21,6 @@ test = {
 
 @logger.catch
 async def test_parse_hub():
-    GlobalConfig.proxy = "http://38.207.132.11:53561"
     cfg = ParseConfig(douyin_api=None)
     ph = ParseHub(cfg)
     print("支持的平台: ", ph.get_supported_platforms())
