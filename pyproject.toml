@@ -41,6 +41,7 @@ dependencies = [
     "markdownify>=0.14.1",
     "markdown>=3.7",
     "requests",
+    "skia-python>=87.6",
 ]
 [tool.hatch.build.targets.wheel]
 packages = ["src/parsehub"]

@@ -30,7 +30,12 @@ class DownloadConfig(GlobalConfig):
         """
         if proxy:
             self.proxy = proxy
-        self.save_dir = Path(save_dir) or Path(sys.argv[0]).parent / Path("downloads/")
+
+        if save_dir:
+            self.save_dir = Path(save_dir)
+        else:
+            self.save_dir = Path(sys.argv[0]).parent / Path("downloads/")
+
         self.yt_dlp_duration_limit = yt_dlp_duration_limit or 0
 
 
