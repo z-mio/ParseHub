@@ -8,40 +8,45 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-DOWNLOAD_DIR = (
-    Path(getenv("DOWNLOAD_DIR"))
-    if getenv("DOWNLOAD_DIR")
-    else Path(sys.argv[0]).parent / Path("downloads/")
-)
-"""默认下载目录"""
 
-
-class BaseConfig(ABC):
-    pass
+@dataclass
+class GlobalConfig(ABC):
+    ua: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    proxy: str | None = None
 
 
 @dataclass
-class DownloadConfig(BaseConfig):
-    def __init__(self, yt_dlp_duration_limit: int = None):
+class DownloadConfig(GlobalConfig):
+    def __init__(
+        self,
+        yt_dlp_duration_limit: int = None,
+        save_dir=None,
+        proxy: str | None = None,
+    ):
         """
         下载媒体时使用的配置
         :param yt_dlp_duration_limit: 使用yt-dlp下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制
+        :param save_dir: 下载目录
         """
+        if proxy:
+            self.proxy = proxy
+        self.save_dir = save_dir or Path(sys.argv[0]).parent / Path("downloads/")
         self.yt_dlp_duration_limit = yt_dlp_duration_limit or 0
 
 
 @dataclass
-class ParseConfig(BaseConfig):
-    def __init__(self, douyin_api=None):
+class ParseConfig(GlobalConfig):
+    def __init__(self, douyin_api=None, proxy: str | None = None):
         """
         :param douyin_api: 抖音解析API地址, 项目地址: https://github.com/Evil0ctal/Douyin_TikTok_Download_API
         """
+        if proxy:
+            self.proxy = proxy
         self.douyin_api = douyin_api or "https://douyin.wtf"
 
 
 @dataclass
-class SummaryConfig(BaseConfig):
+class SummaryConfig(GlobalConfig):
     CN_PROMPT = """
     你是一个有用的助手，总结文章和视频字幕的要点。
     用“简体中文”总结3到8个要点，并在最后总结全部。
@@ -52,7 +57,12 @@ class SummaryConfig(BaseConfig):
     """.strip()
 
     def __init__(
-        self, provider=None, api_key=None, base_url=None, model=None, prompt=None
+        self,
+        provider=None,
+        api_key=None,
+        base_url=None,
+        model=None,
+        prompt=None,
     ):
         """
         :param provider: 模型提供商

@@ -7,11 +7,13 @@ from dynamicadaptor.DynamicConversion import formate_message
 from dynrender_skia.Core import DynRender
 
 from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
-from ...config.config import DOWNLOAD_DIR, DownloadConfig
+from ...config.config import DownloadConfig
 from ...types import DownloadResult
 from ...types.summary_result import SummaryResult
 from ...utiles.bilibili_api import BiliAPI
 from ...utiles.utile import timestamp_to_time
+from ...utiles.img_host import ImgHost
+from aiofiles.tempfile import TemporaryDirectory
 
 
 class BiliParse(YtParser):
@@ -49,8 +51,7 @@ class BiliParse(YtParser):
                     photo=result.media,
                 )
 
-    @staticmethod
-    async def gen_dynamic_img(dyn: str) -> str:
+    async def gen_dynamic_img(self, dyn: str) -> str:
         """生成动态页面的图片"""
         dyn_id = re.search(r"\b\d{18,19}\b", dyn).group(0)
         url = f"https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?timezone_offset=-480&id={dyn_id}&features=itemOpusStyle"
@@ -58,8 +59,9 @@ class BiliParse(YtParser):
             "referer": f"https://t.bilibili.com/{dyn_id}",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         }
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxies=self.cfg.proxy) as client:
             message_json = await client.get(url, headers=headers)
+
         message_formate = await formate_message(
             "web", message_json.json()["data"]["item"]
         )
@@ -70,15 +72,16 @@ class BiliParse(YtParser):
             array=img,
             colorType=skia.ColorType.kRGBA_8888_ColorType,
         )
-        op = DOWNLOAD_DIR.joinpath(f"{dyn_id}/{dyn_id}.png")
-        op.parent.mkdir(parents=True, exist_ok=True)
-        img.save(str(op))
-        return str(op)
 
-    @staticmethod
-    async def is_opus(url) -> str:
+        # 保存图片到临时目录
+        async with TemporaryDirectory() as temp_dir:
+            f = Path(temp_dir) / "temp.png"
+            img.save(f.name)
+            return await ImgHost(self.cfg.proxy).litterbox(f.name)
+
+    async def is_opus(self, url) -> str:
         """是动态"""
-        async with httpx.AsyncClient() as cli:
+        async with httpx.AsyncClient(proxies=self.cfg.proxy) as cli:
             url = str((await cli.get(url, follow_redirects=True)).url)
         try:
             if bool(re.search(r"\b\d{18,19}\b", url).group(0)):

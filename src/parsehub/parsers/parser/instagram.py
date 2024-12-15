@@ -1,5 +1,7 @@
 import re
 
+import requests
+
 from ..base.base import Parser
 from ...types import (
     MultimediaParseResult,
@@ -8,7 +10,7 @@ from ...types import (
     Video,
     Image,
 )
-from instaloader import Instaloader, Post
+from instaloader import Post, InstaloaderContext
 
 
 class InstagramParser(Parser):
@@ -21,11 +23,11 @@ class InstagramParser(Parser):
     ) -> VideoParseResult | ImageParseResult | MultimediaParseResult:
         url = await self.get_raw_url(url)
 
-        ins = Instaloader()
         shortcode = self.get_short_code(url)
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
-        post = Post.from_shortcode(ins.context, shortcode)
+        post = Post.from_shortcode(MyInstaloaderContext(self.cfg.proxy), shortcode)
+
         k = {"title": post.title, "desc": post.caption, "raw_url": url}
         match post.typename:
             case "GraphSidecar":
@@ -48,3 +50,28 @@ class InstagramParser(Parser):
         url = url.removesuffix("/")
         shortcode = re.search(r"/(p|reel)/(.*)", url)
         return shortcode.group(2).split("/")[0] if shortcode else None
+
+
+class MyInstaloaderContext(InstaloaderContext):
+    """
+    支持自定义代理
+    """
+
+    def __init__(self, proxy: str | None = None):
+        self.proxy = {"http": proxy, "https": proxy}
+        super().__init__()
+
+    def get_anonymous_session(self) -> requests.Session:
+        session = super().get_anonymous_session()
+        if self.proxy:
+            session.proxies = self.proxy
+            session.trust_env = False
+        return session
+
+    def get_json(self, *args, **kwargs):
+        session: requests.Session = kwargs.get("session")
+        if self.proxy:
+            session.proxies = self.proxy
+            session.trust_env = False
+
+        return super().get_json(*args, **kwargs)

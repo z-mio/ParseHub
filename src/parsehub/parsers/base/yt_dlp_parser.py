@@ -7,7 +7,7 @@ from pathlib import Path
 from yt_dlp import YoutubeDL
 
 from .base import Parser
-from ...config.config import DOWNLOAD_DIR, DownloadConfig
+from ...config.config import DownloadConfig
 from ...types import (
     VideoParseResult,
     ImageParseResult,
@@ -66,7 +66,7 @@ class YtParser(Parser):
 
     @property
     def params(self) -> dict:
-        return {
+        params = {
             "format": "mp4+bestvideo[height<=1080]+bestaudio",
             "quiet": True,  # 不输出日志
             "writethumbnail": True,  # 下载缩略图
@@ -79,6 +79,11 @@ class YtParser(Parser):
             "playlist_items": "1",  # 分p列表默认解析第一个
             # "progress_hooks": [self.hook], # 进度回调
         }
+
+        if self.cfg.proxy:
+            params["proxy"] = self.cfg.proxy
+
+        return params
 
 
 class YtVideoParseResult(VideoParseResult):
@@ -107,11 +112,16 @@ class YtVideoParseResult(VideoParseResult):
             return self.media
 
         # 创建保存目录
-        dir_ = (DOWNLOAD_DIR if path is None else Path(path)).joinpath(f"{time.time_ns()}")
+        dir_ = (config.save_dir if path is None else Path(path)).joinpath(
+            f"{time.time_ns()}"
+        )
         dir_.mkdir(parents=True, exist_ok=True)
 
         # 输出模板
         yto = YtParser().params
+        if config.proxy:
+            yto["proxy"] = config.proxy
+
         yto["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         text = "下载合并中...请耐心等待..."
@@ -129,7 +139,9 @@ class YtVideoParseResult(VideoParseResult):
         with YoutubeDL(yto) as ydl:
             await asyncio.to_thread(ydl.download, [self.media.path])
 
-        video_path = (v := list(dir_.glob("*.mp4")) or list(dir_.glob("*.mkv"))) and v[0]
+        video_path = (v := list(dir_.glob("*.mp4")) or list(dir_.glob("*.mkv"))) and v[
+            0
+        ]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
         thumb = (
             v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))

@@ -22,9 +22,6 @@
 
 `pip install parsehub`
 
-安装`yt-dlp`: [wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation)
-
-
 ---
 
 > [!IMPORTANT]

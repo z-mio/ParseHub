@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import httpx
 from httpx._types import ProxiesTypes
@@ -35,27 +34,25 @@ class ImgHost:
             file.close()
         if is_url:
             os.remove(filename)
+
+        await self.async_client.aclose()
         return response.text
 
     @retry(stop=stop_after_attempt(5))
-    async def ipfs(self, filename: str | Path):
-        host_url = "https://tu.rw2.cc"
+    async def litterbox(self, filename: str):
+        host_url = "https://litterbox.catbox.moe/resources/internals/api.php"
 
-        if str(filename).startswith("http"):
+        file = open(filename, "rb")
+        try:
             data = {
-                "url": filename,
+                "reqtype": "fileupload",
+                "time": "1h",
             }
             response = await self.async_client.post(
-                f"{host_url}/url_upload.php", data=data
+                host_url, data=data, files={"fileToUpload": file}
             )
-        else:
-            files = {"file": open(filename, "rb")}
-            response = await self.async_client.post(
-                f"{host_url}/upload.php", files=files
-            )
-        if r := response.json().get("error_msg"):
-            raise Exception(r)
-        return response.json()["original_pic"]
+        finally:
+            file.close()
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.async_client.aclose()
+        await self.async_client.aclose()
+        return response.text

@@ -16,7 +16,7 @@ class TieBaParser(Parser):
     __match__ = r"^(http(s)?://)?.+tieba.baidu.com/p/\d+"
 
     async def parse(self, url: str) -> Union["ImageParseResult", "VideoParseResult"]:
-        tb = await TieBa().parse(url)
+        tb = await TieBa(self.cfg.proxy).parse(url)
         if tb.video_url:
             return VideoParseResult(
                 title=tb.title, video=tb.video_url, raw_url=url, desc=tb.content
@@ -28,6 +28,9 @@ class TieBaParser(Parser):
 
 
 class TieBa:
+    def __init__(self, proxy: str | None = None):
+        self.proxy = proxy
+
     @staticmethod
     def _parse_out_the_body(text):
         soup = BeautifulSoup(str(text), "html.parser")
@@ -74,13 +77,12 @@ class TieBa:
         content = self._parse_out_the_body(content)
         return title, content
 
-    @staticmethod
-    async def get_html(t_url) -> Response:
-        proxy = httpx.get("http://demo.spiderpy.cn/get/").json().get("proxy")
-        async with httpx.AsyncClient() as c:
+    async def get_html(self, t_url) -> Response:
+        async with httpx.AsyncClient(proxies=self.proxy) as c:
+            proxy = (await c.get("http://demo.spiderpy.cn/get/")).json().get("proxy")
             res = await c.get(t_url, headers={"User-Agent": "Mozilla5.0/"})
-        httpx.get(f"http://demo.spiderpy.cn/delete/?proxy={proxy}")
-        return res
+            await c.get(f"http://demo.spiderpy.cn/delete/?proxy={proxy}")
+            return res
 
     async def parse(self, t_url) -> "TieBaPost":
         res = await self.get_html(t_url)

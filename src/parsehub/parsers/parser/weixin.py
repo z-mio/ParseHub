@@ -17,7 +17,7 @@ class WXParser(Parser):
 
     async def parse(self, url: str) -> "WXImageParseResult":
         url = await self.get_raw_url(url)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxies=self.cfg.proxy) as client:
             response = await client.get(url)
             html = response.text
             wx = parse_html(html)
@@ -31,9 +31,7 @@ class WXParser(Parser):
 
 
 class WXImageParseResult(ImageParseResult):
-    def __init__(
-        self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX"
-    ):
+    def __init__(self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX"):
         super().__init__(title, photo, desc, raw_url)
         self.wx = wx
 

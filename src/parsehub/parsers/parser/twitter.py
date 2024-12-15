@@ -13,7 +13,7 @@ class TwitterParser(Parser):
 
     async def parse(self, url: str) -> "MultimediaParseResult":
         url = await self.get_raw_url(url)
-        x = Twitter()
+        x = Twitter(self.cfg.proxy)
         try:
             tweet = await x.fetch_tweet(url)
         except Exception as e:
@@ -38,7 +38,8 @@ class TwitterParser(Parser):
 
 
 class Twitter:
-    def __init__(self):
+    def __init__(self, proxy: str | None = None):
+        self.proxy = proxy
         self.authorization = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 
     async def fetch_tweet(self, url: str) -> "TwitterTweet":
@@ -60,7 +61,7 @@ class Twitter:
             "fieldToggles": '{"withArticleRichContentState":true,"withArticlePlainText":false}',
         }
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxies=self.proxy) as client:
             response = await client.get(
                 "https://api.twitter.com/graphql/kPLTRmMnzbPTv70___D06w/TweetResultByRestId",
                 params=params,
@@ -97,7 +98,7 @@ class Twitter:
         headers = {
             "Authorization": self.authorization,
         }
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxies=self.proxy) as client:
             response = await client.post(
                 "https://api.twitter.com/1.1/guest/activate.json", headers=headers
             )

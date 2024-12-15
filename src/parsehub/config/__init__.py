@@ -1,1 +1,1 @@
-from .config import DownloadConfig, BaseConfig, ParseConfig, DOWNLOAD_DIR, UA
+from .config import DownloadConfig, GlobalConfig, ParseConfig

@@ -4,7 +4,7 @@ from urllib.parse import urlparse, parse_qs
 
 import httpx
 
-from ...config.config import UA, ParseConfig
+from ...config.config import ParseConfig
 from ...types import ParseResult
 
 
@@ -42,9 +42,9 @@ class Parser(ABC):
         """
 
         if any(map(lambda x: x in url, self.__redirect_keywords__)):
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(proxies=self.cfg.proxy) as client:
                 r = await client.get(
-                    url, follow_redirects=True, headers={"User-Agent": UA}
+                    url, follow_redirects=True, headers={"User-Agent": self.cfg.ua}
                 )
                 r.raise_for_status()
                 url = str(r.url)

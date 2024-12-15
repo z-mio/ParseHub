@@ -13,7 +13,7 @@ from ..tools import LLM, Transcriptions
 from .media import Image, MediaT
 from .subtitles import Subtitles, Subtitle
 from .summary_result import SummaryResult
-from ..config.config import DOWNLOAD_DIR, DownloadConfig, SummaryConfig
+from ..config.config import DownloadConfig, SummaryConfig
 from ..utiles.utile import video_to_png
 
 
@@ -49,14 +49,12 @@ class ParseResult(ABC):
         path: str | Path = None,
         callback: Callable = None,
         callback_args: tuple = (),
-        proxies: dict | str = None,
         config: DownloadConfig = DownloadConfig(),
     ) -> "DownloadResult":
         """
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
-        :param proxies: 代理设置
         :param config: 下载配置
         :return: 本地视频路径
 
@@ -66,14 +64,16 @@ class ParseResult(ABC):
         """
         if isinstance(self.media, list):
             path_list = []
-            op = DOWNLOAD_DIR / f"{time.time_ns()}" if path is None else Path(path)
+            op = config.save_dir / f"{time.time_ns()}" if path is None else Path(path)
             for i, image in enumerate(self.media):
                 if not image.is_url:
                     path_list.append(image)
                     continue
 
                 f = await download_file(
-                    image.path, DOWNLOAD_DIR / f"{op}/{i}.{image.ext}", proxies=proxies
+                    image.path,
+                    config.save_dir / f"{op}/{i}.{image.ext}",
+                    proxies=config.proxy,
                 )
 
                 path_list.append(image.__class__(f, ext=image.ext))
@@ -100,8 +100,8 @@ class ParseResult(ABC):
 
             r = await download_file(
                 self.media.path,
-                DOWNLOAD_DIR / f"{time.time_ns()}.{self.media.ext}",
-                proxies=proxies,
+                config.save_dir / f"{time.time_ns()}.{self.media.ext}",
+                proxies=config.proxy,
                 progress=_callback if callback else None,
                 progress_args=callback_args,
             )
