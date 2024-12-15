@@ -64,7 +64,7 @@ class ParseResult(ABC):
         """
         if isinstance(self.media, list):
             path_list = []
-            op = config.save_dir / f"{time.time_ns()}" if path is None else Path(path)
+            op = (Path(path) if path else config.save_dir).joinpath(f"{time.time_ns()}")
             for i, image in enumerate(self.media):
                 if not image.is_url:
                     path_list.append(image)
@@ -72,7 +72,7 @@ class ParseResult(ABC):
 
                 f = await download_file(
                     image.path,
-                    config.save_dir / f"{op}/{i}.{image.ext}",
+                    f"{op}/{i}.{image.ext}",
                     proxies=config.proxy,
                 )
 
