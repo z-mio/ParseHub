@@ -14,7 +14,7 @@ class WeiboParser(Parser):
 
     async def parse(self, url: str) -> MultimediaParseResult:
         url = await self.get_raw_url(url)
-        zy = await ZuiYou().parse(url)
+        zy = await ZuiYou(self.cfg.proxy).parse(url)
         return MultimediaParseResult(
             desc=zy.content,
             media=[
@@ -68,12 +68,13 @@ class ZuiYouPost:
 
 @dataclass
 class ZuiYou:
-    def __init__(self):
+    def __init__(self, proxy: str = None):
+        self.proxy = proxy
         self.api_url = "https://share.xiaochuankeji.cn/planck/share/post/detail_h5"
 
     async def parse(self, url: str) -> ZuiYouPost:
         pid = self.get_id_by_url(url)
-        async with httpx.AsyncClient() as cli:
+        async with httpx.AsyncClient(proxies=self.proxy) as cli:
             result = await cli.post(self.api_url, json={"pid": pid})
         return ZuiYouPost.parse(result.json())
 
