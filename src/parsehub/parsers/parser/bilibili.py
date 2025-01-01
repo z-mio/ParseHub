@@ -19,9 +19,9 @@ from aiofiles.tempfile import TemporaryDirectory
 class BiliParse(YtParser):
     __platform__ = "Bilibili"
     __supported_type__ = ["视频", "动态"]
-    __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|\b\d{18,19}\b)|b23.tv).*"
+    __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|\b\d{18,19}\b)|b23.tv|bili2233.cn).*"
     __reserved_parameters__ = ["p"]
-    __redirect_keywords__ = ["b23.tv"]
+    __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
     async def parse(
         self, url: str
