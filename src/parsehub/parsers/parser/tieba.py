@@ -1,4 +1,3 @@
-import re
 from dataclasses import dataclass
 from typing import Union
 
@@ -37,10 +36,11 @@ class TieBa:
         div_tag = soup.find_all("div")
         [img.extract() for img in soup.find_all("img")]
         [i.unwrap() for i in div_tag]
-        text = re.sub(
-            r"(<br/><br/>)+|点击展开，查看完整图片|<i.*></i>", "", str(soup)
-        ).strip()
-        text = re.sub(r'<span class="apc_src_wrapper">视频来自：.*</span>', "", text)
+        text = soup.text.strip()
+        # text = re.sub(
+        #     r"(<br/><br/>)+|点击展开，查看完整图片|<i.*></i>", "", str(soup)
+        # ).strip()
+        # text = re.sub(r'<span class="apc_src_wrapper">视频来自：.*</span>', "", text)
         return text
 
     @staticmethod
@@ -70,8 +70,9 @@ class TieBa:
     async def get_the_content(self, html: Response):
         """获取帖子的标题和内容"""
         soup = BeautifulSoup(html.text, "html.parser")
-        title = soup.find(
-            "h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}
+        title = (
+            soup.find("h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]})
+            or soup.find("h1", {"class": "core_title_txt"})
         ).text.strip()
         content = soup.find("div", {"class": ["d_post_content", "j_d_post_content"]})
         content = self._parse_out_the_body(content)
