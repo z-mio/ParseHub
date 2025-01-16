@@ -91,11 +91,11 @@ class BiliParse(YtParser):
 
 
 class BiliDownloadResult(DownloadResult):
-    async def summary(self, **kwargs) -> SummaryResult:
+    async def summary(self, *args, **kwargs) -> SummaryResult:
         bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
         r = await BiliAPI().ai_summary(bvid)
 
-        if r.data.code == -1:
+        if not r.data or r.data.code == -1:
             # return SummaryResult("此视频不存在AI总结")
             return await super().summary()
 

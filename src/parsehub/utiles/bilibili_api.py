@@ -149,11 +149,14 @@ class AISummaryResult:
     code: int
     message: str
     ttl: int
-    data: Data
+    data: Data | None
 
     @staticmethod
     def parse(json_dict: dict) -> "AISummaryResult":
-        data = Data.parse(json_dict["data"])
+        if data := json_dict.get("data"):
+            data = Data.parse(data)
+        else:
+            data = None
         return AISummaryResult(
             code=json_dict["code"],
             message=json_dict["message"],

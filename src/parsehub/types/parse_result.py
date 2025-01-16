@@ -118,6 +118,7 @@ class ParseResult(ABC):
         base_url: str = None,
         model: str = None,
         provider: Literal["openai"] = None,
+        transcriptions_provider: str = None,
         prompt: str = None,
         download_config: DownloadConfig = DownloadConfig(),
     ) -> "SummaryResult":
@@ -126,11 +127,14 @@ class ParseResult(ABC):
         :param base_url: API地址
         :param model: 语言模型
         :param provider: 语言模型提供商
+        :param transcriptions_provider: 语音转文本提供商
         :param prompt: 提示词
         :param download_config: 下载配置
         """
         dr = await self.download(config=download_config)
-        sr = await dr.summary(api_key, base_url, model, provider, prompt)
+        sr = await dr.summary(
+            api_key, base_url, model, provider, prompt, transcriptions_provider
+        )
         dr.delete()
         return sr
 
@@ -204,6 +208,7 @@ class DownloadResult(Generic[T]):
         model: str = None,
         provider: Literal["openai"] = None,
         prompt: str = None,
+        transcriptions_provider: str = None,
     ) -> "SummaryResult":
         """总结解析结果
         :param api_key: API密钥
@@ -211,6 +216,7 @@ class DownloadResult(Generic[T]):
         :param model: 语言模型
         :param provider: 语言模型提供商
         :param prompt: 提示词
+        :param transcriptions_provider: 语音转文本提供商
         """
         sc = SummaryConfig()
         api_key = api_key or sc.api_key
@@ -218,6 +224,7 @@ class DownloadResult(Generic[T]):
         model = model or sc.model
         provider = provider or sc.provider
         prompt = prompt or sc.prompt
+        transcriptions_provider = transcriptions_provider or sc.transcriptions_provider
 
         if not api_key or not base_url:
             raise ValueError("AI总结未配置")
@@ -227,7 +234,9 @@ class DownloadResult(Generic[T]):
         tasks = []
         for i in media:
             if isinstance(i, Video):
-                subtitles = await self._video_to_subtitles(i, api_key, base_url)
+                subtitles = await self._video_to_subtitles(
+                    i, api_key, base_url, transcriptions_provider
+                )
                 if not subtitles:
                     img = await asyncio.to_thread(video_to_png, i.path)
                     tasks.append(img2base64(img))
@@ -274,10 +283,15 @@ class DownloadResult(Generic[T]):
         return SummaryResult(answer.content)
 
     @staticmethod
-    async def _video_to_subtitles(media_: Media, api_key: str, base_url: str) -> str:
+    async def _video_to_subtitles(
+        media_: Media,
+        api_key: str,
+        base_url: str,
+        transcriptions_provider: str,
+    ) -> str:
         if not media_.subtitles:
             tr = await Transcriptions(api_key=api_key, base_url=base_url).transcription(
-                media_.path
+                media_.path, transcriptions_provider=transcriptions_provider
             )
             media_.subtitles = Subtitles(
                 [

@@ -39,13 +39,13 @@ class WhisperResult:
     status: str
     task_id: str
 
-    @staticmethod
-    def parse(data: dict) -> "WhisperResult":
+    @classmethod
+    def parse(cls, data: dict) -> "WhisperResult":
         text = data["output"]["text"]
         chucks = [Chunk.parse(chunk) for chunk in data["output"]["chunks"]]
         status = data["status"]
         task_id = data["task_id"]
-        return WhisperResult(text, chucks, status, task_id)
+        return cls(text, chucks, status, task_id)
 
 
 @dataclass
@@ -54,12 +54,12 @@ class Chunk:
     end: float
     text: str
 
-    @staticmethod
-    def parse(data: dict) -> "Chunk":
+    @classmethod
+    def parse(cls, data: dict) -> "Chunk":
         begin = data["timestamp"][0]
         end = data["timestamp"][1]
         text = data["text"]
-        return Chunk(begin, end, text)
+        return cls(begin, end, text)
 
 
 if __name__ == "__main__":

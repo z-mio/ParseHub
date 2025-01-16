@@ -5,6 +5,7 @@ from typing import Literal
 
 from aiofiles.tempfile import TemporaryDirectory
 
+from ..utiles.azure import Azure
 from ..utiles.whisper_api import WhisperAPI
 from pydub import AudioSegment
 from openai import AsyncOpenAI
@@ -19,26 +20,39 @@ class Transcriptions:
         self.base_url = base_url
 
     async def transcription(
-        self, audio_path: str, model: Literal["openai", "fast_whisper"] = "openai"
+        self,
+        audio_path: str,
+        transcriptions_provider: Literal["openai", "fast_whisper", "azure"] = None,
     ):
-        match model:
+        if transcriptions_provider is None:
+            transcriptions_provider = "openai"
+        process = True
+
+        match transcriptions_provider:
             case "openai":
                 m = self.openai
             case "fast_whisper":
                 m = self.fast_whisper
+            case "azure":
+                m = self.azure
+                process = False
             case _:
                 raise ValueError("Invalid model")
-
-        async with TemporaryDirectory() as temp_dir:
-            await self.split_audio(audio_path, temp_dir)
-            tasks = [m(Path(temp_dir, f)) for f in os.listdir(temp_dir)]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            text, chucks = "", []
-            for r in results:
-                if not isinstance(r, BaseException):
-                    text += r.text
-                    chucks.extend(r.chucks)
-            return TranscriptionResult(text=text, chucks=chucks)
+        if not process:
+            result = await m(audio_path)
+            text = result.text
+            chucks = result.chucks
+        else:
+            async with TemporaryDirectory() as temp_dir:
+                await self.split_audio(audio_path, temp_dir)
+                tasks = [m(f"{Path(temp_dir, f)}") for f in os.listdir(temp_dir)]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                text, chucks = "", []
+                for r in results:
+                    if not isinstance(r, BaseException):
+                        text += r.text
+                        chucks.extend(r.chucks)
+        return TranscriptionResult(text=text, chucks=chucks)
 
     async def openai(self, audio_path: str):
         oai = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -55,7 +69,18 @@ class Transcriptions:
     async def fast_whisper(self, audio_path: str):
         wi = WhisperAPI(api_key=self.api_key, base_url=self.base_url)
         r = await wi.transcribe(audio_path)
-        return TranscriptionResult(text=r.text, chucks=r.chucks)
+        chucks = [Chunk(begin=i.begin, end=i.end, text=i.text) for i in r.chucks]
+        return TranscriptionResult(text=r.text, chucks=chucks)
+
+    @staticmethod
+    async def azure(audio_path: str):
+        az = Azure()
+        result = await az.speech_to_text(audio_path)
+        chucks = [
+            Chunk(begin=phrase.begin, end=phrase.end, text=phrase.text)
+            for phrase in result.phrases
+        ]
+        return TranscriptionResult(text=result.text, chucks=chucks)
 
     @staticmethod
     async def split_audio(

@@ -68,6 +68,7 @@ class SummaryConfig(GlobalConfig):
         base_url=None,
         model=None,
         prompt=None,
+        transcriptions_provider=None,
     ):
         """
         :param provider: 模型提供商
@@ -75,9 +76,11 @@ class SummaryConfig(GlobalConfig):
         :param base_url: API 地址
         :param model: AI总结模型名称
         :param prompt: AI总结提示词
+        :param transcriptions_provider: 语音转文本模型提供商
         """
         self.provider = provider or getenv("PROVIDER", "openai").lower()
         self.api_key = api_key or getenv("API_KEY")
         self.base_url = base_url or getenv("BASE_URL", "https://api.openai.com/v1")
         self.model = model or getenv("MODEL", "gpt-4o-mini")
         self.prompt = prompt or getenv("PROMPT", self.PROMPT)
+        self.transcriptions_provider = transcriptions_provider or getenv("TRANSCRIPTIONS_PROVIDER", "openai")
