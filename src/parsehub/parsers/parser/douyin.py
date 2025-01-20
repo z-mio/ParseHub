@@ -2,9 +2,16 @@ from dataclasses import dataclass
 from typing import Union
 
 import httpx
-
+from enum import Enum
 from ..base.base import Parser
-from ...types import VideoParseResult, ImageParseResult, ParseError, Video, Image
+from ...types import (
+    VideoParseResult,
+    ImageParseResult,
+    ParseError,
+    Video,
+    Image,
+    MultimediaParseResult,
+)
 
 
 class DouyinParser(Parser):
@@ -15,15 +22,17 @@ class DouyinParser(Parser):
 
     async def parse(
         self, url: str
-    ) -> Union["VideoParseResult", "ImageParseResult", None]:
+    ) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         url = await self.get_raw_url(url)
         data = await self.parse_api(url)
 
         match data.type:
-            case "video":
+            case DYType.VIDEO:
                 return await self.video_parse(url, data)
-            case "image":
+            case DYType.IMAGE:
                 return await self.image_parse(url, data)
+            case DYType.Multimedia:
+                return await self.multimedia_parse(url, data)
             case _:
                 raise ValueError(f"未知类型: {data.type}")
 
@@ -45,7 +54,7 @@ class DouyinParser(Parser):
         return VideoParseResult(
             raw_url=url,
             title=result.desc,
-            video=Video(result.video, thumb_url=result.thumb),
+            video=result.video,
         )
 
     @staticmethod
@@ -53,47 +62,71 @@ class DouyinParser(Parser):
         return ImageParseResult(
             raw_url=url,
             title=result.desc,
-            photo=[Image(i, thumb_url=result.thumb) for i in result.image_list],
+            photo=result.image_list,
         )
+
+    @staticmethod
+    async def multimedia_parse(url, result: "DYResult"):
+        return MultimediaParseResult(
+            raw_url=url,
+            title=result.desc,
+            media=result.multimedia,
+        )
+
+
+class DYType(Enum):
+    VIDEO = "video"
+    IMAGE = "image"
+    Multimedia = "multimedia"
 
 
 @dataclass
 class DYResult:
-    type: str
+    type: DYType
     platform: str
-    video: str = None
+    video: Video = None
     desc: str = ""
-    image_list: list[str] = None
-    thumb: str = None
+    image_list: list[Image] = None
+    multimedia: list[Video | Image] = None
 
     @staticmethod
     def parse(url: str, json_dict: dict):
         platform = "douyin" if "douyin" in url else "tiktok"
         data = json_dict.get("data")
         desc = data.get("desc")
-        if images := data.get("images"):
-            type_ = "image"
-            image_list = [image["url_list"][-1] for image in images]
-            return DYResult(
-                type=type_,
-                image_list=image_list,
-                desc=desc,
-                platform=platform,
-            )
-        else:
-            type_ = "video"
-            video_d = data.get("video")
 
-            video = video_d.get("bit_rate")
+        def fn(video_data: dict):
+            video = video_data.get("bit_rate")
             if not video:
                 raise ParseError("抖音解析失败: 未获取到视频下载地址")
             video.sort(key=lambda x: x["quality_type"])
             video = video[0]["play_addr"]["url_list"][-1]
-            thumb = video_d["cover"]["url_list"][-1]
+            thumb = video_data["cover"]["url_list"][-1]
+            return video, thumb
+
+        if images := data.get("images"):
+            if images[0].get("video"):
+                video_list = [fn(image["video"]) for image in images]
+                multimedia = [Video(v[0], thumb_url=v[1]) for v in video_list]
+                return DYResult(
+                    type=DYType.Multimedia,
+                    desc=desc,
+                    multimedia=multimedia,
+                    platform=platform,
+                )
+            else:
+                image_list = [Image(image["url_list"][-1]) for image in images]
+                return DYResult(
+                    type=DYType.IMAGE,
+                    image_list=image_list,
+                    desc=desc,
+                    platform=platform,
+                )
+        else:
+            v = fn(data.get("video"))
             return DYResult(
-                type=type_,
-                video=video,
+                type=DYType.VIDEO,
+                video=Video(v[0], thumb_url=v[1]),
                 desc=desc,
                 platform=platform,
-                thumb=thumb,
             )
