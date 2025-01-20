@@ -19,6 +19,11 @@ class Azure:
             )
 
     async def speech_to_text(self, audio_file_path: str):
+        """
+        长度小于 2 小时且大小小于 200 MB
+        :param audio_file_path:
+        :return:
+        """
         url = (
             self.endpoint
             + "/speechtotext/transcriptions:transcribe?api-version=2024-11-15"

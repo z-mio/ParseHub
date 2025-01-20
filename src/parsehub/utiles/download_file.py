@@ -12,6 +12,7 @@ async def download_file(
     url: str,
     save_path: str | Path = None,
     *,
+    headers: dict = None,
     proxies: ProxiesTypes = None,
     progress: Callable = None,
     progress_args: tuple = (),
@@ -19,6 +20,7 @@ async def download_file(
     """
     :param url: 下载链接
     :param save_path: 保存路径, 默认保存到downloads文件夹, 如果路径以/结尾，则自动获取文件名
+    :param headers: 请求头
     :param proxies: 代理
     :param progress: 下载进度回调函数
     :param progress_args: 下载进度回调函数参数
@@ -28,7 +30,7 @@ async def download_file(
         下载进度回调函数签名: async def progress(current: int, total: int, *args) -> None:
     """
 
-    async with httpx.AsyncClient(proxies=proxies) as client:
+    async with httpx.AsyncClient(proxies=proxies, headers=headers) as client:
         save_dir, filename = os.path.split(save_path) if save_path else (None, None)
         save_dir = (
             Path(os.path.abspath(save_dir))

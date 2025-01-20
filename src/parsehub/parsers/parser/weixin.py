@@ -17,17 +17,14 @@ class WXParser(Parser):
 
     async def parse(self, url: str) -> "WXImageParseResult":
         url = await self.get_raw_url(url)
-        async with httpx.AsyncClient(proxies=self.cfg.proxy) as client:
-            response = await client.get(url)
-            html = response.text
-            wx = parse_html(html)
-            return WXImageParseResult(
-                title=wx.title,
-                photo=wx.imgs,
-                desc=wx.text_content,
-                raw_url=url,
-                wx=wx,
-            )
+        wx = await WX.parse(url, self.cfg.proxy)
+        return WXImageParseResult(
+            title=wx.title,
+            photo=wx.imgs,
+            desc=wx.text_content,
+            raw_url=url,
+            wx=wx,
+        )
 
 
 class WXImageParseResult(ImageParseResult):
@@ -39,7 +36,7 @@ class WXImageParseResult(ImageParseResult):
 class WXConverter(MarkdownConverter):
     def convert_img(self, el, text, convert_as_inline):
         alt = el.attrs.get("alt", None) or ""
-        src = el.attrs.get("data-src", None) or ""
+        src = el.attrs.get("data-src", None) or ""  # 替换为微信的data-src属性
         title = el.attrs.get("title", None) or ""
         title_part = ' "%s"' % title.replace('"', r"\"") if title else ""
         if (
@@ -50,9 +47,9 @@ class WXConverter(MarkdownConverter):
 
         return "![%s](%s%s)" % (alt, src, title_part)
 
-
-def md(html, **options):
-    return WXConverter(**options).convert(html)
+    @classmethod
+    def md(cls, html, **options):
+        return cls(**options).convert(html)
 
 
 @dataclass
@@ -62,19 +59,28 @@ class WX:
     markdown_content: str
     text_content: str
 
+    @staticmethod
+    async def parse(url: str, proxy: str):
+        async with httpx.AsyncClient(proxies=proxy) as client:
+            response = await client.get(url)
+            html = response.text
+            return WX._parse_html(html)
 
-def parse_html(html: str) -> WX:
-    soup = BeautifulSoup(html, "html.parser")
-    content = soup.find("div", {"class": "rich_media_content"})
+    @classmethod
+    def _parse_html(cls, html: str) -> "WX":
+        soup = BeautifulSoup(html, "html.parser")
+        content = soup.find("div", {"class": "rich_media_content"})
 
-    if not content:
-        raise ParseError("获取内容失败")
+        if not content:
+            raise ParseError("获取内容失败")
 
-    title = (t := soup.find("h1", {"class": "rich_media_title"})) and t.text.strip()
-    imgs = [i["data-src"] for i in content.find_all("img", {"class": "rich_pages"})]
+        title = (t := soup.find("h1", {"class": "rich_media_title"})) and t.text.strip()
+        imgs = [i["data-src"] for i in content.find_all("img", {"class": "rich_pages"})]
 
-    markdown_content = md(str(content), heading_style="ATX")
-    text_content = "".join(
-        BeautifulSoup(markdown(markdown_content), "html.parser").find_all(string=True)
-    )
-    return WX(title, imgs, markdown_content, text_content)
+        markdown_content = WXConverter.md(str(content), heading_style="ATX")
+        text_content = "".join(
+            BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
+                string=True
+            )
+        )
+        return cls(title, imgs, markdown_content, text_content)

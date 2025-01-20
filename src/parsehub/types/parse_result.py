@@ -56,7 +56,7 @@ class ParseResult(ABC):
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
         :param config: 下载配置
-        :return: 本地视频路径
+        :return: DownloadResult
 
         .. note::
         下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
@@ -74,6 +74,7 @@ class ParseResult(ABC):
                     image.path,
                     f"{op}/{i}.{image.ext}",
                     proxies=config.proxy,
+                    headers=config.headers,
                 )
 
                 path_list.append(image.__class__(f, ext=image.ext))
@@ -101,6 +102,7 @@ class ParseResult(ABC):
             r = await download_file(
                 self.media.path,
                 config.save_dir / f"{time.time_ns()}.{self.media.ext}",
+                headers=config.headers,
                 proxies=config.proxy,
                 progress=_callback if callback else None,
                 progress_args=callback_args,

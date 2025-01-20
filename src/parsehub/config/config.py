@@ -20,8 +20,9 @@ class DownloadConfig(GlobalConfig):
     def __init__(
         self,
         yt_dlp_duration_limit: int = None,
-        save_dir=None,
+        save_dir: Path | str | None = None,
         proxy: str | None = None,
+        headers: dict | None = None,
     ):
         """
         下载媒体时使用的配置
@@ -37,6 +38,7 @@ class DownloadConfig(GlobalConfig):
             self.save_dir = Path(sys.argv[0]).parent / Path("downloads/")
 
         self.yt_dlp_duration_limit = yt_dlp_duration_limit or 0
+        self.headers = headers
 
 
 @dataclass
@@ -83,4 +85,6 @@ class SummaryConfig(GlobalConfig):
         self.base_url = base_url or getenv("BASE_URL", "https://api.openai.com/v1")
         self.model = model or getenv("MODEL", "gpt-4o-mini")
         self.prompt = prompt or getenv("PROMPT", self.PROMPT)
-        self.transcriptions_provider = transcriptions_provider or getenv("TRANSCRIPTIONS_PROVIDER", "openai")
+        self.transcriptions_provider = transcriptions_provider or getenv(
+            "TRANSCRIPTIONS_PROVIDER", "openai"
+        )
