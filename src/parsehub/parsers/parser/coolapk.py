@@ -54,8 +54,8 @@ class CoolapkImageParseResult(ImageParseResult):
 
 @dataclass
 class Coolapk:
-    title: str = None
-    markdown_content: str = None
+    title: str | None = None
+    markdown_content: str | None = None
     text_content: str = None
     imgs: list[str] = None
 
@@ -89,4 +89,4 @@ class Coolapk:
                 if message_image_group
                 else []
             )
-            return cls(content, content, content, imgs)
+            return cls(None, None, content, imgs)
