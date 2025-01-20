@@ -15,7 +15,7 @@ from ...config.config import GlobalConfig
 class CoolapkParser(Parser):
     __platform__ = "酷安"
     __supported_type__ = ["图文"]
-    __match__ = r"^(http(s)?://)www.coolapk.com/feed/.*"
+    __match__ = r"^(http(s)?://)www.coolapk.com/(feed|picture)/.*"
     __reserved_parameters__ = ["shareKey"]
 
     async def parse(self, url: str) -> "CoolapkImageParseResult":
