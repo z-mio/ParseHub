@@ -126,10 +126,9 @@ class BiliVideoParseResult(YtVideoParseResult):
         path: str | Path = None,
         callback: Callable = None,
         callback_args: tuple = (),
-        proxies: dict | str = None,
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
-        r = await super().download(path, callback, callback_args, proxies, config)
+        r = await super().download(path, callback, callback_args, config)
         return BiliDownloadResult(r.pr, r.media, r.save_dir)
 
 

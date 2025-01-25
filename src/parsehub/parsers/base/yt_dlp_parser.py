@@ -104,7 +104,6 @@ class YtVideoParseResult(VideoParseResult):
         path: str | Path = None,
         callback: Callable = None,
         callback_args: tuple = (),
-        proxies: dict | str = None,
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         """下载视频"""

@@ -19,6 +19,7 @@ class DouyinParser(Parser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+douyin.com/.+|^(http(s)?://)?.+tiktok.com/.+"
     __redirect_keywords__ = ["v.douyin", "vt.tiktok"]
+    __reserved_parameters__ = ["modal_id"]
 
     async def parse(
         self, url: str
