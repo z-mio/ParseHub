@@ -69,7 +69,7 @@ class YtParser(Parser):
         params = {
             "format": "mp4+bestvideo[height<=1080]+bestaudio",
             "quiet": True,  # 不输出日志
-            "writethumbnail": True,  # 下载缩略图
+            # "writethumbnail": True,  # 下载缩略图
             # "postprocessors": [
             #     {
             #         "key": "FFmpegVideoConvertor",
@@ -144,9 +144,10 @@ class YtVideoParseResult(VideoParseResult):
             or list(dir_.glob("*.webm"))
         ) and v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
-        thumb = (
-            v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))
-        ) and await ImgHost().catbox(v[0])
+        thumb = await ImgHost().catbox(self.dl.thumbnail)
+        # thumb = (
+        #     v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))
+        # ) and await ImgHost().catbox(v[0])
         return DownloadResult(
             self,
             Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb),
