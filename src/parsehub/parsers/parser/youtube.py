@@ -25,5 +25,5 @@ class YtbParse(YtParser):
             # "subtitleslangs": ["en", "ja", "zh-CN"],  # 字幕语言
         }
         p = sub | super().params
-        p.pop("proxy", None)
+        # p.pop("proxy", None)
         return p
