@@ -49,3 +49,7 @@ packages = ["src/parsehub"]
 [project.urls]
 Repository = "https://github.com/z-mio/parsehub"
 Issues = "https://github.com/z-mio/parsehub/issues"
+
+# https://github.com/astral-sh/uv/issues/9513#issuecomment-2519527822
+[tool.setuptools]
+license-files = []
