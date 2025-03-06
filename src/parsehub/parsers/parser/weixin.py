@@ -34,18 +34,16 @@ class WXImageParseResult(ImageParseResult):
 
 
 class WXConverter(MarkdownConverter):
-    def convert_img(self, el, text, convert_as_inline):
-        alt = el.attrs.get("alt", None) or ""
-        src = el.attrs.get("data-src", None) or ""  # 替换为微信的data-src属性
-        title = el.attrs.get("title", None) or ""
-        title_part = ' "%s"' % title.replace('"', r"\"") if title else ""
-        if (
-            convert_as_inline
-            and el.parent.name not in self.options["keep_inline_images_in"]
-        ):
+    def convert_img(self, el, text, parent_tags):
+        alt = el.attrs.get('alt', None) or ''
+        src = el.attrs.get('data-src', None) or ''
+        title = el.attrs.get('title', None) or ''
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        if ('_inline' in parent_tags
+                and el.parent.name not in self.options['keep_inline_images_in']):
             return alt
 
-        return "![%s](%s%s)" % (alt, src, title_part)
+        return '![%s](%s%s)' % (alt, src, title_part)
 
     @classmethod
     def md(cls, html, **options):

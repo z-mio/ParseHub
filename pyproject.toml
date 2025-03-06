@@ -1,6 +1,6 @@
 [project]
 name = "parsehub"
-version = "1.2.6"
+version = "1.2.7"
 description = "支持AI总结的社交媒体聚合解析器"
 readme = "README.md"
 requires-python = ">=3.12.0"
@@ -38,7 +38,7 @@ dependencies = [
     "emoji>=2.14.0",
     "instaloader>=4.14",
     "pydantic>=1.10.19",
-    "markdownify>=0.14.1",
+    "markdownify>=1.1.0",
     "markdown>=3.7",
     "requests",
     "skia-python>=87.6",
