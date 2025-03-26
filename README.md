@@ -1,6 +1,6 @@
 # ParseHub
 
-**支持AI总结的社交媒体聚合解析器**
+**支持AI总结的社交媒体聚合解析器**  
 **Social Media Aggregation Analyzer Supported by AI Summarization**
 
 > 视频总结使用 `whisper-1` 模型
