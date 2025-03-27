@@ -30,7 +30,7 @@ class InstagramParser(Parser):
         try:
             post = Post.from_shortcode(MyInstaloaderContext(self.cfg.proxy), shortcode)
         except BadResponseException as e:
-            match e:
+            match str(e):
                 case 'Fetching Post metadata failed.':
                     raise ParseError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频")
                 case _:
