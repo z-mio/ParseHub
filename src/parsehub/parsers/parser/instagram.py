@@ -9,8 +9,9 @@ from ...types import (
     ImageParseResult,
     Video,
     Image,
+    ParseError,
 )
-from instaloader import Post, InstaloaderContext
+from instaloader import Post, InstaloaderContext, BadResponseException
 
 
 class InstagramParser(Parser):
@@ -20,13 +21,20 @@ class InstagramParser(Parser):
 
     async def parse(
         self, url: str
-    ) -> VideoParseResult | ImageParseResult | MultimediaParseResult:
+    ) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
         url = await self.get_raw_url(url)
 
         shortcode = self.get_short_code(url)
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
-        post = Post.from_shortcode(MyInstaloaderContext(self.cfg.proxy), shortcode)
+        try:
+            post = Post.from_shortcode(MyInstaloaderContext(self.cfg.proxy), shortcode)
+        except BadResponseException as e:
+            match e:
+                case 'Fetching Post metadata failed.':
+                    raise ParseError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频")
+                case _:
+                    raise ParseError("无法获取帖子内容")
 
         k = {"title": post.title, "desc": post.caption, "raw_url": url}
         match post.typename:
