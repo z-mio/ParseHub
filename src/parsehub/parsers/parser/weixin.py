@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from markdown import markdown
 
 from ..base.base import Parser
+from ...config import GlobalConfig
 from ...types import ImageParseResult, ParseError
 
 from bs4 import BeautifulSoup
@@ -60,7 +61,7 @@ class WX:
     @staticmethod
     async def parse(url: str, proxy: str):
         async with httpx.AsyncClient(proxies=proxy) as client:
-            response = await client.get(url)
+            response = await client.get(url,headers={'User-Agent': GlobalConfig.ua})
             html = response.text
             return WX._parse_html(html)
 
