@@ -17,7 +17,7 @@ from instaloader import Post, InstaloaderContext, BadResponseException
 class InstagramParser(Parser):
     __platform__ = "Instagram"
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(share/|)(p|reel)/.*"
+    __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(share/|.*)(p|reel)/.*"
 
     async def parse(
         self, url: str
