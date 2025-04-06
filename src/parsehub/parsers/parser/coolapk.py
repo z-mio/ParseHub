@@ -78,7 +78,7 @@ class Coolapk:
                 )
             )
             imgs = [
-                f"https:{i["src"]}"
+                f"https:{i['src']}"
                 for i in content.find_all("img", {"class": "message-image"})
             ]
             return cls(title, markdown_content, text_content, imgs)
@@ -86,7 +86,7 @@ class Coolapk:
             content = (i := soup.find(class_="feed-message")) and i.text.strip()
             message_image_group = soup.find(class_="message-image-group")
             imgs = (
-                [f"https:{i["src"]}" for i in message_image_group.find_all("img")]
+                [f"https:{i['src']}" for i in message_image_group.find_all("img")]
                 if message_image_group
                 else []
             )

@@ -54,7 +54,7 @@ class ZuiYouPost:
         media = []
         for img in imgs:
             id_ = img["id"]
-            img_url = list(img["urls"].values())[-1]['urls'][-1]
+            img_url = list(img["urls"].values())[-1]["urls"][-1]
             if img.get("video"):
                 video_url = videos[str(id_)]["url"]
                 media.append(

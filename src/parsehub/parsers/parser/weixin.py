@@ -36,15 +36,17 @@ class WXImageParseResult(ImageParseResult):
 
 class WXConverter(MarkdownConverter):
     def convert_img(self, el, text, parent_tags):
-        alt = el.attrs.get('alt', None) or ''
-        src = el.attrs.get('data-src', None) or ''
-        title = el.attrs.get('title', None) or ''
-        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
-        if ('_inline' in parent_tags
-                and el.parent.name not in self.options['keep_inline_images_in']):
+        alt = el.attrs.get("alt", None) or ""
+        src = el.attrs.get("data-src", None) or ""
+        title = el.attrs.get("title", None) or ""
+        title_part = ' "%s"' % title.replace('"', r"\"") if title else ""
+        if (
+            "_inline" in parent_tags
+            and el.parent.name not in self.options["keep_inline_images_in"]
+        ):
             return alt
 
-        return '![%s](%s%s)' % (alt, src, title_part)
+        return "![%s](%s%s)" % (alt, src, title_part)
 
     @classmethod
     def md(cls, html, **options):
@@ -61,7 +63,7 @@ class WX:
     @staticmethod
     async def parse(url: str, proxy: str):
         async with httpx.AsyncClient(proxies=proxy) as client:
-            response = await client.get(url,headers={'User-Agent': GlobalConfig.ua})
+            response = await client.get(url, headers={"User-Agent": GlobalConfig.ua})
             html = response.text
             return WX._parse_html(html)
 

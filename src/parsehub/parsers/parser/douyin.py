@@ -99,7 +99,8 @@ class DYResult:
         data = json_dict.get("data")
         desc = data.get("desc")
 
-        def fn(video_data: dict):
+        def v_p(video_data: dict):
+            """视频信息解析"""
             video = video_data.get("bit_rate")
             if not video:
                 raise ParseError("抖音解析失败: 未获取到视频下载地址")
@@ -110,8 +111,14 @@ class DYResult:
 
         if images := data.get("images"):
             if images[0].get("video"):
-                video_list = [fn(image["video"]) for image in images]
-                multimedia = [Video(v[0], thumb_url=v[1]) for v in video_list]
+                multimedia = []
+                for image in images:
+                    if video := image.get("video"):
+                        vpi = v_p(video)
+                        multimedia.append(Video(vpi[0], thumb_url=vpi[1]))
+                    else:
+                        multimedia.append(Image(image["url_list"][-1]))
+
                 return DYResult(
                     type=DYType.Multimedia,
                     desc=desc,
@@ -127,7 +134,7 @@ class DYResult:
                     platform=platform,
                 )
         else:
-            v = fn(data.get("video"))
+            v = v_p(data.get("video"))
             return DYResult(
                 type=DYType.VIDEO,
                 video=Video(v[0], thumb_url=v[1]),
