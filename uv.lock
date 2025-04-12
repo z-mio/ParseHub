@@ -811,7 +811,7 @@ wheels = [
 
 [[package]]
 name = "parsehub"
-version = "1.2.7"
+version = "1.2.12"
 source = { virtual = "." }
 dependencies = [
     { name = "aiocache" },
@@ -880,7 +880,7 @@ requires-dist = [
     { name = "rookiepy", specifier = ">=0.5.6" },
     { name = "skia-python", specifier = ">=87.6" },
     { name = "tenacity", specifier = ">=8.5.0" },
-    { name = "textual", specifier = "<=0.63.0" },
+    { name = "textual", specifier = ">=1.0.0" },
     { name = "urlextract", specifier = ">=1.9.0" },
     { name = "uvicorn", specifier = ">=0.30.6" },
     { name = "yt-dlp" },
@@ -1254,16 +1254,17 @@ wheels = [
 
 [[package]]
 name = "textual"
-version = "0.63.0"
+version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py", extra = ["linkify", "plugins"] },
+    { name = "platformdirs" },
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/0d/01c61f0ab575462fa3ff2294dbda9cab0f0e5b204fdf53056b7e532709b5/textual-0.63.0.tar.gz", hash = "sha256:f43870beb5f96997d7bfa5a023873e7a2aa054eed1095bd18894d5b5f15a5a15", size = 1307178 }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/1f/df371f1455524a3d0079871e49e3850c82767904e9f4e2bdea6d30a866a7/textual-3.1.0.tar.gz", hash = "sha256:6bcab6581e9753d2a2043caf49f43c5818feb35f8049ed185bd38982bfb310ca", size = 1591879 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/73/44b71d39a9aa040bc0d038e6fd28e76e891a7aa9d73ffc20fac9bc6641eb/textual-0.63.0-py3-none-any.whl", hash = "sha256:252ecad3190faea10a08cfa549e0300d4953e49310eb127ad165e4816294d221", size = 554270 },
+    { url = "https://files.pythonhosted.org/packages/32/6b/d6d37a5fd93c344a27c53cdc4910d8d52cedd3ae63eae3d645fb108bd591/textual-3.1.0-py3-none-any.whl", hash = "sha256:940a765b6fcd562cd88603780343dc98a4e66c1d8d42f09b6a16a474a89aca0c", size = 683799 },
 ]
 
 [[package]]

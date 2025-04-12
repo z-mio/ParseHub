@@ -70,18 +70,28 @@ class WX:
     @classmethod
     def _parse_html(cls, html: str) -> "WX":
         soup = BeautifulSoup(html, "html.parser")
-        content = soup.find("div", {"class": "rich_media_content"})
+        title = (t := soup.find("h1", {"class": "rich_media_title"})) and t.text.strip()
 
-        if not content:
+        if rich_media_content := soup.find("div", {"class": "rich_media_content"}):
+            imgs = [i["data-src"] for i in rich_media_content.find_all("img", {"class": "rich_pages"})]
+
+            markdown_content = WXConverter.md(str(rich_media_content), heading_style="ATX")
+            text_content = "".join(
+                BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
+                    string=True
+                )
+            )
+            return cls(title, imgs, markdown_content, text_content)
+        elif share_content_page := soup.find("div", {"class": "share_content_page"}):
+            imgs = [i["data-src"] for i in share_content_page.find_all("div", {"class": "swiper_item"})]
+
+            markdown_content = WXConverter.md(soup.find('meta',{'name':"description"})['content'], heading_style="ATX")
+            text_content = "".join(
+                BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
+                    string=True
+                )
+            )
+            return cls(title, imgs, markdown_content, text_content)
+        else:
             raise ParseError("获取内容失败")
 
-        title = (t := soup.find("h1", {"class": "rich_media_title"})) and t.text.strip()
-        imgs = [i["data-src"] for i in content.find_all("img", {"class": "rich_pages"})]
-
-        markdown_content = WXConverter.md(str(content), heading_style="ATX")
-        text_content = "".join(
-            BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
-                string=True
-            )
-        )
-        return cls(title, imgs, markdown_content, text_content)
