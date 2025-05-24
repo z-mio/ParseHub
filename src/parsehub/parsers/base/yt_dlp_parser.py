@@ -1,4 +1,6 @@
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
+
 from ...utiles.img_host import ImgHost
 import time
 from dataclasses import dataclass
@@ -13,8 +15,9 @@ from ...types import (
     ImageParseResult,
     Video,
     Subtitles,
-    DownloadResult,
+    DownloadResult, ParseError,
 )
+EXC = ProcessPoolExecutor()
 
 
 class YtParser(Parser):
@@ -37,8 +40,14 @@ class YtParser(Parser):
             return YtVideoParseResult(video=video_info.url, **_d)
 
     async def _parse(self, url, params=None) -> "YtVideoInfo":
-        with YoutubeDL(params or self.params) as ydl:
-            dl = ydl.extract_info(url, download=False)
+        loop = asyncio.get_running_loop()
+        try:
+            dl = await asyncio.wait_for(
+                loop.run_in_executor(EXC, self._extract_info, url, params),
+                timeout=30
+            )
+        except asyncio.TimeoutError:
+            raise ParseError("解析视频信息超时")
         if dl.get("_type"):
             dl = dl["entries"][0]
             url = dl["webpage_url"]
@@ -55,7 +64,9 @@ class YtParser(Parser):
             duration=duration,
             url=url,
         )
-
+    def _extract_info(self, url, params=None):
+        with YoutubeDL(params or self.params) as ydl:
+            return ydl.extract_info(url, download=False)
     # def hook(self, d):
     #     current = d.get("downloaded_bytes", 0)
     #     total = d.get("total_bytes", 0)
@@ -135,8 +146,14 @@ class YtVideoParseResult(VideoParseResult):
         if callback:
             await callback(0, 0, text, *callback_args)
 
-        with YoutubeDL(yto) as ydl:
-            await asyncio.to_thread(ydl.download, [self.media.path])
+        loop = asyncio.get_running_loop()
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(EXC, self._download, yto, [self.media.path]),
+                timeout=300
+            )
+        except asyncio.TimeoutError:
+            raise ParseError("下载超时")
 
         video_path = (
             v := list(dir_.glob("*.mp4"))
@@ -154,6 +171,10 @@ class YtVideoParseResult(VideoParseResult):
             dir_,
         )
 
+    @staticmethod
+    def _download(yto, urls: list[str]):
+        with YoutubeDL(yto) as ydl:
+            return ydl.download(urls)
 
 class YtImageParseResult(ImageParseResult):
     def __init__(
