@@ -8,7 +8,7 @@ from dynrender_skia.Core import DynRender
 
 from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
 from ...config.config import DownloadConfig
-from ...types import DownloadResult
+from ...types import DownloadResult, ParseError
 from ...types.summary_result import SummaryResult
 from ...utiles.bilibili_api import BiliAPI
 from ...utiles.utile import timestamp_to_time
@@ -77,7 +77,10 @@ class BiliParse(YtParser):
         async with TemporaryDirectory() as temp_dir:
             f = Path(temp_dir) / "temp.png"
             img.save(f.name)
-            return await ImgHost(self.cfg.proxy).litterbox(f.name)
+            try:
+                return await ImgHost(self.cfg.proxy).litterbox(f.name)
+            except:
+                raise ParseError('图片上传图床失败')
 
     async def is_opus(self, url) -> str:
         """是动态"""

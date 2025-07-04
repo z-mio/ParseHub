@@ -161,7 +161,10 @@ class YtVideoParseResult(VideoParseResult):
             or list(dir_.glob("*.webm"))
         ) and v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
-        thumb = await ImgHost().catbox(self.dl.thumbnail)
+        try:
+            thumb = await ImgHost().litterbox(self.dl.thumbnail)
+        except:
+            thumb = None
         # thumb = (
         #     v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))
         # ) and await ImgHost().catbox(v[0])
