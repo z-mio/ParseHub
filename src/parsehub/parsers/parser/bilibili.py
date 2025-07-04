@@ -59,7 +59,7 @@ class BiliParse(YtParser):
             "referer": f"https://t.bilibili.com/{dyn_id}",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         }
-        async with httpx.AsyncClient(proxies=self.cfg.proxy) as client:
+        async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
             message_json = await client.get(url, headers=headers)
 
         message_formate = await formate_message(
@@ -84,7 +84,7 @@ class BiliParse(YtParser):
 
     async def is_opus(self, url) -> str:
         """是动态"""
-        async with httpx.AsyncClient(proxies=self.cfg.proxy) as cli:
+        async with httpx.AsyncClient(proxy=self.cfg.proxy) as cli:
             url = str((await cli.get(url, follow_redirects=True)).url)
         try:
             if bool(re.search(r"\b\d{18,19}\b", url).group(0)):

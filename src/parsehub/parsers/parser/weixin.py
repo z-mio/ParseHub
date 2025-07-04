@@ -62,7 +62,7 @@ class WX:
 
     @staticmethod
     async def parse(url: str, proxy: str):
-        async with httpx.AsyncClient(proxies=proxy) as client:
+        async with httpx.AsyncClient(proxy=proxy) as client:
             response = await client.get(url, headers={"User-Agent": GlobalConfig.ua})
             html = response.text
             return WX._parse_html(html)

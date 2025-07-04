@@ -2,7 +2,7 @@ import asyncio
 
 from loguru import logger
 from src.parsehub.main import ParseHub
-from src.parsehub.config import ParseConfig
+from src.parsehub.config import ParseConfig,DownloadConfig
 
 test = {
     "bilibili": "https://www.bilibili.com/video/BV1wbcdeWENh",
@@ -34,10 +34,10 @@ async def test_parse_hub():
     #     except Exception as e:
     #         print(f"{k}: {e}")
 
-    r = await ph.parse(test["youtube"])
+    r = await ph.parse(test["bilibili"])
     print(r)
-    s = await r.download()
-    print(s)
+    s = await r.download(config=DownloadConfig(proxy='http://91.103.122.23:53561'))
+    print(await s.summary())
     # s.delete()
 
 

@@ -61,7 +61,7 @@ class Twitter:
             "fieldToggles": '{"withArticleRichContentState":true,"withArticlePlainText":false}',
         }
 
-        async with httpx.AsyncClient(proxies=self.proxy) as client:
+        async with httpx.AsyncClient(proxy=self.proxy) as client:
             response = await client.get(
                 "https://api.twitter.com/graphql/kPLTRmMnzbPTv70___D06w/TweetResultByRestId",
                 params=params,
@@ -98,7 +98,7 @@ class Twitter:
         headers = {
             "Authorization": self.authorization,
         }
-        async with httpx.AsyncClient(proxies=self.proxy) as client:
+        async with httpx.AsyncClient(proxy=self.proxy) as client:
             response = await client.post(
                 "https://api.twitter.com/1.1/guest/activate.json", headers=headers
             )

@@ -1,13 +1,13 @@
 import os
 
 import httpx
-from httpx._types import ProxiesTypes
+from httpx._types import ProxyTypes
 from tenacity import retry, stop_after_attempt
 
 
 class ImgHost:
-    def __init__(self, proxies: ProxiesTypes = None):
-        self.async_client = httpx.AsyncClient(proxies=proxies)
+    def __init__(self, proxies: ProxyTypes = None):
+        self.async_client = httpx.AsyncClient(proxy=proxies)
 
     @retry(stop=stop_after_attempt(5))
     async def catbox(self, filename_or_url: str):

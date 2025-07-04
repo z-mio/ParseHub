@@ -74,7 +74,7 @@ class ZuiYou:
 
     async def parse(self, url: str) -> ZuiYouPost:
         pid = self.get_id_by_url(url)
-        async with httpx.AsyncClient(proxies=self.proxy) as cli:
+        async with httpx.AsyncClient(proxy=self.proxy) as cli:
             result = await cli.post(self.api_url, json={"pid": pid})
         return ZuiYouPost.parse(result.json())
 

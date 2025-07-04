@@ -42,7 +42,7 @@ class Parser(ABC):
         """
 
         if any(map(lambda x: x in url, self.__redirect_keywords__)):
-            async with httpx.AsyncClient(proxies=self.cfg.proxy) as client:
+            async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
                 r = await client.get(
                     url, follow_redirects=True, headers={"User-Agent": self.cfg.ua}
                 )

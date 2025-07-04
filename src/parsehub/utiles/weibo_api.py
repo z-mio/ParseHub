@@ -25,7 +25,7 @@ class WeiboAPI:
             "SUB": "_2AkMR47Mlf8NxqwFRmfocxG_lbox2wg7EieKnv0L-JRMxHRl-yT9yqhFdtRB6OmOdyoia9pKPkqoHRRmSBA_WNPaHuybH",
         }
         api = f"https://weibo.com/ajax/statuses/show?id={bid}"
-        async with httpx.AsyncClient(proxies=self.proxy) as client:
+        async with httpx.AsyncClient(proxy=self.proxy) as client:
             response = await client.get(api, cookies=cookies)
             response.raise_for_status()
             result = response.json()
