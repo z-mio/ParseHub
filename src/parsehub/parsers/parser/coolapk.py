@@ -21,7 +21,7 @@ class CoolapkParser(Parser):
 
     async def parse(self, url: str) -> "CoolapkImageParseResult":
         url = await self.get_raw_url(url)
-        coolapk = await Coolapk.parse(url)
+        coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
         return CoolapkImageParseResult(
             title=coolapk.title,
             photo=coolapk.imgs,
@@ -61,8 +61,8 @@ class Coolapk:
     imgs: list[str] = None
 
     @classmethod
-    async def parse(cls, url: str) -> "Coolapk":
-        async with httpx.AsyncClient(headers={"User-Agent": GlobalConfig.ua}) as client:
+    async def parse(cls, url: str, proxy: str = None) -> "Coolapk":
+        async with httpx.AsyncClient(headers={"User-Agent": GlobalConfig.ua}, proxy=proxy) as client:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "html.parser")
 
