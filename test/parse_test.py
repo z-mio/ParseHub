@@ -2,7 +2,7 @@ import asyncio
 
 from loguru import logger
 from src.parsehub.main import ParseHub
-from src.parsehub.config import ParseConfig,DownloadConfig
+from src.parsehub.config import ParseConfig
 
 test = {
     "bilibili": "https://www.bilibili.com/video/BV1wbcdeWENh",
@@ -17,7 +17,7 @@ test = {
     "instagram": "https://www.instagram.com/napteazzz/reel/DH3QeWwzg5j/",
     "weixin": "https://mp.weixin.qq.com/s/7qseHCqY0bHk4_cgIcPe5g",
     "zuiyou": "https://share.xiaochuankeji.cn/hybrid/share/post?pid=393346270",
-    "coolapk": "https://www.coolapk.com/picture/62144534?shareKey=YzAxMTNjNGY2ZWE4Njc4ZTQzZTA~&shareUid=3983969&shareFrom=com.coolapk.market_15.0.2",
+    "coolapk": "https://www.coolapk.com/feed/65930505?s=MTJmYTZlN2QxZmQ5NDZnNjg2YjU1ZTZ6a1540",
 }
 
 
@@ -34,10 +34,10 @@ async def test_parse_hub():
     #     except Exception as e:
     #         print(f"{k}: {e}")
 
-    r = await ph.parse(test["bilibili"])
+    r = await ph.parse(test["coolapk"])
     print(r)
-    s = await r.download(config=DownloadConfig(proxy='http://91.103.122.23:53561'))
-    print(await s.summary())
+    s = await r.download()
+    print(s)
     # s.delete()
 
 
