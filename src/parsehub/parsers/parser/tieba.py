@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from httpx import Response
 
 from ..base.base import Parser
-from ...types import VideoParseResult, ImageParseResult
+from ...types import VideoParseResult, ImageParseResult, ParseError
 
 
 class TieBaParser(Parser):
@@ -15,7 +15,11 @@ class TieBaParser(Parser):
     __match__ = r"^(http(s)?://)?.+tieba.baidu.com/p/\d+"
 
     async def parse(self, url: str) -> Union["ImageParseResult", "VideoParseResult"]:
-        tb = await TieBa(self.cfg.proxy).parse(url)
+        try:
+            tb = await TieBa(self.cfg.proxy).parse(url)
+        except Exception:
+            raise ParseError("贴吧解析失败")
+
         if tb.video_url:
             return VideoParseResult(
                 title=tb.title, video=tb.video_url, raw_url=url, desc=tb.content
@@ -73,7 +77,10 @@ class TieBa:
         title = (
             soup.find("h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]})
             or soup.find("h1", {"class": "core_title_txt"})
-        ).text.strip()
+        )
+        if not title:
+            raise Exception("贴吧解析失败")
+        title = title.text.strip()
         content = soup.find("div", {"class": ["d_post_content", "j_d_post_content"]})
         content = self._parse_out_the_body(content)
         return title, content
