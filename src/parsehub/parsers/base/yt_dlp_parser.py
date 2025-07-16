@@ -15,8 +15,10 @@ from ...types import (
     ImageParseResult,
     Video,
     Subtitles,
-    DownloadResult, ParseError,
+    DownloadResult,
+    ParseError,
 )
+
 EXC = ProcessPoolExecutor()
 
 
@@ -43,8 +45,7 @@ class YtParser(Parser):
         loop = asyncio.get_running_loop()
         try:
             dl = await asyncio.wait_for(
-                loop.run_in_executor(EXC, self._extract_info, url, params),
-                timeout=30
+                loop.run_in_executor(EXC, self._extract_info, url, params), timeout=30
             )
         except asyncio.TimeoutError:
             raise ParseError("解析视频信息超时")
@@ -64,9 +65,11 @@ class YtParser(Parser):
             duration=duration,
             url=url,
         )
+
     def _extract_info(self, url, params=None):
         with YoutubeDL(params or self.params) as ydl:
             return ydl.extract_info(url, download=False)
+
     # def hook(self, d):
     #     current = d.get("downloaded_bytes", 0)
     #     total = d.get("total_bytes", 0)
@@ -150,24 +153,24 @@ class YtVideoParseResult(VideoParseResult):
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(EXC, self._download, yto, [self.media.path]),
-                timeout=300
+                timeout=300,
             )
         except asyncio.TimeoutError:
             raise ParseError("下载超时")
 
         video_path = (
-            v := list(dir_.glob("*.mp4"))
-            or list(dir_.glob("*.mkv"))
-            or list(dir_.glob("*.webm"))
+            v := (
+                list(dir_.glob("*.mp4"))
+                or list(dir_.glob("*.mkv"))
+                or list(dir_.glob("*.webm"))
+            )
         ) and v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
         try:
-            thumb = await ImgHost().litterbox(self.dl.thumbnail)
-        except:
+            thumb = await ImgHost(proxies=config.proxy).litterbox(self.dl.thumbnail)
+        except Exception:
             thumb = None
-        # thumb = (
-        #     v := list(dir_.glob("*.webp")) or list(dir_.glob("*.jpg"))
-        # ) and await ImgHost().catbox(v[0])
+
         return DownloadResult(
             self,
             Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb),
@@ -178,6 +181,7 @@ class YtVideoParseResult(VideoParseResult):
     def _download(yto, urls: list[str]):
         with YoutubeDL(yto) as ydl:
             return ydl.download(urls)
+
 
 class YtImageParseResult(ImageParseResult):
     def __init__(

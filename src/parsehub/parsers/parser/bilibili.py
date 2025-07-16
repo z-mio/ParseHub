@@ -80,7 +80,7 @@ class BiliParse(YtParser):
             try:
                 return await ImgHost(self.cfg.proxy).litterbox(f.name)
             except:
-                raise ParseError('图片上传图床失败')
+                raise ParseError("图片上传图床失败")
 
     async def is_opus(self, url) -> str:
         """是动态"""

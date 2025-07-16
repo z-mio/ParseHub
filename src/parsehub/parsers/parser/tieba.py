@@ -80,10 +80,7 @@ class TieBa:
 
     async def get_html(self, t_url) -> Response:
         async with httpx.AsyncClient(proxy=self.proxy) as c:
-            proxy = (await c.get("http://demo.spiderpy.cn/get/")).json().get("proxy")
-            res = await c.get(t_url, headers={"User-Agent": "Mozilla5.0/"})
-            await c.get(f"http://demo.spiderpy.cn/delete/?proxy={proxy}")
-            return res
+            return await c.get(t_url, headers={"User-Agent": "Mozilla5.0/"}, timeout=15)
 
     async def parse(self, t_url) -> "TieBaPost":
         res = await self.get_html(t_url)

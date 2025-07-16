@@ -62,7 +62,9 @@ class Coolapk:
 
     @classmethod
     async def parse(cls, url: str, proxy: str = None) -> "Coolapk":
-        async with httpx.AsyncClient(headers={"User-Agent": GlobalConfig.ua}, proxy=proxy) as client:
+        async with httpx.AsyncClient(
+            headers={"User-Agent": GlobalConfig.ua}, proxy=proxy
+        ) as client:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "html.parser")
 
