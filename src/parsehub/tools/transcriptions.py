@@ -72,9 +72,8 @@ class Transcriptions:
         chucks = [Chunk(begin=i.begin, end=i.end, text=i.text) for i in r.chucks]
         return TranscriptionResult(text=r.text, chucks=chucks)
 
-    @staticmethod
-    async def azure(audio_path: str):
-        az = Azure()
+    async def azure(self, audio_path: str):
+        az = Azure(self.base_url, self.api_key)
         result = await az.speech_to_text(audio_path)
         chucks = [
             Chunk(begin=phrase.begin, end=phrase.end, text=phrase.text)

@@ -211,6 +211,8 @@ class DownloadResult(Generic[T]):
         provider: Literal["openai"] = None,
         prompt: str = None,
         transcriptions_provider: str = None,
+        transcriptions_api_key: str = None,
+        transcriptions_base_url: str = None,
     ) -> "SummaryResult":
         """总结解析结果
         :param api_key: API密钥
@@ -219,6 +221,8 @@ class DownloadResult(Generic[T]):
         :param provider: 语言模型提供商
         :param prompt: 提示词
         :param transcriptions_provider: 语音转文本提供商
+        :param transcriptions_api_key: 语音转文本API密钥
+        :param transcriptions_base_url: 语音转文本API地址
         """
         sc = SummaryConfig()
         api_key = api_key or sc.api_key
@@ -227,9 +231,13 @@ class DownloadResult(Generic[T]):
         provider = provider or sc.provider
         prompt = prompt or sc.prompt
         transcriptions_provider = transcriptions_provider or sc.transcriptions_provider
+        transcriptions_api_key = transcriptions_api_key or sc.transcriptions_api_key
+        transcriptions_base_url = transcriptions_base_url or sc.transcriptions_base_url
 
         if not api_key or not base_url:
             raise ValueError("AI总结未配置")
+        if not transcriptions_api_key or not transcriptions_base_url:
+            raise ValueError("语音转文本未配置")
 
         media = self.media if isinstance(self.media, list) else [self.media]
         subtitles = ""
@@ -237,7 +245,10 @@ class DownloadResult(Generic[T]):
         for i in media:
             if isinstance(i, Video):
                 subtitles = await self._video_to_subtitles(
-                    i, api_key, base_url, transcriptions_provider
+                    i,
+                    transcriptions_api_key,
+                    transcriptions_base_url,
+                    transcriptions_provider,
                 )
                 if not subtitles:
                     img = await asyncio.to_thread(video_to_png, i.path)
