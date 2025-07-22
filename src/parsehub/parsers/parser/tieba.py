@@ -17,8 +17,8 @@ class TieBaParser(Parser):
     async def parse(self, url: str) -> Union["ImageParseResult", "VideoParseResult"]:
         try:
             tb = await TieBa(self.cfg.proxy).parse(url)
-        except Exception:
-            raise ParseError("贴吧解析失败")
+        except Exception as e:
+            raise ParseError("贴吧解析失败") from e
 
         if tb.video_url:
             return VideoParseResult(
@@ -79,7 +79,7 @@ class TieBa:
             or soup.find("h1", {"class": "core_title_txt"})
         )
         if not title:
-            raise Exception("贴吧解析失败")
+            raise Exception("未获取到标题内容")
         title = title.text.strip()
         content = soup.find("div", {"class": ["d_post_content", "j_d_post_content"]})
         content = self._parse_out_the_body(content)
