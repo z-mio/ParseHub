@@ -133,6 +133,17 @@ class DYResult:
                     desc=desc,
                     platform=platform,
                 )
+        elif image_post_info := data.get("image_post_info"):
+            images = image_post_info.get("images")
+            image_list = [
+                Image(image["display_image"]["url_list"][-1]) for image in images
+            ]
+            return DYResult(
+                type=DYType.IMAGE,
+                image_list=image_list,
+                desc=desc,
+                platform=platform,
+            )
         else:
             v = v_p(data.get("video"))
             return DYResult(
