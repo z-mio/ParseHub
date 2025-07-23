@@ -5,7 +5,7 @@ from urllib.parse import urlparse, parse_qs
 import httpx
 
 from ...config.config import ParseConfig
-from ...types import ParseResult
+from ...types import ParseResult, ParseError
 
 
 class Parser(ABC):
@@ -43,10 +43,15 @@ class Parser(ABC):
 
         if any(map(lambda x: x in url, self.__redirect_keywords__)):
             async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
-                r = await client.get(
-                    url, follow_redirects=True, headers={"User-Agent": self.cfg.ua}
-                )
-                r.raise_for_status()
+                try:
+                    r = await client.get(
+                        url, follow_redirects=True, headers={"User-Agent": self.cfg.ua}
+                    )
+                    r.raise_for_status()
+                except httpx.ReadTimeout:
+                    raise ParseError("获取原始链接超时")
+                except Exception:
+                    raise ParseError("获取原始链接失败")
                 url = str(r.url)
 
         parsed_url = urlparse(url)
