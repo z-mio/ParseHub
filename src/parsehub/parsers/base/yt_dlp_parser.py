@@ -24,21 +24,29 @@ EXC = ProcessPoolExecutor()
 
 def extract_video_info(url: str, params: dict) -> dict:
     """在独立进程中提取视频信息"""
-    with YoutubeDL(params) as ydl:
-        return ydl.extract_info(url, download=False)
+    try:
+        with YoutubeDL(params) as ydl:
+            return ydl.extract_info(url, download=False)
+    except Exception as e:
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        raise ParseError(error_msg)
 
 
 def download_video(yto_params: dict, urls: list[str]) -> None:
     """在独立进程中下载视频"""
-    with YoutubeDL(yto_params) as ydl:
-        return ydl.download(urls)
+    try:
+        with YoutubeDL(yto_params) as ydl:
+            return ydl.download(urls)
+    except Exception as e:
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        raise ParseError(error_msg)
 
 
 class YtParser(Parser):
     """yt-dlp解析器"""
 
     async def parse(
-        self, url: str
+            self, url: str
     ) -> Union["YtVideoParseResult", "YtImageParseResult"]:
         url = await self.get_raw_url(url)
         video_info = await self._parse(url)
@@ -114,23 +122,23 @@ class YtParser(Parser):
 
 class YtVideoParseResult(VideoParseResult):
     def __init__(
-        self,
-        title=None,
-        video=None,
-        desc=None,
-        raw_url=None,
-        dl: "YtVideoInfo" = None,
+            self,
+            title=None,
+            video=None,
+            desc=None,
+            raw_url=None,
+            dl: "YtVideoInfo" = None,
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
         super().__init__(title=title, video=video, desc=desc, raw_url=raw_url)
 
     async def download(
-        self,
-        path: str | Path = None,
-        callback: Callable = None,
-        callback_args: tuple = (),
-        config: DownloadConfig = DownloadConfig(),
+            self,
+            path: str | Path = None,
+            callback: Callable = None,
+            callback_args: tuple = (),
+            config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         """下载视频"""
         if not self.media.is_url:
@@ -151,8 +159,8 @@ class YtVideoParseResult(VideoParseResult):
 
         text = "下载合并中...请耐心等待..."
         if (
-            config.yt_dlp_duration_limit
-            and self.dl.duration > config.yt_dlp_duration_limit
+                config.yt_dlp_duration_limit
+                and self.dl.duration > config.yt_dlp_duration_limit
         ):
             # 视频超过限制时长，获取最低画质
             text += f"\n视频超过{config.yt_dlp_duration_limit}秒，获取最低画质"
@@ -171,12 +179,12 @@ class YtVideoParseResult(VideoParseResult):
             raise ParseError("下载超时")
 
         video_path = (
-            v := (
-                list(dir_.glob("*.mp4"))
-                or list(dir_.glob("*.mkv"))
-                or list(dir_.glob("*.webm"))
-            )
-        ) and v[0]
+                         v := (
+                                 list(dir_.glob("*.mp4"))
+                                 or list(dir_.glob("*.mkv"))
+                                 or list(dir_.glob("*.webm"))
+                         )
+                     ) and v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
         try:
             thumb = await ImgHost(proxies=config.proxy).litterbox(self.dl.thumbnail)
@@ -192,7 +200,7 @@ class YtVideoParseResult(VideoParseResult):
 
 class YtImageParseResult(ImageParseResult):
     def __init__(
-        self, title="", photo=None, desc=None, raw_url=None, dl: "YtVideoInfo" = None
+            self, title="", photo=None, desc=None, raw_url=None, dl: "YtVideoInfo" = None
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
