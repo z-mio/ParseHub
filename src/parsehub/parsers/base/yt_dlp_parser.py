@@ -22,6 +22,18 @@ from ...types import (
 EXC = ProcessPoolExecutor()
 
 
+def extract_video_info(url: str, params: dict) -> dict:
+    """在独立进程中提取视频信息"""
+    with YoutubeDL(params) as ydl:
+        return ydl.extract_info(url, download=False)
+
+
+def download_video(yto_params: dict, urls: list[str]) -> None:
+    """在独立进程中下载视频"""
+    with YoutubeDL(yto_params) as ydl:
+        return ydl.download(urls)
+
+
 class YtParser(Parser):
     """yt-dlp解析器"""
 
@@ -45,7 +57,7 @@ class YtParser(Parser):
         loop = asyncio.get_running_loop()
         try:
             dl = await asyncio.wait_for(
-                loop.run_in_executor(EXC, self._extract_info, url, params), timeout=30
+                loop.run_in_executor(EXC, extract_video_info, url, params), timeout=30
             )
         except asyncio.TimeoutError:
             raise ParseError("解析视频信息超时")
@@ -152,7 +164,7 @@ class YtVideoParseResult(VideoParseResult):
         loop = asyncio.get_running_loop()
         try:
             await asyncio.wait_for(
-                loop.run_in_executor(EXC, self._download, yto, [self.media.path]),
+                loop.run_in_executor(EXC, download_video, yto, [self.media.path]),
                 timeout=300,
             )
         except asyncio.TimeoutError:
@@ -176,11 +188,6 @@ class YtVideoParseResult(VideoParseResult):
             Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb),
             dir_,
         )
-
-    @staticmethod
-    def _download(yto, urls: list[str]):
-        with YoutubeDL(yto) as ydl:
-            return ydl.download(urls)
 
 
 class YtImageParseResult(ImageParseResult):
