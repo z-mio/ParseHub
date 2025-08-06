@@ -22,16 +22,6 @@ from ...types import (
 EXC = ProcessPoolExecutor()
 
 
-def extract_video_info(url: str, params: dict) -> dict:
-    """在独立进程中提取视频信息"""
-    try:
-        with YoutubeDL(params) as ydl:
-            return ydl.extract_info(url, download=False)
-    except Exception as e:
-        error_msg = f"{type(e).__name__}: {str(e)}"
-        raise ParseError(error_msg)
-
-
 def download_video(yto_params: dict, urls: list[str]) -> None:
     """在独立进程中下载视频"""
     try:
@@ -62,13 +52,18 @@ class YtParser(Parser):
             return YtVideoParseResult(video=video_info.url, **_d)
 
     async def _parse(self, url, params=None) -> "YtVideoInfo":
-        loop = asyncio.get_running_loop()
         try:
+            # dl = await asyncio.wait_for(
+            #     loop.run_in_executor(EXC, extract_video_info, url, params), timeout=30
+            # )
             dl = await asyncio.wait_for(
-                loop.run_in_executor(EXC, extract_video_info, url, params), timeout=30
+                asyncio.to_thread(self._extract_info, url, params), timeout=30
             )
         except asyncio.TimeoutError:
             raise ParseError("解析视频信息超时")
+        except Exception as e:
+            raise ParseError(f"解析视频信息失败: {str(e)}")
+
         if dl.get("_type"):
             dl = dl["entries"][0]
             url = dl["webpage_url"]
@@ -178,13 +173,10 @@ class YtVideoParseResult(VideoParseResult):
         except asyncio.TimeoutError:
             raise ParseError("下载超时")
 
-        video_path = (
-                         v := (
-                                 list(dir_.glob("*.mp4"))
-                                 or list(dir_.glob("*.mkv"))
-                                 or list(dir_.glob("*.webm"))
-                         )
-                     ) and v[0]
+        v = list(dir_.glob("*.mp4")) or list(dir_.glob("*.mkv")) or list(dir_.glob("*.webm"))
+        if not v:
+            raise ParseError("未获取到下载完成的视频")
+        video_path = v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
         try:
             thumb = await ImgHost(proxies=config.proxy).litterbox(self.dl.thumbnail)
