@@ -30,6 +30,7 @@ class ParseHub:
         :param url: 分享链接
         """
         if parser := self._select_parser(url):
+            url = await parser().get_raw_url(url)
             return await parser(parse_config=self.config).parse(url)
         raise ValueError("不支持的平台")
 

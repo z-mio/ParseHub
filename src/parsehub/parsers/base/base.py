@@ -42,7 +42,7 @@ class Parser(ABC):
         :param url: 链接
         :return:
         """
-
+        url = match_url(url)
         if any(map(lambda x: x in url, self.__redirect_keywords__)):
             async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
                 try:
