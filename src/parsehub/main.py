@@ -15,7 +15,7 @@ class ParseHub:
     def _select_parser(self, url: str) -> Type[Parser] | None:
         """选择解析器"""
         for parser in self.__parsers:
-            if parser().match(match_url(url)):
+            if parser().match(url):
                 return parser
 
     @staticmethod

@@ -6,6 +6,7 @@ import httpx
 
 from ...config.config import ParseConfig
 from ...types import ParseResult, ParseError
+from ...utiles.utile import match_url
 
 
 class Parser(ABC):
@@ -27,6 +28,7 @@ class Parser(ABC):
 
     def match(self, url: str) -> bool:
         """判断是否匹配该解析器"""
+        url = match_url(url)
         return bool(re.match(self.__match__, url))
 
     @abstractmethod

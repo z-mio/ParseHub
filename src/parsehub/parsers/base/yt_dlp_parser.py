@@ -36,7 +36,7 @@ class YtParser(Parser):
     """yt-dlp解析器"""
 
     async def parse(
-            self, url: str
+        self, url: str
     ) -> Union["YtVideoParseResult", "YtImageParseResult"]:
         url = await self.get_raw_url(url)
         video_info = await self._parse(url)
@@ -117,23 +117,23 @@ class YtParser(Parser):
 
 class YtVideoParseResult(VideoParseResult):
     def __init__(
-            self,
-            title=None,
-            video=None,
-            desc=None,
-            raw_url=None,
-            dl: "YtVideoInfo" = None,
+        self,
+        title=None,
+        video=None,
+        desc=None,
+        raw_url=None,
+        dl: "YtVideoInfo" = None,
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
         super().__init__(title=title, video=video, desc=desc, raw_url=raw_url)
 
     async def download(
-            self,
-            path: str | Path = None,
-            callback: Callable = None,
-            callback_args: tuple = (),
-            config: DownloadConfig = DownloadConfig(),
+        self,
+        path: str | Path = None,
+        callback: Callable = None,
+        callback_args: tuple = (),
+        config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         """下载视频"""
         if not self.media.is_url:
@@ -154,8 +154,8 @@ class YtVideoParseResult(VideoParseResult):
 
         text = "下载合并中...请耐心等待..."
         if (
-                config.yt_dlp_duration_limit
-                and self.dl.duration > config.yt_dlp_duration_limit
+            config.yt_dlp_duration_limit
+            and self.dl.duration > config.yt_dlp_duration_limit
         ):
             # 视频超过限制时长，获取最低画质
             text += f"\n视频超过{config.yt_dlp_duration_limit}秒，获取最低画质"
@@ -173,7 +173,11 @@ class YtVideoParseResult(VideoParseResult):
         except asyncio.TimeoutError:
             raise ParseError("下载超时")
 
-        v = list(dir_.glob("*.mp4")) or list(dir_.glob("*.mkv")) or list(dir_.glob("*.webm"))
+        v = (
+            list(dir_.glob("*.mp4"))
+            or list(dir_.glob("*.mkv"))
+            or list(dir_.glob("*.webm"))
+        )
         if not v:
             raise ParseError("未获取到下载完成的视频")
         video_path = v[0]
@@ -192,7 +196,7 @@ class YtVideoParseResult(VideoParseResult):
 
 class YtImageParseResult(ImageParseResult):
     def __init__(
-            self, title="", photo=None, desc=None, raw_url=None, dl: "YtVideoInfo" = None
+        self, title="", photo=None, desc=None, raw_url=None, dl: "YtVideoInfo" = None
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl

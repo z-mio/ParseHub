@@ -92,6 +92,25 @@ class BiliParse(YtParser):
         except AttributeError:
             ...
 
+    def _is_bvid(self, url: str):
+        if url.lower().startswith("bv"):
+            return True
+        else:
+            return False
+
+    def match(self, url: str) -> bool:
+        if self._is_bvid(url):
+            return True
+        else:
+            return super().match(url)
+
+    async def get_raw_url(self, url: str) -> str:
+        """获取原始链接"""
+        if self._is_bvid(url):
+            return f"https://www.bilibili.com/video/{url}"
+        else:
+            return await super().get_raw_url(url)
+
 
 class BiliDownloadResult(DownloadResult):
     async def summary(self, *args, **kwargs) -> SummaryResult:
