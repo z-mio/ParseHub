@@ -44,7 +44,6 @@ class Twitter:
 
     async def fetch_tweet(self, url: str) -> "TwitterTweet":
         tweet_id = self.get_id_by_url(url)
-
         headers = {
             "accept-language": "zh-CN,zh;q=0.9",
             "authorization": self.authorization,
@@ -75,7 +74,9 @@ class Twitter:
         result = result["data"]["tweetResult"]["result"]
         legacy: dict = result.get("legacy")
         if not legacy:
-            raise Exception(result["reason"])
+            if result.get('__typename') == 'TweetTombstone':
+                raise Exception("error: 该推文开启了限制, 匿名用户无法查看")
+            raise Exception(f"error: {result.get('reason')}")
 
         tweet_id = result["rest_id"]
         full_text = legacy.get("full_text", "")
