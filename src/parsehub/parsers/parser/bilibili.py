@@ -7,11 +7,11 @@ from dynamicadaptor.DynamicConversion import formate_message
 from dynrender_skia.Core import DynRender
 
 from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
+from ...types.parse_result import VideoParseResult
 from ...config.config import DownloadConfig
-from ...types import DownloadResult, ParseError
+from ...types import DownloadResult, ParseError, Video
 from ...types.summary_result import SummaryResult
-from ...utiles.bilibili_api import BiliAPI
-from ...utiles.utile import timestamp_to_time
+from ...utiles.bilibili_api import BiliAPI, BiliWbiSigner
 from ...utiles.img_host import ImgHost
 from aiofiles.tempfile import TemporaryDirectory
 
@@ -25,78 +25,41 @@ class BiliParse(YtParser):
 
     async def parse(
         self, url: str
-    ) -> Union["BiliVideoParseResult", "BiliImageParseResult"]:
+    ) -> Union[
+        "BiliYtVideoParseResult", "BiliYtImageParseResult", "BiliVideoParseResult"
+    ]:
         url = await self.get_raw_url(url)
         if ourl := await self.is_opus(url):
             photo = await self.gen_dynamic_img(ourl)
-            return BiliImageParseResult(
+            return BiliYtImageParseResult(
                 photo=[photo],
                 raw_url=ourl,
             )
         else:
-            result = await super().parse(url)
-            _d = {
-                "title": result.title,
-                "raw_url": result.raw_url,
-                "dl": result.dl,
-            }
-            if isinstance(result, YtVideoParseResult):
-                return BiliVideoParseResult(
-                    **_d,
-                    video=result.media,
-                )
-            elif isinstance(result, YtImageParseResult):
-                return BiliImageParseResult(
-                    **_d,
-                    photo=result.media,
-                )
-
-    async def gen_dynamic_img(self, dyn: str) -> str:
-        """生成动态页面的图片"""
-        dyn_id = re.search(r"\b\d{18,19}\b", dyn).group(0)
-        url = f"https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?timezone_offset=-480&id={dyn_id}&features=itemOpusStyle"
-        headers = {
-            "referer": f"https://t.bilibili.com/{dyn_id}",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        }
-        async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
-            message_json = await client.get(url, headers=headers)
-
-        message_formate = await formate_message(
-            "web", message_json.json()["data"]["item"]
-        )
-        img = await DynRender().run(message_formate)
-
-        # 将渲染后的图像转换为Skia Image对象
-        img = skia.Image.fromarray(
-            array=img,
-            colorType=skia.ColorType.kRGBA_8888_ColorType,
-        )
-
-        # 保存图片到临时目录
-        async with TemporaryDirectory() as temp_dir:
-            f = Path(temp_dir) / "temp.png"
-            img.save(f.name)
             try:
-                return await ImgHost(self.cfg.proxy).litterbox(f.name)
-            except:
-                raise ParseError("图片上传图床失败")
+                return await self.bili_api_parse(url)
+            except Exception:
+                try:
+                    return await self.ytp_parse(url)
+                except Exception:
+                    raise ParseError("Bilibili解析失败")
 
-    async def is_opus(self, url) -> str:
-        """是动态"""
-        async with httpx.AsyncClient(proxy=self.cfg.proxy) as cli:
-            url = str((await cli.get(url, follow_redirects=True)).url)
-        try:
-            if bool(re.search(r"\b\d{18,19}\b", url).group(0)):
-                return url
-        except AttributeError:
-            ...
-
-    def _is_bvid(self, url: str):
+    @staticmethod
+    def _is_bvid(url: str):
         if url.lower().startswith("bv"):
             return True
         else:
             return False
+
+    @staticmethod
+    def get_bvid(url: str):
+        m_bv = re.search(r"BV[0-9A-Za-z]{10,}", url)
+        if m_bv:
+            return m_bv.group(0)
+        m_av = re.search(r"(?i)\bav(\d+)\b", url)
+        if m_av:
+            return BiliAPI.av2bv(f"av{m_av.group(1)}")
+        return None
 
     def match(self, url: str) -> bool:
         if self._is_bvid(url):
@@ -111,39 +74,132 @@ class BiliParse(YtParser):
         else:
             return await super().get_raw_url(url)
 
+    async def is_opus(self, url) -> str | None:
+        """是动态"""
+        async with httpx.AsyncClient(proxy=self.cfg.proxy) as cli:
+            url = str((await cli.get(url, follow_redirects=True)).url)
+        try:
+            if bool(re.search(r"\b\d{18,19}\b", url).group(0)):
+                return url
+        except AttributeError:
+            ...
+
+    async def bili_api_parse(self, url):
+        bili = BiliAPI()
+        bvid = self.get_bvid(url)
+        video_info = await bili.get_video_info(bvid)
+        data = video_info["data"]
+
+        b3, b4 = await bili.get_buvid()
+        video_playurl = await bili.get_video_playurl(bvid, data["View"]["cid"], b3, b4)
+
+        return BiliVideoParseResult(
+            title=data["View"]["title"],
+            raw_url=url,
+            video=Video(
+                video_playurl["data"]["durl"][0]["url"], thumb_url=data["View"]["pic"]
+            ),
+        )
+
+    async def ytp_parse(self, url):
+        result = await super().parse(url)
+        if isinstance(result, YtVideoParseResult):
+            return BiliYtVideoParseResult(
+                title=result.title,
+                raw_url=result.raw_url,
+                dl=result.dl,
+                video=result.media,
+            )
+        return None
+
+    async def gen_dynamic_img(self, url: str) -> str:
+        """生成动态页面的图片"""
+        dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)
+        params = {
+            "timezone_offset": "-480",
+            "id": dyn_id,
+            "features": "itemOpusStyle",
+        }
+        headers = {
+            "referer": f"https://www.bilibili.com/opus/{dyn_id}",
+            "user-agent": self.cfg.ua,
+        }
+        async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
+            message_json = await client.get(
+                "https://api.bilibili.com/x/polymer/web-dynamic/v1/detail",
+                headers=headers,
+                params=params,
+            )
+        message_formate = await formate_message(
+            "web", message_json.json()["data"]["item"]
+        )
+        img = await DynRender().run(message_formate)
+
+        # 将渲染后的图像转换为Skia Image对象
+        # noinspection PyArgumentList
+        img = skia.Image.fromarray(
+            array=img,
+            colorType=skia.ColorType.kRGBA_8888_ColorType,
+        )
+
+        # 保存图片到临时目录
+        async with TemporaryDirectory() as temp_dir:
+            f = Path(temp_dir) / "temp.png"
+            img.save(f.name)
+            try:
+                return await ImgHost(self.cfg.proxy).litterbox(f.name)
+            except Exception:
+                raise ParseError("图片上传图床失败")
+
 
 class BiliDownloadResult(DownloadResult):
     async def summary(self, *args, **kwargs) -> SummaryResult:
         return await super().summary()
         # b站的AI总结现在需要登录, 暂时不再使用
-        bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
-        r = await BiliAPI().ai_summary(bvid)
+        # bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
+        # r = await BiliAPI().ai_summary(bvid)
+        #
+        # if not r.data or r.data.code == -1:
+        #     return await super().summary()
+        #
+        # model_result = r.data.model_result
+        # text = [f"**{model_result.summary}**\n"]
+        #
+        # if not model_result.outline:
+        #     return await super().summary()
+        #
+        # for i in model_result.outline:
+        #     c = "\n".join(
+        #         [
+        #             f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}"
+        #             # f"__[{timestamp_to_time(cc['timestamp'])}](https://www.bilibili.com/video/{bvid}/?t={cc['timestamp']})__ {cc['content']}"
+        #             for cc in i.part_outline
+        #         ]
+        #     )
+        #     t = f"\n● **{i.title}**\n{c}"
+        #     text.append(t)
+        #
+        # content = "\n".join(text)
+        # return SummaryResult(content)
 
-        if not r.data or r.data.code == -1:
-            return await super().summary()
 
-        model_result = r.data.model_result
-        text = [f"**{model_result.summary}**\n"]
-
-        if not model_result.outline:
-            return await super().summary()
-
-        for i in model_result.outline:
-            c = "\n".join(
-                [
-                    f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}"
-                    # f"__[{timestamp_to_time(cc['timestamp'])}](https://www.bilibili.com/video/{bvid}/?t={cc['timestamp']})__ {cc['content']}"
-                    for cc in i.part_outline
-                ]
-            )
-            t = f"\n● **{i.title}**\n{c}"
-            text.append(t)
-
-        content = "\n".join(text)
-        return SummaryResult(content)
+class BiliVideoParseResult(VideoParseResult):
+    async def download(
+        self,
+        path: str | Path = None,
+        callback: Callable = None,
+        callback_args: tuple = (),
+        config: DownloadConfig = DownloadConfig(),
+    ) -> "DownloadResult":
+        headers = config.headers or {}
+        headers["referer"] = "https://www.bilibili.com"
+        headers["User-Agent"] = config.ua
+        config.headers = headers
+        r = await super().download(path, callback, callback_args, config)
+        return BiliDownloadResult(r.pr, r.media, r.save_dir)
 
 
-class BiliVideoParseResult(YtVideoParseResult):
+class BiliYtVideoParseResult(YtVideoParseResult):
     async def download(
         self,
         path: str | Path = None,
@@ -155,4 +211,5 @@ class BiliVideoParseResult(YtVideoParseResult):
         return BiliDownloadResult(r.pr, r.media, r.save_dir)
 
 
-class BiliImageParseResult(YtImageParseResult): ...
+class BiliYtImageParseResult(YtImageParseResult):
+    ...

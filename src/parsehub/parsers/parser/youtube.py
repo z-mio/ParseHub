@@ -9,9 +9,7 @@ class YtbParse(YtParser):
     __match__ = r"^(http(s)?://).*youtu(be|.be)?(\.com)?/(?!live)(?!@).+"
     __reserved_parameters__ = ["v", "list", "index"]
 
-    async def parse(
-        self, url: str
-    ) -> Union["YtVideoParseResult", "YtImageParseResult"]:
+    async def parse(self, url: str) -> Union[YtVideoParseResult, YtImageParseResult]:
         url = await self.get_raw_url(url)
 
         return await super().parse(url)

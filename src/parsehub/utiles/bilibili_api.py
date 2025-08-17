@@ -23,6 +23,60 @@ CODE_LEN = len(ENCODE_MAP)
 
 
 class BiliAPI:
+    def __init__(self):
+        self.headers = {"User-Agent": USER_AGENT}
+        self._client: httpx.AsyncClient | None = None
+
+    async def get_video_info(self, bvid: str):
+        """获取视频详细信息"""
+        response = await self._get_client().get(
+            "https://api.bilibili.com/x/web-interface/view/detail",
+            params={"bvid": bvid},
+            headers=self.headers,
+        )
+        return response.json()
+
+    async def get_video_playurl(self, bvid, cid, b3, b4) -> dict:
+        params = {
+            "bvid": bvid,
+            "cid": cid,
+            "qn": "127",
+            "fnver": 0,
+            "fnval": 1,
+            "fourk": 1,
+            "gaia_source": "",
+            "from_client": "BROWSER",
+            "is_main_page": "false",
+            "need_fragment": "false",
+            "isGaiaAvoided": "true",
+            "web_location": 1315873,
+            "voice_balance": 1,
+        }
+        cookies = {
+            "SESSDATA": "",
+            "buvid3": b3,
+            "buvid4": b4,
+            "bili_jct": "",
+            "ac_time_value": "",
+            "opus-goback": "1",
+        }
+        r = await self._get_client().get(
+            "https://api.bilibili.com/x/player/playurl",
+            params=params,
+            cookies=cookies,
+            headers=self.headers,
+        )
+        return r.json()
+
+    async def get_buvid(self):
+        """获取 buvid"""
+        r = await self._get_client().get(
+            "https://api.bilibili.com/x/frontend/finger/spi",
+            headers=self.headers,
+        )
+        data = r.json()
+        return data["data"]["b_3"], data["data"]["b_4"]
+
     async def ai_summary(self, bvid: str) -> "AISummaryResult":
         bvid = self.av2bv(aid=bvid)
         info = await self.get_video_info(bvid)
@@ -31,33 +85,32 @@ class BiliAPI:
         wbi = await BiliWbiSigner().wbi(bvid=bvid, cid=cid, up_mid=up_mid)
         return await self.get_ai_summary(bvid, cid, up_mid, wbi["w_rid"], wbi["wts"])
 
-    @staticmethod
-    async def get_video_info(bvid: str):
-        """获取视频详细信息"""
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.bilibili.com/x/web-interface/view/detail",
-                params={"bvid": bvid},
-                headers={"User-Agent": USER_AGENT},
-            )
-            return response.json()
+    async def get_ai_summary(
+        self, bvid: str, cid: int, up_mid: int, w_rid: str, wts: int
+    ):
+        url = "https://api.bilibili.com/x/web-interface/view/conclusion/get"
+        result = await self._get_client().get(
+            url,
+            params={
+                "bvid": bvid,
+                "cid": cid,
+                "up_mid": up_mid,
+                "w_rid": w_rid,
+                "wts": wts,
+            },
+            headers=self.headers,
+        )
+        return AISummaryResult.parse(result.json())
 
-    @staticmethod
-    async def get_ai_summary(bvid: str, cid: int, up_mid: int, w_rid: str, wts: int):
-        async with httpx.AsyncClient() as client:
-            url = "https://api.bilibili.com/x/web-interface/view/conclusion/get"
-            result = await client.get(
-                url,
-                params={
-                    "bvid": bvid,
-                    "cid": cid,
-                    "up_mid": up_mid,
-                    "w_rid": w_rid,
-                    "wts": wts,
-                },
-                headers={"User-Agent": USER_AGENT},
-            )
-            return AISummaryResult.parse(result.json())
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or getattr(self._client, "is_closed", False):
+            self._client = httpx.AsyncClient()
+        return self._client
+
+    async def aclose(self):
+        if self._client is not None and not getattr(self._client, "is_closed", False):
+            await self._client.aclose()
+            self._client = None
 
     @staticmethod
     def av2bv(aid: str) -> str:
@@ -282,5 +335,5 @@ class BiliWbiSigner:
 
 
 if __name__ == "__main__":
-    result = asyncio.run(BiliAPI().ai_summary("BV1zEbQzAEHy"))
-    print(result)
+    r = asyncio.run(BiliAPI().get_video_info("BV1Z4421U7LM"))
+    print(r)

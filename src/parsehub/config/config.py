@@ -27,24 +27,24 @@ class DownloadConfig(GlobalConfig, BaseSettings):
     """使用yt-dlp下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制"""
 
     save_dir: Path = Field(default=Path(sys.argv[0]).parent / "downloads")
-    headers: dict | None = None
+    headers: dict | None = Field(default=None, validation_alias="DOWNLOADER_HEADERS")
     proxy: str | None = Field(default=None, validation_alias="DOWNLOADER_PROXY")
 
 
 class ParseConfig(GlobalConfig, BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    douyin_api: str = "https://douyin.wtf"
+    douyin_api: str | None = Field(default="https://douyin.wtf")
     proxy: str | None = Field(default=None, validation_alias="PARSER_PROXY")
 
 
 class SummaryConfig(GlobalConfig, BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    provider: str = "openai"
+    provider: str | None = "openai"
     api_key: str | None = None
-    base_url: str = "https://api.openai.com/v1"
-    model: str = "gpt-5-nano"
+    base_url: str | None = "https://api.openai.com/v1"
+    model: str | None = "gpt-5-nano"
     prompt: str = """
         You are a useful assistant to summarize the main points of articles and video captions.
         Summarize 3 to 8 points in "Simplified Chinese" and put the summary at the beginning.
@@ -53,3 +53,4 @@ class SummaryConfig(GlobalConfig, BaseSettings):
     transcriptions_provider: str | None = None
     transcriptions_api_key: str | None = None
     transcriptions_base_url: str | None = None
+    

@@ -122,3 +122,5 @@ if __name__ == '__main__':
 - [yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 - [instaloader/instaloader](https://github.com/instaloader/instaloader)
 - [JoeanAmier/XHS-Downloader](https://github.com/JoeanAmier/XHS-Downloader)
+- [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
+- [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api)
