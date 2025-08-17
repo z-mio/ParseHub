@@ -282,5 +282,5 @@ class BiliWbiSigner:
 
 
 if __name__ == "__main__":
-    result = asyncio.run(BiliAPI().ai_summary("BV1Z4421U7LM"))
+    result = asyncio.run(BiliAPI().ai_summary("BV1zEbQzAEHy"))
     print(result)

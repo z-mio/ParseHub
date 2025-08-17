@@ -74,7 +74,7 @@ class Twitter:
         result = result["data"]["tweetResult"]["result"]
         legacy: dict = result.get("legacy")
         if not legacy:
-            if result.get('__typename') == 'TweetTombstone':
+            if result.get("__typename") == "TweetTombstone":
                 raise Exception("error: 该推文开启了限制, 匿名用户无法查看")
             raise Exception(f"error: {result.get('reason')}")
 

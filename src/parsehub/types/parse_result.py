@@ -317,7 +317,9 @@ class DownloadResult(Generic[T]):
     def delete(self):
         """删除文件"""
         if self.save_dir:
-            return shutil.rmtree(self.save_dir)
+            if self.save_dir.exists():
+                return shutil.rmtree(self.save_dir)
+            return None
 
         if isinstance(self.media, list):
             p = [i.path for i in self.media if i.exists()]

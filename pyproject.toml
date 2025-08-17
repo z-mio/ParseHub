@@ -43,6 +43,7 @@ dependencies = [
     "requests",
     "skia-python>=87.6",
     "httpx>=0.24.1",
+    "pydantic-settings==2.10.1",
 ]
 [tool.hatch.build.targets.wheel]
 packages = ["src/parsehub"]
