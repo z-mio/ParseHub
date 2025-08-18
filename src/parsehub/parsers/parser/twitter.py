@@ -150,3 +150,6 @@ class TwitterTweet:
             re.sub(r"https://t\.co/[^\s,]+$", "", full_text) if media else full_text
         )
         self.media = media
+
+
+__all__ = ["TwitterParser"]

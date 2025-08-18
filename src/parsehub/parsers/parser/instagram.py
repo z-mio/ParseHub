@@ -86,3 +86,6 @@ class MyInstaloaderContext(InstaloaderContext):
             session.trust_env = False
 
         return super().get_json(*args, **kwargs)
+
+
+__all__ = ["InstagramParser"]

@@ -1,6 +1,6 @@
 from typing import Union
 from ...deps.xhs.source import XHS
-from ..base.base import Parser
+from ..base import Parser
 from ...types import (
     VideoParseResult,
     ImageParseResult,
@@ -49,3 +49,6 @@ class XhsParser(Parser):
             return ImageParseResult(
                 photo=[Image(i, ext="png") for i in result["下载地址"]], **k
             )
+
+
+__all__ = ["XhsParser"]

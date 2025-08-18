@@ -152,3 +152,6 @@ class DYResult:
                 desc=desc,
                 platform=platform,
             )
+
+
+__all__ = ["DouyinParser"]

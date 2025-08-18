@@ -10,3 +10,6 @@ class FacebookParse(YtParser):
     async def parse(self, url: str) -> YtVideoParseResult:
         url = await self.get_raw_url(url)
         return await super().parse(url)
+
+
+__all__ = ["FacebookParse"]

@@ -1,13 +1,10 @@
 import json
+import os
 import sys
 from pathlib import Path
 
-from pydantic import Field, field_validator
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-)
-
+from pydantic import Field, field_validator, BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,22 +17,15 @@ class GlobalConfig:
     """部分平台下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制"""
 
 
-class DownloadConfig(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env", extra="ignore", populate_by_name=True
-    )
+class DownloadConfig(BaseModel):
     save_dir: Path = Field(default=Path(sys.argv[0]).parent / "downloads")
-    headers: dict | None = Field(default=None, validation_alias="DOWNLOADER_HEADERS")
-    proxy: str | None = Field(default=None, validation_alias="DOWNLOADER_PROXY")
+    headers: dict | None = Field(default=None)
+    proxy: str | None = Field(default=os.getenv("DOWNLOADER_PROXY"))
 
 
-class ParseConfig(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env", extra="ignore", populate_by_name=True
-    )
-
-    proxy: str | None = Field(default=None, validation_alias="PARSER_PROXY")
-    cookie: dict | None = Field(default=None, validation_alias="X_COOKIE_X")
+class ParseConfig(BaseModel):
+    proxy: str | None = Field(default=os.getenv("PARSER_PROXY"))
+    cookie: dict | None = Field(default=None)
     """cookie不从环境变量获取"""
 
     @field_validator("cookie", mode="before")
@@ -86,10 +76,10 @@ class SummaryConfig(BaseSettings):
     base_url: str | None = "https://api.openai.com/v1"
     model: str | None = "gpt-5-nano"
     prompt: str = """
-        You are a useful assistant to summarize the main points of articles and video captions.
-        Summarize 3 to 8 points in "Simplified Chinese" and put the summary at the beginning.
+        Summarize the key points of articles and video subtitles. 
+        Summarize it in one sentence at the beginning and then write out n key points.
         """.strip()
-    """你是一个有用的助手，总结文章和视频字幕的要点。用“简体中文”总结3到8个要点，并在开头总结全部。"""
+    """总结文章和视频字幕的要点。在开头进行一句话总结, 然后写出n个要点。"""
     transcriptions_provider: str | None = None
     transcriptions_api_key: str | None = None
     transcriptions_base_url: str | None = None

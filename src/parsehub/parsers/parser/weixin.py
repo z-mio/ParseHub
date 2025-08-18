@@ -106,3 +106,6 @@ class WX:
             return cls(title, imgs, markdown_content, text_content)
         else:
             raise ParseError("获取内容失败")
+
+
+__all__ = ["WXParser", "WXImageParseResult"]

@@ -49,7 +49,9 @@ class Parser(ABC):
             async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
                 try:
                     r = await client.get(
-                        url, follow_redirects=True, headers={"User-Agent": GlobalConfig.ua}
+                        url,
+                        follow_redirects=True,
+                        headers={"User-Agent": GlobalConfig.ua},
                     )
                     r.raise_for_status()
                 except httpx.ReadTimeout:

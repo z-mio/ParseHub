@@ -58,3 +58,6 @@ class WeiboParser(Parser):
         # text = re.sub(r'<a  href="https://video.weibo.com.*?>.*的微博视频.*</a>', "", text)
         # text = re.sub(r"<[^>]+>", " ", text)
         return text.strip()
+
+
+__all__ = ["WeiboParser"]

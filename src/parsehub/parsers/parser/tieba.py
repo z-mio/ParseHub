@@ -104,3 +104,6 @@ class TieBaPost:
     content: str
     img_url: list
     video_url: str = None
+
+
+__all__ = ["TieBaParser"]

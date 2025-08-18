@@ -242,5 +242,14 @@ class BiliYtVideoParseResult(YtVideoParseResult):
         return BiliDownloadResult(r.pr, r.media, r.save_dir)
 
 
-class BiliYtImageParseResult(YtImageParseResult):
-    ...
+class BiliYtImageParseResult(YtImageParseResult): ...
+
+
+__all__ = [
+    "BiliParse",
+    "BiliDownloadResult",
+    "BiliYtVideoParseResult",
+    "BiliYtImageParseResult",
+    "BiliVideoParseResult",
+    "BiliImageParseResult",
+]

@@ -745,7 +745,7 @@ wheels = [
 
 [[package]]
 name = "parsehub"
-version = "1.2.32"
+version = "1.2.37"
 source = { virtual = "." }
 dependencies = [
     { name = "aiocache" },
@@ -771,6 +771,7 @@ dependencies = [
     { name = "playwright" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pydicom" },
     { name = "pydub" },
     { name = "pyperclip" },
     { name = "python-dotenv" },
@@ -809,7 +810,8 @@ requires-dist = [
     { name = "opencv-python", specifier = ">=4.10.0.84" },
     { name = "playwright", specifier = ">=1.48.0" },
     { name = "pydantic", specifier = ">=1.10.19" },
-    { name = "pydantic-settings", specifier = "==2.10.1" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "pydicom", specifier = ">=3.0.1" },
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "pyperclip", specifier = ">=1.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
@@ -939,6 +941,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/68/85/1ea668bbab3c50071ca613c6ab30047fb36ab0da1b92fa8f17bbc38fd36c/pydantic_settings-2.10.1.tar.gz", hash = "sha256:06f0062169818d0f5524420a360d632d5857b83cffd4d42fe29597807a1614ee", size = 172583, upload-time = "2025-06-24T13:26:46.841Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/58/f0/427018098906416f580e3cf1366d3b1abfb408a0652e9f31600c24a1903c/pydantic_settings-2.10.1-py3-none-any.whl", hash = "sha256:a60952460b99cf661dc25c29c0ef171721f98bfcb52ef8d9ea4c943d7c8cc796", size = 45235, upload-time = "2025-06-24T13:26:45.485Z" },
+]
+
+[[package]]
+name = "pydicom"
+version = "3.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/6f/55ea163b344c91df2e03c007bebf94781f0817656e2c037d7c5bf86c3bfc/pydicom-3.0.1.tar.gz", hash = "sha256:7b8be344b5b62493c9452ba6f5a299f78f8a6ab79786c729b0613698209603ec", size = 2884731, upload-time = "2024-09-22T02:02:43.202Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/a6/98651e752a49f341aa99aa3f6c8ba361728dfc064242884355419df63669/pydicom-3.0.1-py3-none-any.whl", hash = "sha256:db32f78b2641bd7972096b8289111ddab01fb221610de8d7afa835eb938adb41", size = 2376126, upload-time = "2024-09-22T02:02:41.616Z" },
 ]
 
 [[package]]

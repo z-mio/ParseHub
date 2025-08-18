@@ -153,7 +153,10 @@ class YtVideoParseResult(VideoParseResult):
         yto["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         text = "下载合并中...请耐心等待..."
-        if GlobalConfig.duration_limit and self.dl.duration > GlobalConfig.duration_limit:
+        if (
+            GlobalConfig.duration_limit
+            and self.dl.duration > GlobalConfig.duration_limit
+        ):
             # 视频超过限制时长，获取最低画质
             text += f"\n视频超过{GlobalConfig.duration_limit}秒，获取最低画质"
             yto["format"] = "worstvideo* + worstaudio / worst"

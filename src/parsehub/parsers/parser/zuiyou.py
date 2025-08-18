@@ -86,3 +86,6 @@ class ZuiYou:
                 "pid"
             )
         ) and int(pid)
+
+
+__all__ = ["ZuiYouParser"]
