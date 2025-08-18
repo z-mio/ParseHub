@@ -112,8 +112,13 @@ class BiliParse(YtParser):
             video_playurl = await bili.get_video_playurl(
                 bvid, data["View"]["cid"], b3, b4
             )
+
         durl = video_playurl["data"]["durl"][0]
-        video_url = durl["backup_url"][0] if durl.get("backup_url") else durl["url"]
+        video_url = (
+            self.change_source(durl["backup_url"][0])
+            if durl.get("backup_url")
+            else durl["url"]
+        )
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
@@ -178,6 +183,12 @@ class BiliParse(YtParser):
                 return await ImgHost(self.cfg.proxy).litterbox(f.name)
             except Exception:
                 raise ParseError("图片上传图床失败")
+
+    @staticmethod
+    def change_source(url: str):
+        return re.sub(
+            r"upos-sz-estg.*.bilivideo.com", "upos-sz-estgcos.bilivideo.com", url
+        )
 
 
 class BiliDownloadResult(DownloadResult):
