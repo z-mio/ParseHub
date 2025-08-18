@@ -112,12 +112,12 @@ class BiliParse(YtParser):
             video_playurl = await bili.get_video_playurl(
                 bvid, data["View"]["cid"], b3, b4
             )
+        durl = video_playurl["data"]["durl"][0]
+        video_url = durl["backup_url"][0] if durl.get("backup_url") else durl["url"]
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
-            video=Video(
-                video_playurl["data"]["durl"][0]["url"], thumb_url=data["View"]["pic"]
-            ),
+            video=Video(video_url, thumb_url=data["View"]["pic"]),
         )
 
     async def ytp_parse(
