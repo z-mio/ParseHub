@@ -5,7 +5,6 @@ from typing import Callable
 
 import aiofiles
 import httpx
-from httpx._types import ProxyTypes
 
 
 async def download_file(
@@ -13,7 +12,7 @@ async def download_file(
     save_path: str | Path = None,
     *,
     headers: dict = None,
-    proxies: ProxyTypes = None,
+    proxies: httpx.Proxy = None,
     progress: Callable = None,
     progress_args: tuple = (),
 ) -> str:

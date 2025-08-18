@@ -6,7 +6,8 @@ import httpx
 from enum import Enum
 
 
-class WeiboParser(Parser):
+class ZuiYouParser(Parser):
+    __platform_id__ = "zuiyou"
     __platform__ = "最右"
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)share.xiaochuankeji.cn/hybrid/share/post\?pid=\d+"

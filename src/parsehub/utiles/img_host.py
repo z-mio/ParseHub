@@ -1,13 +1,12 @@
 import os
 
 import httpx
-from httpx._types import ProxyTypes
-from loguru import logger
+
 from tenacity import retry, stop_after_attempt
 
 
 class ImgHost:
-    def __init__(self, proxies: ProxyTypes = None):
+    def __init__(self, proxies: httpx.Proxy = None):
         self.async_client = httpx.AsyncClient(proxy=proxies)
 
     async def _to_file(self, filename_or_url):

@@ -19,6 +19,7 @@ class log:
 
 
 class XhsParser(Parser):
+    __platform_id__ = "xhs"
     __platform__ = "小红书"
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(xiaohongshu|xhslink).com/.+"

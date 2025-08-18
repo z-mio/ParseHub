@@ -4,7 +4,7 @@ import urllib.parse
 from functools import reduce
 from hashlib import md5
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import Any
 
 import httpx
 
@@ -36,11 +36,11 @@ class BiliAPI:
         )
         return response.json()
 
-    async def get_video_playurl(self, bvid, cid, b3, b4) -> dict:
+    async def get_video_playurl(self, bvid, cid, b3, b4, is_high_quality=True) -> dict:
         params = {
             "bvid": bvid,
             "cid": cid,
-            "qn": "127",
+            "qn": 64 if is_high_quality else 16,  # 高画质为720p, 低画质为360p
             "fnver": 0,
             "fnval": 1,
             "fourk": 1,
@@ -142,18 +142,18 @@ class PartOutline:
     content: str
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> "PartOutline":
+    def parse(data: dict[str, Any]) -> "PartOutline":
         return PartOutline(timestamp=data["timestamp"], content=data["content"])
 
 
 @dataclass
 class Outline:
     title: str
-    part_outline: List[PartOutline]
+    part_outline: list[PartOutline]
     timestamp: int
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> "Outline":
+    def parse(data: dict[str, Any]) -> "Outline":
         part_outline = [PartOutline.parse(item) for item in data["part_outline"]]
         return Outline(
             title=data["title"], part_outline=part_outline, timestamp=data["timestamp"]
@@ -164,10 +164,10 @@ class Outline:
 class ModelResult:
     result_type: int
     summary: str
-    outline: List[Outline]
+    outline: list[Outline]
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> "ModelResult":
+    def parse(data: dict[str, Any]) -> "ModelResult":
         if outline := data.get("outline"):
             outline = [Outline.parse(item) for item in outline]
         return ModelResult(
@@ -185,7 +185,7 @@ class Data:
     dislike_num: int
 
     @staticmethod
-    def parse(data: Dict[str, Any]) -> "Data":
+    def parse(data: dict[str, Any]) -> "Data":
         model_result = ModelResult.parse(data["model_result"])
         return Data(
             code=data["code"],

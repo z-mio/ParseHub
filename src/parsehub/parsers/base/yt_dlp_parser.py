@@ -9,7 +9,7 @@ from pathlib import Path
 from yt_dlp import YoutubeDL
 
 from .base import Parser
-from ...config.config import DownloadConfig
+from ...config.config import DownloadConfig, GlobalConfig
 from ...types import (
     VideoParseResult,
     ImageParseResult,
@@ -46,7 +46,7 @@ class YtParser(Parser):
             "raw_url": url,
             "dl": video_info,
         }
-        if video_info.duration > 5400:
+        if GlobalConfig.duration_limit and video_info.duration > 5400:
             return YtImageParseResult(photo=[video_info.thumbnail], **_d)
         else:
             return YtVideoParseResult(video=video_info.url, **_d)
@@ -153,12 +153,9 @@ class YtVideoParseResult(VideoParseResult):
         yto["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         text = "下载合并中...请耐心等待..."
-        if (
-            config.yt_dlp_duration_limit
-            and self.dl.duration > config.yt_dlp_duration_limit
-        ):
+        if GlobalConfig.duration_limit and self.dl.duration > GlobalConfig.duration_limit:
             # 视频超过限制时长，获取最低画质
-            text += f"\n视频超过{config.yt_dlp_duration_limit}秒，获取最低画质"
+            text += f"\n视频超过{GlobalConfig.duration_limit}秒，获取最低画质"
             yto["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:

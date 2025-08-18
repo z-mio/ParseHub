@@ -3,16 +3,16 @@ from pathlib import Path
 from typing import Callable
 
 from ..base.base import Parser
-from ...config import DownloadConfig
+from ...config import DownloadConfig, GlobalConfig
 from ...types import ImageParseResult, DownloadResult
 import httpx
 from bs4 import BeautifulSoup
 from markdown import markdown
 from markdownify import MarkdownConverter
-from ...config.config import GlobalConfig
 
 
 class CoolapkParser(Parser):
+    __platform_id__ = "coolapk"
     __platform__ = "酷安"
     __supported_type__ = ["图文"]
     __match__ = r"^(http(s)?://)www.(coolapk|coolapk1s).com/(feed|picture)/.*"

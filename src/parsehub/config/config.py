@@ -1,8 +1,8 @@
-from abc import ABC
+import json
 import sys
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -13,32 +13,70 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class GlobalConfig(ABC):
+class GlobalConfig:
     ua: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    douyin_api: str = "https://douyin.wtf"
+    duration_limit: int = 0
+    """部分平台下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制"""
 
 
-class DownloadConfig(GlobalConfig, BaseSettings):
+class DownloadConfig(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    yt_dlp_duration_limit: int = Field(
-        default=0,
-        ge=0,
-    )
-    """使用yt-dlp下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制"""
-
     save_dir: Path = Field(default=Path(sys.argv[0]).parent / "downloads")
     headers: dict | None = Field(default=None, validation_alias="DOWNLOADER_HEADERS")
     proxy: str | None = Field(default=None, validation_alias="DOWNLOADER_PROXY")
 
 
-class ParseConfig(GlobalConfig, BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+class ParseConfig(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", populate_by_name=True
+    )
 
-    douyin_api: str | None = Field(default="https://douyin.wtf")
     proxy: str | None = Field(default=None, validation_alias="PARSER_PROXY")
+    cookie: dict | None = Field(default=None, validation_alias="X_COOKIE_X")
+    """cookie不从环境变量获取"""
+
+    @field_validator("cookie", mode="before")
+    @classmethod
+    def _normalize_cookie(cls, v):
+        if v is None or isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return None
+
+            if s.startswith("{") and s.endswith("}"):
+                try:
+                    data = json.loads(s)
+                except Exception as e:
+                    raise ValueError(f"cookie JSON解析失败: {e}")
+                if not isinstance(data, dict):
+                    raise ValueError("cookie JSON必须是对象类型")
+                return {
+                    str(k).strip(): "" if v is None else str(v).strip()
+                    for k, v in data.items()
+                }
+
+            if s.lower().startswith("cookie:"):
+                s = s[7:].strip()
+
+            parts = [p.strip() for p in s.split(";") if p.strip()]
+            result: dict[str, str] = {}
+            for p in parts:
+                if "=" not in p:
+                    key = p.strip()
+                    if key:
+                        result[key] = ""
+                    continue
+                k, val = p.split("=", 1)
+                result[k.strip()] = val.strip()
+            return result or None
+
+        raise ValueError("cookie 必须是字符串、字典或 None")
 
 
-class SummaryConfig(GlobalConfig, BaseSettings):
+class SummaryConfig(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     provider: str | None = "openai"
@@ -53,4 +91,3 @@ class SummaryConfig(GlobalConfig, BaseSettings):
     transcriptions_provider: str | None = None
     transcriptions_api_key: str | None = None
     transcriptions_base_url: str | None = None
-    

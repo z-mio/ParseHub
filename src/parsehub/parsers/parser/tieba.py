@@ -10,6 +10,7 @@ from ...types import VideoParseResult, ImageParseResult, ParseError
 
 
 class TieBaParser(Parser):
+    __platform_id__ = "tieba"
     __platform__ = "贴吧"
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+tieba.baidu.com/p/\d+"

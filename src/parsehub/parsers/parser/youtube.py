@@ -4,6 +4,7 @@ from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResul
 
 
 class YtbParse(YtParser):
+    __platform_id__ = "youtube"
     __platform__ = "Youtube"
     __supported_type__ = ["视频", "音乐"]
     __match__ = r"^(http(s)?://).*youtu(be|.be)?(\.com)?/(?!live)(?!@).+"

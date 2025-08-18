@@ -12,6 +12,7 @@ import httpx
 
 
 class WXParser(Parser):
+    __platform_id__ = "weixin"
     __platform__ = "微信公众号"
     __supported_type__ = ["图文"]
     __match__ = r"^(http(s)?://)mp.weixin.qq.com/s/.*"

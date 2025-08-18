@@ -4,6 +4,7 @@ from typing import Union
 import httpx
 from enum import Enum
 from ..base.base import Parser
+from ...config import GlobalConfig
 from ...types import (
     VideoParseResult,
     ImageParseResult,
@@ -15,6 +16,7 @@ from ...types import (
 
 
 class DouyinParser(Parser):
+    __platform_id__ = "douyin"
     __platform__ = "抖音|TikTok"
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+douyin.com/.+|^(http(s)?://)?.+tiktok.com/.+"
@@ -34,18 +36,16 @@ class DouyinParser(Parser):
                 return await self.image_parse(url, data)
             case DYType.Multimedia:
                 return await self.multimedia_parse(url, data)
-            case _:
-                raise ValueError(f"未知类型: {data.type}")
 
     async def parse_api(self, url) -> "DYResult":
-        if not self.cfg.douyin_api:
+        if not GlobalConfig.douyin_api:
             raise ParseError("抖音解析API未配置")
 
         async with httpx.AsyncClient(timeout=15) as client:
             params = {"url": url, "minimal": False}
             try:
                 response = await client.get(
-                    f"{self.cfg.douyin_api}/api/hybrid/video_data", params=params
+                    f"{GlobalConfig.douyin_api}/api/hybrid/video_data", params=params
                 )
             except httpx.ReadTimeout:
                 raise ParseError("抖音解析超时")

@@ -4,12 +4,14 @@ from urllib.parse import urlparse, parse_qs
 
 import httpx
 
-from ...config.config import ParseConfig
+from ...config.config import ParseConfig, GlobalConfig
 from ...types import ParseResult, ParseError
 from ...utiles.utile import match_url
 
 
 class Parser(ABC):
+    __platform_id__: str = None
+    """平台ID"""
     __platform__: str = None
     """平台名称"""
     __supported_type__: list[str] = []
@@ -32,7 +34,7 @@ class Parser(ABC):
         return bool(re.match(self.__match__, url))
 
     @abstractmethod
-    async def parse(self, url: str) -> "ParseResult":
+    async def parse(self, url: str) -> ParseResult:
         """解析"""
         raise NotImplementedError
 
@@ -47,7 +49,7 @@ class Parser(ABC):
             async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
                 try:
                     r = await client.get(
-                        url, follow_redirects=True, headers={"User-Agent": self.cfg.ua}
+                        url, follow_redirects=True, headers={"User-Agent": GlobalConfig.ua}
                     )
                     r.raise_for_status()
                 except httpx.ReadTimeout:
