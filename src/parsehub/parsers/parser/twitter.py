@@ -20,7 +20,7 @@ class TwitterParser(Parser):
         try:
             tweet = await x.fetch_tweet(url)
         except Exception as e:
-            raise ParseError(e)
+            raise ParseError(e) from e
         return await self.media_parse(url, tweet)
 
     @staticmethod
@@ -93,16 +93,20 @@ class Twitter:
     @staticmethod
     def parse(result: dict):
         if e := result.get("errors"):
-            raise Exception(f"error: {e[0]['message']}")
+            raise Exception(f"error -1: {e[0]['message']}")
 
         result = result["data"]["tweetResult"]["result"]
-        legacy: dict = result.get("legacy")
+        if tweet := result.get("tweet"):
+            tweet_id = tweet["rest_id"]
+            legacy: dict = tweet.get("legacy")
+        else:
+            tweet_id = result["rest_id"]
+            legacy: dict = result.get("legacy")
         if not legacy:
             if result.get("__typename") == "TweetTombstone":
-                raise Exception("error: 该推文开启了限制, 匿名用户无法查看")
-            raise Exception(f"error: {result.get('reason')}")
+                raise Exception("error -2: 该推文开启了限制, 匿名用户无法查看")
+            raise Exception(f"error -3: {result.get('reason')}")
 
-        tweet_id = result["rest_id"]
         full_text = legacy.get("full_text", "")
         media = legacy["entities"].get("media", [])
         media = [
