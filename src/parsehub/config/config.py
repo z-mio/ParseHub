@@ -21,7 +21,9 @@ class GlobalConfig:
 
 
 class DownloadConfig(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", populate_by_name=True
+    )
     save_dir: Path = Field(default=Path(sys.argv[0]).parent / "downloads")
     headers: dict | None = Field(default=None, validation_alias="DOWNLOADER_HEADERS")
     proxy: str | None = Field(default=None, validation_alias="DOWNLOADER_PROXY")
