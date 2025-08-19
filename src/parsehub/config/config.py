@@ -26,7 +26,6 @@ class DownloadConfig(BaseModel):
 class ParseConfig(BaseModel):
     proxy: str | None = Field(default=os.getenv("PARSER_PROXY"))
     cookie: dict | None = Field(default=None)
-    """cookie不从环境变量获取"""
 
     @field_validator("cookie", mode="before")
     @classmethod

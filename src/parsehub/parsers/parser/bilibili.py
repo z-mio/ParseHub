@@ -112,7 +112,6 @@ class BiliParse(YtParser):
             video_playurl = await bili.get_video_playurl(
                 bvid, data["View"]["cid"], b3, b4
             )
-
         durl = video_playurl["data"]["durl"][0]
         video_url = (
             self.change_source(durl["backup_url"][0])
@@ -187,7 +186,7 @@ class BiliParse(YtParser):
     @staticmethod
     def change_source(url: str):
         return re.sub(
-            r"upos-sz-estg.*.bilivideo.com", "upos-sz-estgcos.bilivideo.com", url
+            r"upos-.*.bilivideo.com", "upos-sz-upcdnbda2.bilivideo.com", url
         )
 
 
