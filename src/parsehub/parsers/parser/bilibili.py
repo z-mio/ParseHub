@@ -162,9 +162,11 @@ class BiliParse(YtParser):
                 headers=headers,
                 params=params,
             )
-        message_formate = await formate_message(
-            "web", message_json.json()["data"]["item"]
-        )
+            message_json.raise_for_status()
+            mj = message_json.json()
+            if not (data := mj.get("data")):
+                raise ParseError(f"获取动态信息失败: {mj}")
+        message_formate = await formate_message("web", data.get("item"))
         img = await DynRender().run(message_formate)
 
         # 将渲染后的图像转换为Skia Image对象
@@ -185,9 +187,7 @@ class BiliParse(YtParser):
 
     @staticmethod
     def change_source(url: str):
-        return re.sub(
-            r"upos-.*.bilivideo.com", "upos-sz-upcdnbda2.bilivideo.com", url
-        )
+        return re.sub(r"upos-.*.bilivideo.com", "upos-sz-upcdnbda2.bilivideo.com", url)
 
 
 class BiliDownloadResult(DownloadResult):
