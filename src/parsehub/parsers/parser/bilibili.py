@@ -95,7 +95,9 @@ class BiliParse(YtParser):
         bvid = self.get_bvid(url)
         video_info = await bili.get_video_info(bvid)
 
-        data = video_info["data"]
+        data = video_info.get("data")
+        if not data:
+            raise ParseError("获取视频信息失败")
         duration = data["View"]["duration"]
         b3, b4 = await bili.get_buvid()
         if GlobalConfig.duration_limit and duration > 5400:  # 超过90分钟直接返回封面
