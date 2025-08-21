@@ -87,12 +87,6 @@ async def main():
     ph = ParseHub(config=ParseConfig())
     result = await ph.parse('https://twitter.com/aobuta_anime/status/1827284717848424696')
     print(result)
-
-    # dr = await result.download()
-    # print(dr.media)
-    # sr = await dr.summary()
-    # await dr.delete()
-
     sr = await result.summary(download_config=DownloadConfig())
     print(sr.content)
 
@@ -113,6 +107,20 @@ if __name__ == '__main__':
 | `TRANSCRIPTIONS_PROVIDER` | 语音转文本模型提供商 支持: `openai`,`azure`,`fast_whisper` |                                                                                                                                                                            ||                       |                                                                          |                                                                                                                                                                            |
 | `TRANSCRIPTIONS_BASE_URL` | 语音转文本 API端点                                    |                                                                                                                                                                            ||                       |                                                                          |                                                                                                                                                                            |
 | `TRANSCRIPTIONS_API_KEY`  | 语音转文本 API密钥                                    |                                                                                                                                                                            ||                       |                                                                          |                                                                                                                                                                            |
+
+## 关于登录
+
+配置登录:
+
+```python
+from parsehub.config import ParseConfig
+
+pc = ParseConfig(cookie="从浏览器中获取的cookie")
+```
+
+目前支持的平台:
+
+- **`twitter`**
 
 ## 参考项目
 
