@@ -8,6 +8,7 @@ class YtbParse(YtParser):
     __platform__ = "Youtube"
     __supported_type__ = ["视频", "音乐"]
     __match__ = r"^(http(s)?://).*youtu(be|.be)?(\.com)?/(?!live)(?!@).+"
+    __redirect_keywords__ = ["m.youtube.com"]
     __reserved_parameters__ = ["v", "list", "index"]
 
     async def parse(self, url: str) -> Union[YtVideoParseResult, YtImageParseResult]:

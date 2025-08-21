@@ -6,7 +6,7 @@ from tenacity import retry, stop_after_attempt
 
 
 class ImgHost:
-    def __init__(self, proxies: httpx.Proxy = None):
+    def __init__(self, proxies: httpx.Proxy | str = None):
         self.async_client = httpx.AsyncClient(proxy=proxies)
 
     async def _to_file(self, filename_or_url):
