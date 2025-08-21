@@ -75,10 +75,10 @@ class SummaryConfig(BaseSettings):
     base_url: str | None = "https://api.openai.com/v1"
     model: str | None = "gpt-5-nano"
     prompt: str = """
-        Summarize the key points of articles and video subtitles. 
+        Use "Simplified Chinese" to summarize the key points of articles and video subtitles. 
         Summarize it in one sentence at the beginning and then write out n key points.
         """.strip()
-    """总结文章和视频字幕的要点。在开头进行一句话总结, 然后写出n个要点。"""
+    """使用"简体中文"总结文章和视频字幕的要点。在开头进行一句话总结, 然后写出n个要点。"""
     transcriptions_provider: str | None = None
     transcriptions_api_key: str | None = None
     transcriptions_base_url: str | None = None
