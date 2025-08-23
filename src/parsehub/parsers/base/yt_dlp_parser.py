@@ -29,7 +29,7 @@ def download_video(yto_params: dict, urls: list[str]) -> None:
             return ydl.download(urls)
     except Exception as e:
         error_msg = f"{type(e).__name__}: {str(e)}"
-        raise ParseError(error_msg)
+        raise RuntimeError(error_msg) from None
 
 
 class YtParser(Parser):
@@ -82,8 +82,12 @@ class YtParser(Parser):
         )
 
     def _extract_info(self, url, params=None):
-        with YoutubeDL(params or self.params) as ydl:
-            return ydl.extract_info(url, download=False)
+        try:
+            with YoutubeDL(params or self.params) as ydl:
+                return ydl.extract_info(url, download=False)
+        except Exception as e:
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            raise RuntimeError(error_msg) from None
 
     # def hook(self, d):
     #     current = d.get("downloaded_bytes", 0)
@@ -172,6 +176,8 @@ class YtVideoParseResult(VideoParseResult):
             )
         except asyncio.TimeoutError:
             raise ParseError("下载超时")
+        except Exception as e:
+            raise ParseError(f"下载失败: {str(e)}")
 
         v = (
             list(dir_.glob("*.mp4"))
