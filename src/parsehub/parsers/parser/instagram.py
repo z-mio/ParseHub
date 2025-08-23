@@ -29,7 +29,9 @@ class InstagramParser(Parser):
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
         try:
-            post = Post.from_shortcode(MyInstaloaderContext(self.cfg.proxy), shortcode)
+            post = Post.from_shortcode(
+                MyInstaloaderContext(self.cfg.proxy, self.cfg.cookie), shortcode
+            )
         except BadResponseException as e:
             match str(e):
                 case "Fetching Post metadata failed.":
@@ -68,8 +70,9 @@ class MyInstaloaderContext(InstaloaderContext):
     支持自定义代理
     """
 
-    def __init__(self, proxy: str | None = None):
+    def __init__(self, proxy: str | None = None, cookie: dict = None):
         self.proxy = {"http": proxy, "https": proxy}
+        self.cookie = cookie
         super().__init__()
 
     def get_anonymous_session(self) -> requests.Session:
@@ -84,6 +87,8 @@ class MyInstaloaderContext(InstaloaderContext):
         if self.proxy:
             session.proxies = self.proxy
             session.trust_env = False
+        if self.cookie:
+            session.cookies.update(self.cookie)
 
         return super().get_json(*args, **kwargs)
 
