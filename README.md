@@ -110,7 +110,10 @@ if __name__ == '__main__':
 
 ## 关于登录
 
-配置登录:
+- 为什么需要登录?
+    - 部分平台的帖子有限制，需要登录才能查看。
+
+**通过 Cookie 登录:**
 
 ```python
 from parsehub.config import ParseConfig
@@ -120,7 +123,8 @@ pc = ParseConfig(cookie="从浏览器中获取的cookie")
 
 目前支持的平台:
 
-- **`twitter`**
+- `twitter`
+- `instagram`
 
 ## 参考项目
 
