@@ -40,6 +40,10 @@ class InstagramParser(Parser):
                     )
                 case _:
                     raise ParseError("无法获取帖子内容")
+        except Exception as e:
+            raise ParseError(
+                f"无法获取帖子内容: {e if not self.cfg.cookie else 'Instagram 账号可能已被封禁'}"
+            )
 
         k = {"title": post.title, "desc": post.caption, "raw_url": url}
         match post.typename:
