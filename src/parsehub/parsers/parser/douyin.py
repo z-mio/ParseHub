@@ -101,13 +101,13 @@ class DYResult:
 
         def v_p(video_data: dict):
             """视频信息解析"""
-            video = video_data.get("bit_rate")
-            if not video:
+            bit_rate = video_data.get("bit_rate")
+            if not bit_rate:
                 raise ParseError("抖音解析失败: 未获取到视频下载地址")
-            video.sort(key=lambda x: x["quality_type"])
-            video = video[0]["play_addr"]["url_list"][-1]
-            thumb = video_data["cover"]["url_list"][-1]
-            return video, thumb
+            bit_rate.sort(key=lambda x: x["quality_type"])
+            video_url = bit_rate[0]["play_addr"]["url_list"][0]
+            thumb_url = video_data["cover"]["url_list"][-1]
+            return video_url, thumb_url
 
         if images := data.get("images"):
             if images[0].get("video"):
