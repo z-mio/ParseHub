@@ -86,3 +86,11 @@ def video_to_png(video: str) -> str:
     image = video.read()[1]
     cv2.imwrite(o_p, image)
     return o_p
+
+
+def cookie_ellipsis(cookie: dict) -> str:
+    if not cookie:
+        return ""
+    text = "; ".join([f"{k}={v}" for k, v in cookie.items()])
+    c = min(len(text) // 3, 15)
+    return f"{text[:c]}......{text[-c:]}"

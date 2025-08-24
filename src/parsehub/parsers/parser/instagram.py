@@ -13,6 +13,8 @@ from ...types import (
 )
 from instaloader import Post, InstaloaderContext, BadResponseException
 
+from ...utiles.utile import cookie_ellipsis
+
 
 class InstagramParser(Parser):
     __platform_id__ = "instagram"
@@ -28,22 +30,8 @@ class InstagramParser(Parser):
         shortcode = self.get_short_code(url)
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
-        try:
-            post = Post.from_shortcode(
-                MyInstaloaderContext(self.cfg.proxy, self.cfg.cookie), shortcode
-            )
-        except BadResponseException as e:
-            match str(e):
-                case "Fetching Post metadata failed.":
-                    raise ParseError(
-                        "受限视频无法解析: 你必须年满 18 周岁才能观看这个视频"
-                    )
-                case _:
-                    raise ParseError("无法获取帖子内容")
-        except Exception as e:
-            raise ParseError(
-                f"无法获取帖子内容: {e if not self.cfg.cookie else 'Instagram 账号可能已被封禁'}"
-            )
+
+        post = await self._parse(url, shortcode)
 
         k = {"title": post.title, "desc": post.caption, "raw_url": url}
         match post.typename:
@@ -61,6 +49,31 @@ class InstagramParser(Parser):
                 return VideoParseResult(
                     video=Video(post.video_url, thumb_url=post.url), **k
                 )
+
+    async def _parse(self, url, shortcode, cookie=None):
+        try:
+            post = Post.from_shortcode(
+                MyInstaloaderContext(self.cfg.proxy, cookie), shortcode
+            )
+        except BadResponseException as e:
+            match str(e):
+                case "Fetching Post metadata failed.":
+                    if self.cfg.cookie and cookie is None:
+                        await self._parse(url, shortcode, self.cfg.cookie)
+                    else:
+                        raise ParseError(
+                            "受限视频无法解析: 你必须年满 18 周岁才能观看这个视频"
+                        )
+                case _:
+                    raise ParseError("无法获取帖子内容")
+        except Exception as e:
+            if cookie:
+                text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(cookie)}"
+            else:
+                text = e
+            raise ParseError(f"无法获取帖子内容: {text}")
+        else:
+            return post
 
     @staticmethod
     def get_short_code(url: str):
