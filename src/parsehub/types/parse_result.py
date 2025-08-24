@@ -69,13 +69,15 @@ class ParseResult(ABC):
                 if not image.is_url:
                     path_list.append(image)
                     continue
-
-                f = await download_file(
-                    image.path,
-                    f"{op}/{i}.{image.ext}",
-                    proxies=config.proxy,
-                    headers=config.headers,
-                )
+                try:
+                    f = await download_file(
+                        image.path,
+                        f"{op}/{i}.{image.ext}",
+                        proxies=config.proxy,
+                        headers=config.headers,
+                    )
+                except Exception as e:
+                    raise Exception(f"下载失败: {e}")
 
                 path_list.append(image.__class__(f, ext=image.ext))
 
@@ -99,14 +101,17 @@ class ParseResult(ABC):
                     *args,
                 )
 
-            r = await download_file(
-                self.media.path,
-                config.save_dir / f"{time.time_ns()}.{self.media.ext}",
-                headers=config.headers,
-                proxies=config.proxy,
-                progress=_callback if callback else None,
-                progress_args=callback_args,
-            )
+            try:
+                r = await download_file(
+                    self.media.path,
+                    config.save_dir / f"{time.time_ns()}.{self.media.ext}",
+                    headers=config.headers,
+                    proxies=config.proxy,
+                    progress=_callback if callback else None,
+                    progress_args=callback_args,
+                )
+            except Exception as e:
+                raise Exception(f"下载失败: {e}")
 
             # 小于10KB为下载失败
             if not os.stat(r).st_size > 10 * 1024:

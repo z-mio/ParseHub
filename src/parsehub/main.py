@@ -29,8 +29,9 @@ class ParseHub:
         :param url: 分享链接
         """
         if parser := self.select_parser(url):
-            url = await parser().get_raw_url(url)
-            return await parser(parse_config=self.config).parse(url)
+            p = parser(parse_config=self.config)
+            url = await p.get_raw_url(url)
+            return await p.parse(url)
         raise ValueError("不支持的平台")
 
     async def get_raw_url(self, url: str) -> str:
