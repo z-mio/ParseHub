@@ -1,3 +1,4 @@
+import asyncio
 import re
 
 import requests
@@ -52,14 +53,21 @@ class InstagramParser(Parser):
 
     async def _parse(self, url, shortcode, cookie=None):
         try:
-            post = Post.from_shortcode(
-                MyInstaloaderContext(self.cfg.proxy, cookie), shortcode
+            post = await asyncio.wait_for(
+                asyncio.to_thread(
+                    Post.from_shortcode,
+                    MyInstaloaderContext(self.cfg.proxy, cookie),
+                    shortcode,
+                ),
+                30,
             )
+        except asyncio.TimeoutError:
+            raise ParseError("解析超时")
         except BadResponseException as e:
             match str(e):
                 case "Fetching Post metadata failed.":
                     if self.cfg.cookie and cookie is None:
-                        await self._parse(url, shortcode, self.cfg.cookie)
+                        return await self._parse(url, shortcode, self.cfg.cookie)
                     else:
                         raise ParseError(
                             "受限视频无法解析: 你必须年满 18 周岁才能观看这个视频"
