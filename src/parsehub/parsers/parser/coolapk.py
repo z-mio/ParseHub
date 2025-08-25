@@ -71,8 +71,8 @@ class Coolapk:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "html.parser")
 
-        title = soup.find(class_="message-title")
-        if title and title.text.strip():
+        title_element = soup.find(class_="message-title")
+        if title_element and (title := title_element.text.strip()):
             content = soup.find(class_="feed-article-message")
             markdown_content = MarkdownConverter(heading_style="ATX").convert(
                 str(content)
@@ -88,8 +88,8 @@ class Coolapk:
             ]
             return cls(title, markdown_content, text_content, imgs)
 
-        content = soup.find(class_="feed-message")
-        if content and content.text.strip():
+        feed_element = soup.find(class_="feed-message")
+        if feed_element and (content := feed_element.text.strip()):
             message_image_group = soup.find(class_="message-image-group")
             imgs = (
                 [f"https:{i['src']}" for i in message_image_group.find_all("img")]
