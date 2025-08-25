@@ -95,7 +95,9 @@ class Twitter:
         if e := result.get("errors"):
             raise Exception(f"error -1: {e[0]['message']}")
 
-        result = result["data"]["tweetResult"]["result"]
+        result = result["data"]["tweetResult"].get("result")
+        if not result:
+            raise ParseError("error -4: 帖子或用户不存在")
         if tweet := result.get("tweet"):
             tweet_id = tweet["rest_id"]
             legacy: dict = tweet.get("legacy")
