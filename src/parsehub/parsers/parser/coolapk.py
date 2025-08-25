@@ -4,7 +4,7 @@ from typing import Callable
 
 from ..base.base import Parser
 from ...config import DownloadConfig, GlobalConfig
-from ...types import ImageParseResult, DownloadResult
+from ...types import ImageParseResult, DownloadResult, ParseError
 import httpx
 from bs4 import BeautifulSoup
 from markdown import markdown
@@ -21,7 +21,10 @@ class CoolapkParser(Parser):
 
     async def parse(self, url: str) -> "CoolapkImageParseResult":
         url = await self.get_raw_url(url)
-        coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
+        try:
+            coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
+        except Exception as e:
+            raise ParseError(e) from e
         return CoolapkImageParseResult(
             title=coolapk.title,
             photo=coolapk.imgs,
@@ -68,8 +71,8 @@ class Coolapk:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "html.parser")
 
-        title = (i := soup.find(class_="message-title")) and i.text.strip()
-        if title:
+        title = soup.find(class_="message-title")
+        if title and title.text.strip():
             content = soup.find(class_="feed-article-message")
             markdown_content = MarkdownConverter(heading_style="ATX").convert(
                 str(content)
@@ -84,8 +87,9 @@ class Coolapk:
                 for i in content.find_all("img", {"class": "message-image"})
             ]
             return cls(title, markdown_content, text_content, imgs)
-        else:
-            content = (i := soup.find(class_="feed-message")) and i.text.strip()
+
+        content = soup.find(class_="feed-message")
+        if content and content.text.strip():
             message_image_group = soup.find(class_="message-image-group")
             imgs = (
                 [f"https:{i['src']}" for i in message_image_group.find_all("img")]
@@ -93,6 +97,8 @@ class Coolapk:
                 else []
             )
             return cls(None, None, content, imgs)
+
+        raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
 
 
 __all__ = ["CoolapkParser", "CoolapkImageParseResult"]
