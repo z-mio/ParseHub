@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import Callable, Generic, TypeVar, Literal
+from typing import Callable, Generic, TypeVar, Literal, Awaitable
 from .media import Media, Video
 from ..utiles.utile import progress, img2base64
 from ..utiles.download_file import download_file
@@ -47,7 +47,7 @@ class ParseResult(ABC):
     async def download(
         self,
         path: str | Path = None,
-        callback: Callable = None,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
         callback_args: tuple = (),
         config: DownloadConfig = DownloadConfig(),
     ) -> "DownloadResult":

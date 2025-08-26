@@ -4,7 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 from ...utiles.img_host import ImgHost
 import time
 from dataclasses import dataclass
-from typing import Union, Callable
+from typing import Union, Callable, Awaitable
 from pathlib import Path
 from yt_dlp import YoutubeDL
 
@@ -135,7 +135,7 @@ class YtVideoParseResult(VideoParseResult):
     async def download(
         self,
         path: str | Path = None,
-        callback: Callable = None,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
         callback_args: tuple = (),
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:

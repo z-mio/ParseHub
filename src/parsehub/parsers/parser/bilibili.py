@@ -1,5 +1,5 @@
 import re
-from typing import Union, Callable
+from typing import Union, Callable, Awaitable
 from pathlib import Path
 import httpx
 import skia
@@ -227,7 +227,7 @@ class BiliVideoParseResult(VideoParseResult):
     async def download(
         self,
         path: str | Path = None,
-        callback: Callable = None,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
         callback_args: tuple = (),
         config: DownloadConfig = DownloadConfig(),
     ) -> "DownloadResult":

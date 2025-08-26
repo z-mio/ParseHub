@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Awaitable
 
 from ..base.base import Parser
 from ...config import DownloadConfig, GlobalConfig
@@ -45,7 +45,7 @@ class CoolapkImageParseResult(ImageParseResult):
         self,
         path: str | Path = None,
         callback: Callable = None,
-        callback_args: tuple = (),
+        callback_args: Callable[[int, int, str | None, tuple], Awaitable[None]] = (),
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         headers = config.headers or {}
