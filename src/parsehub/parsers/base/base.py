@@ -45,6 +45,8 @@ class Parser(ABC):
         :return:
         """
         url = match_url(url)
+        if not url.startswith("http"):
+            url = f"https://{url}"
         if any(map(lambda x: x in url, self.__redirect_keywords__)):
             async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
                 try:
