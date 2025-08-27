@@ -51,13 +51,10 @@ class YtParser(Parser):
         else:
             return YtVideoParseResult(video=video_info.url, **_d)
 
-    async def _parse(self, url, params=None) -> "YtVideoInfo":
+    async def _parse(self, url) -> "YtVideoInfo":
         try:
-            # dl = await asyncio.wait_for(
-            #     loop.run_in_executor(EXC, extract_video_info, url, params), timeout=30
-            # )
             dl = await asyncio.wait_for(
-                asyncio.to_thread(self._extract_info, url, params), timeout=30
+                asyncio.to_thread(self._extract_info, url), timeout=30
             )
         except asyncio.TimeoutError:
             raise ParseError("解析视频信息超时")
@@ -79,23 +76,20 @@ class YtParser(Parser):
             thumbnail=thumbnail,
             duration=duration,
             url=url,
+            paramss=self.params,
         )
 
-    def _extract_info(self, url, params=None):
+    def _extract_info(self, url):
+        params = self.params.copy()
+        if self.cfg.proxy:
+            params["proxy"] = self.cfg.proxy
+
         try:
-            with YoutubeDL(params or self.params) as ydl:
+            with YoutubeDL(params) as ydl:
                 return ydl.extract_info(url, download=False)
         except Exception as e:
             error_msg = f"{type(e).__name__}: {str(e)}"
             raise RuntimeError(error_msg) from None
-
-    # def hook(self, d):
-    #     current = d.get("downloaded_bytes", 0)
-    #     total = d.get("total_bytes", 0)
-    #     if round(current * 100 / total, 1) % 25 == 0:
-    #         self.loop.create_task(
-    #             self.set_status(0, f"下 载 中...|{current * 100 / total:.0f}%")
-    #         )
 
     @property
     def params(self) -> dict:
@@ -110,12 +104,7 @@ class YtParser(Parser):
             #     }
             # ],
             "playlist_items": "1",  # 分p列表默认解析第一个
-            # "progress_hooks": [self.hook], # 进度回调
         }
-
-        if self.cfg.proxy:
-            params["proxy"] = self.cfg.proxy
-
         return params
 
 
@@ -150,11 +139,11 @@ class YtVideoParseResult(VideoParseResult):
         dir_.mkdir(parents=True, exist_ok=True)
 
         # 输出模板
-        yto = YtParser().params
+        paramss = self.dl.paramss.copy()
         if config.proxy:
-            yto["proxy"] = config.proxy
+            paramss["proxy"] = config.proxy
 
-        yto["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
+        paramss["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         text = "下载合并中...请耐心等待..."
         if (
@@ -163,7 +152,7 @@ class YtVideoParseResult(VideoParseResult):
         ):
             # 视频超过限制时长，获取最低画质
             text += f"\n视频超过{GlobalConfig.duration_limit}秒，获取最低画质"
-            yto["format"] = "worstvideo* + worstaudio / worst"
+            paramss["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:
             await callback(0, 0, text, *callback_args)
@@ -171,7 +160,7 @@ class YtVideoParseResult(VideoParseResult):
         loop = asyncio.get_running_loop()
         try:
             await asyncio.wait_for(
-                loop.run_in_executor(EXC, download_video, yto, [self.media.path]),
+                loop.run_in_executor(EXC, download_video, paramss, [self.media.path]),
                 timeout=300,
             )
         except asyncio.TimeoutError:
@@ -187,7 +176,7 @@ class YtVideoParseResult(VideoParseResult):
         if not v:
             raise ParseError("未获取到下载完成的视频")
         video_path = v[0]
-        subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles().parse(v[0])
+        subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles.parse(v[0])
         try:
             thumb = await ImgHost(proxies=config.proxy).litterbox(self.dl.thumbnail)
         except Exception:
@@ -219,3 +208,4 @@ class YtVideoInfo:
     thumbnail: str
     duration: int
     url: str
+    paramss: dict = None

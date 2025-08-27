@@ -16,11 +16,12 @@ class Subtitles:
     def __init__(self, subtitles: List[Subtitle] | None = None):
         self.subtitles = subtitles
 
-    def parse(self, subtitles_path: str | Path) -> "Subtitles":
+    @classmethod
+    def parse(cls, subtitles_path: str | Path) -> "Subtitles":
         sub_type = str(subtitles_path).split(".")[-1]
         match sub_type:
             case "ttml":
-                return self._parse_ttml(subtitles_path)
+                return cls._parse_ttml(subtitles_path)
             case _:
                 raise ValueError(f"不支持的字幕格式：{sub_type}")
 
@@ -44,9 +45,15 @@ class Subtitles:
             [f"{i.begin}-{i.end}: {i.text}" for i in self.subtitles]
         ).strip()
 
+    def __str__(self) -> str:
+        return self.to_str()
+
+    def __repr__(self) -> str:
+        return f"Subtitles({self.to_str()})"
+
 
 if __name__ == "__main__":
-    subs = Subtitles().parse(
+    subs = Subtitles.parse(
         r"E:\Downloads\Certificate in Python for Quantitative Analytics - Oct 2024 [CnA8l-UDAk0].en.ttml"
     )
     for sub in subs.subtitles[:5]:

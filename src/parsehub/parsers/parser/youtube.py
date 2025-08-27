@@ -13,19 +13,17 @@ class YtbParse(YtParser):
 
     async def parse(self, url: str) -> Union[YtVideoParseResult, YtImageParseResult]:
         url = await self.get_raw_url(url)
-
         return await super().parse(url)
 
     @property
     def params(self):
         sub = {
             "writesubtitles": True,  # 下载字幕
-            "writeautomaticsub": True,  # 下载自动翻译的字幕
+            "writeautomaticsub": True,  # 下载自动生成的字幕
             "subtitlesformat": "ttml",  # 字幕格式
             # "subtitleslangs": ["en", "ja", "zh-CN"],  # 字幕语言
         }
         p = sub | super().params
-        # p.pop("proxy", None)
         return p
 
 
