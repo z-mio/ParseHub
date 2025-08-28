@@ -21,7 +21,8 @@ class InstagramParser(Parser):
     __platform_id__ = "instagram"
     __platform__ = "Instagram"
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(share/|.*)(share|p|reel)/.*"
+    __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reel|share|.*/p)/.*"
+    __redirect_keywords__ = ["share"]
 
     async def parse(
         self, url: str
@@ -86,7 +87,7 @@ class InstagramParser(Parser):
     @staticmethod
     def get_short_code(url: str):
         url = url.removesuffix("/")
-        shortcode = re.search(r"/(p|reel)/(.*)", url)
+        shortcode = re.search(r"/(share|p|reel)/(.*)", url)
         return shortcode.group(2).split("/")[0] if shortcode else None
 
 
