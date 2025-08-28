@@ -167,7 +167,11 @@ class BiliParse(YtParser):
             message_json.raise_for_status()
             mj = message_json.json()
             if not (data := mj.get("data")):
-                raise ParseError(f"获取动态信息失败: {mj}")
+                match data.get("code"):
+                    case -352:
+                        raise ParseError("获取动态信息失败: -352 风控限制")
+                    case _:
+                        raise ParseError(f"获取动态信息失败: {mj}")
         message_formate = await formate_message("web", data.get("item"))
         img = await DynRender().run(message_formate)
 
