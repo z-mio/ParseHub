@@ -37,7 +37,8 @@ class DouyinParser(Parser):
             case DYType.Multimedia:
                 return await self.multimedia_parse(url, data)
 
-    async def parse_api(self, url) -> "DYResult":
+    @staticmethod
+    async def parse_api(url) -> "DYResult":
         if not GlobalConfig.douyin_api:
             raise ParseError("抖音解析API未配置")
 
