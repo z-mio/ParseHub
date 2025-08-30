@@ -36,7 +36,9 @@ class ParseHub:
 
     async def get_raw_url(self, url: str) -> str:
         """获取原始链接"""
-        return await self.select_parser(url)(parse_config=self.config).get_raw_url(url)
+        if parser := self.select_parser(url):
+            return await parser(parse_config=self.config).get_raw_url(url)
+        raise ValueError("不支持的平台")
 
     def list_parsers(self) -> list[type[Parser]]:
         """获取支持的解析器列表"""
