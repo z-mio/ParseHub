@@ -9,7 +9,7 @@ from dynrender_skia.Core import DynRender
 from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
 from ...types.parse_result import VideoParseResult, ImageParseResult
 from ...config.config import DownloadConfig, GlobalConfig
-from ...types import DownloadResult, ParseError, Video
+from ...types import DownloadResult, ParseError, Video, UploadError
 from ...types.summary_result import SummaryResult
 from ...utiles.bilibili_api import BiliAPI
 from ...utiles.img_host import ImgHost
@@ -189,7 +189,7 @@ class BiliParse(YtParser):
             try:
                 return await ImgHost(self.cfg.proxy).litterbox(f.name)
             except Exception:
-                raise ParseError("图片上传图床失败")
+                raise UploadError("图片上传图床失败")
 
     @staticmethod
     def change_source(url: str):

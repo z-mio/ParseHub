@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Union, Callable, Awaitable
 from pathlib import Path
 from yt_dlp import YoutubeDL
-
 from .base import Parser
 from ...config.config import DownloadConfig, GlobalConfig
 from ...types import (
@@ -17,6 +16,7 @@ from ...types import (
     Subtitles,
     DownloadResult,
     ParseError,
+    DownloadError,
 )
 
 EXC = ProcessPoolExecutor()
@@ -157,16 +157,7 @@ class YtVideoParseResult(VideoParseResult):
         if callback:
             await callback(0, 0, text, *callback_args)
 
-        loop = asyncio.get_running_loop()
-        try:
-            await asyncio.wait_for(
-                loop.run_in_executor(EXC, download_video, paramss, [self.media.path]),
-                timeout=300,
-            )
-        except asyncio.TimeoutError:
-            raise ParseError("下载超时")
-        except Exception as e:
-            raise ParseError(f"下载失败: {str(e)}")
+        await self._download(paramss)
 
         v = (
             list(dir_.glob("*.mp4"))
@@ -174,7 +165,7 @@ class YtVideoParseResult(VideoParseResult):
             or list(dir_.glob("*.webm"))
         )
         if not v:
-            raise ParseError("未获取到下载完成的视频")
+            raise DownloadError("未获取到下载完成的视频")
         video_path = v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles.parse(v[0])
         try:
@@ -187,6 +178,26 @@ class YtVideoParseResult(VideoParseResult):
             Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb),
             dir_,
         )
+
+    async def _download(self, paramss: dict, count: int = 0) -> None:
+        if count > 2:
+            raise DownloadError("下载失败")
+
+        loop = asyncio.get_running_loop()
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(EXC, download_video, paramss, [self.media.path]),
+                timeout=300,
+            )
+        except asyncio.TimeoutError:
+            raise DownloadError("下载超时")
+        except RuntimeError as e:
+            if "Unable to download video subtitles" in str(e):
+                paramss.pop("writeautomaticsub")
+                await self._download(paramss, count + 1)
+
+        except Exception as e:
+            raise DownloadError(f"下载失败: {str(e)}")
 
 
 class YtImageParseResult(ImageParseResult):

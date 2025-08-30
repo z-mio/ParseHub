@@ -1,4 +1,4 @@
-from .error import ParseError
+from .error import ParseError, DownloadError, UploadError
 from .subtitles import Subtitle, Subtitles
 from .media import MediaT, Media, Image, Video, Ani
 from .parse_result import (

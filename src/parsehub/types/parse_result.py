@@ -3,6 +3,8 @@ import shutil
 import time
 from pathlib import Path
 from typing import Callable, Generic, TypeVar, Literal, Awaitable
+
+from . import DownloadError
 from .media import Media, Video
 from ..utiles.utile import progress, img2base64
 from ..utiles.download_file import download_file
@@ -77,7 +79,7 @@ class ParseResult(ABC):
                         headers=config.headers,
                     )
                 except Exception as e:
-                    raise Exception(f"下载失败: {e}")
+                    raise DownloadError(f"下载失败: {e}")
 
                 path_list.append(image.__class__(f, ext=image.ext))
 
@@ -111,12 +113,12 @@ class ParseResult(ABC):
                     progress_args=callback_args,
                 )
             except Exception as e:
-                raise Exception(f"下载失败: {e}")
+                raise DownloadError(f"下载失败: {e}")
 
             # 小于10KB为下载失败
             if not os.stat(r).st_size > 10 * 1024:
                 os.remove(r)
-                raise Exception("下载失败")
+                raise DownloadError("下载失败")
             return DownloadResult(self, self.media.__class__(r, ext=self.media.ext))
 
     async def summary(
