@@ -6,7 +6,7 @@
 > 视频总结使用 `whisper-1` 模型
 
 **基于该项目开发的 Tg Bot:**   
-[@ParsehubBot](https://t.me/ParsehubBot) | https://github.com/z-mio/parse_hub_bot
+[@ParsehuBot](https://t.me/ParsehuBot) | https://github.com/z-mio/parse_hub_bot
 
 **支持的平台:**  
 `Twitter 视频|图文`  
