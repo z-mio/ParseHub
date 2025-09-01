@@ -47,7 +47,7 @@ class XhsParser(Parser):
             return VideoParseResult(video=result["下载地址"][0], **k)
         elif result["作品类型"] == "图文":
             return ImageParseResult(
-                photo=[Image(i, ext="png") for i in result["下载地址"]], **k
+                photo=[Image(i + "?", ext="png") for i in result["下载地址"]], **k
             )
 
 
