@@ -48,7 +48,7 @@ class Parser(ABC):
         if not url.startswith("http"):
             url = f"https://{url}"
         if any(map(lambda x: x in url, self.__redirect_keywords__)):
-            async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
+            async with httpx.AsyncClient(proxy=self.cfg.proxy, timeout=30) as client:
                 try:
                     r = await client.get(
                         url,
@@ -56,7 +56,7 @@ class Parser(ABC):
                         headers={"User-Agent": GlobalConfig.ua},
                     )
                     r.raise_for_status()
-                except httpx.ReadTimeout:
+                except (httpx.ReadTimeout, httpx.ConnectTimeout):
                     raise ParseError("获取原始链接超时")
                 except Exception:
                     raise ParseError("获取原始链接失败")
