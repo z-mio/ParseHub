@@ -37,7 +37,7 @@ class TieBa:
 
     @staticmethod
     def _parse_out_the_body(text):
-        soup = BeautifulSoup(str(text), "html.parser")
+        soup = BeautifulSoup(str(text), "lxml")
         div_tag = soup.find_all("div")
         [img.extract() for img in soup.find_all("img")]
         [i.unwrap() for i in div_tag]
@@ -51,7 +51,7 @@ class TieBa:
     @staticmethod
     async def get_tieba_img_url(html: Response):
         """获取帖子中所有图片的URL"""
-        soup = BeautifulSoup(html.text, "html.parser")
+        soup = BeautifulSoup(html.text, "lxml")
         d_post_content_firstfloor = soup.find(
             "div", {"class": "d_post_content_firstfloor"}
         )
@@ -61,7 +61,7 @@ class TieBa:
     @staticmethod
     async def get_tieba_video_url(html: Response):
         """获取帖子中所有视频的URL"""
-        soup = BeautifulSoup(html.text, "html.parser")
+        soup = BeautifulSoup(html.text, "lxml")
         d_post_content_firstfloor = soup.find(
             "div", {"class": "d_post_content_firstfloor"}
         )
@@ -74,7 +74,7 @@ class TieBa:
 
     async def get_the_content(self, html: Response):
         """获取帖子的标题和内容"""
-        soup = BeautifulSoup(html.text, "html.parser")
+        soup = BeautifulSoup(html.text, "lxml")
         title = soup.find(
             "h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}
         ) or soup.find("h1", {"class": "core_title_txt"})

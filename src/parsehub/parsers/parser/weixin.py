@@ -70,7 +70,7 @@ class WX:
 
     @classmethod
     def _parse_html(cls, html: str) -> "WX":
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, "lxml")
         title = (t := soup.find("h1", {"class": "rich_media_title"})) and t.text.strip()
 
         if rich_media_content := soup.find("div", {"class": "rich_media_content"}):
@@ -83,7 +83,7 @@ class WX:
                 str(rich_media_content), heading_style="ATX"
             )
             text_content = "".join(
-                BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
+                BeautifulSoup(markdown(markdown_content), "lxml").find_all(
                     string=True
                 )
             )
@@ -99,7 +99,7 @@ class WX:
                 heading_style="ATX",
             )
             text_content = "".join(
-                BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
+                BeautifulSoup(markdown(markdown_content), "lxml").find_all(
                     string=True
                 )
             )

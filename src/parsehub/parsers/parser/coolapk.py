@@ -69,7 +69,7 @@ class Coolapk:
             headers={"User-Agent": GlobalConfig.ua}, proxy=proxy
         ) as client:
             result = await client.get(url)
-        soup = BeautifulSoup(result.text, "html.parser")
+        soup = BeautifulSoup(result.text, "lxml")
 
         title_element = soup.find(class_="message-title")
         if title_element and (title := title_element.text.strip()):
@@ -78,7 +78,7 @@ class Coolapk:
                 str(content)
             )
             text_content = "".join(
-                BeautifulSoup(markdown(markdown_content), "html.parser").find_all(
+                BeautifulSoup(markdown(markdown_content), "lxml").find_all(
                     string=True
                 )
             )
