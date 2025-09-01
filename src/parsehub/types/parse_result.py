@@ -79,6 +79,7 @@ class ParseResult(ABC):
                         headers=config.headers,
                     )
                 except Exception as e:
+                    shutil.rmtree(op)
                     raise DownloadError(f"下载失败: {e}")
 
                 path_list.append(image.__class__(f, ext=image.ext))
