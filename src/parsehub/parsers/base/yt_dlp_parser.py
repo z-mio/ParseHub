@@ -1,4 +1,5 @@
 import asyncio
+from calendar import error
 from concurrent.futures import ProcessPoolExecutor
 
 from ...utiles.img_host import ImgHost
@@ -192,7 +193,14 @@ class YtVideoParseResult(VideoParseResult):
         except asyncio.TimeoutError:
             raise DownloadError("下载超时")
         except RuntimeError as e:
-            if "Unable to download video subtitles" in str(e):
+            error = str(e)
+            if any(
+                msg in error
+                for msg in (
+                    "Unable to download video subtitles",
+                    "Requested format is not available",
+                )
+            ):
                 paramss.pop("writeautomaticsub")
                 await self._download(paramss, count + 1)
 
