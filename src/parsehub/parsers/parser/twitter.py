@@ -6,6 +6,7 @@ from loguru import logger
 from ..base.base import Parser
 from ...types import Image, Video, Ani, MultimediaParseResult, ParseError
 from ...config import GlobalConfig
+from ...utiles.utile import cookie_ellipsis
 
 
 class TwitterParser(Parser):
@@ -16,12 +17,28 @@ class TwitterParser(Parser):
 
     async def parse(self, url: str) -> "MultimediaParseResult":
         url = await self.get_raw_url(url)
-        x = Twitter(self.cfg.proxy, cookie=self.cfg.cookie)
+        tweet = await self._parse(url)
+        return await self.media_parse(url, tweet)
+
+    async def _parse(self, url: str):
+        x = Twitter(self.cfg.proxy, cookie=None)
         try:
             tweet = await x.fetch_tweet(url)
         except Exception as e:
-            raise ParseError(e) from e
-        return await self.media_parse(url, tweet)
+            if any(s in str(e) for s in ("error -2",)):
+                if self.cfg.cookie:
+                    x2 = Twitter(self.cfg.proxy, cookie=self.cfg.cookie)
+                    try:
+                        tweet = await x2.fetch_tweet(url)
+                    except Exception as e2:
+                        raise ParseError(
+                            f"Twitter 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(self.cfg.cookie)}"
+                        ) from e2
+                else:
+                    raise ParseError(e) from e
+            else:
+                raise ParseError(e) from e
+        return tweet
 
     @staticmethod
     async def media_parse(url, tweet: "TwitterTweet"):
@@ -87,7 +104,10 @@ class Twitter:
                 headers=headers,
                 cookies=cookie,
             )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as he:
+            raise Exception(f"http_status_{he.response.status_code}") from he
         return self.parse(response.json())
 
     @staticmethod
@@ -99,10 +119,10 @@ class Twitter:
         if not result:
             raise ParseError("error -4: 帖子或用户不存在")
         if tweet := result.get("tweet"):
-            tweet_id = tweet["rest_id"]
+            tweet_id = tweet.get("rest_id", {})
             legacy: dict = tweet.get("legacy")
         else:
-            tweet_id = result["rest_id"]
+            tweet_id = result.get("rest_id", {})
             legacy: dict = result.get("legacy")
         if not legacy:
             if result.get("__typename") == "TweetTombstone":
