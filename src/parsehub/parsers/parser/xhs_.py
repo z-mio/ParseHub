@@ -53,6 +53,8 @@ class XhsParser(Parser):
                 ],
                 **k,
             )
+        else:
+            raise ParseError("不支持的类型")
 
 
 __all__ = ["XhsParser"]
