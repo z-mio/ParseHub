@@ -14,7 +14,7 @@ class WeiboParser(Parser):
     __platform_id__ = "weibo"
     __platform__ = "微博"
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)(m\.|)weibo.(com|cn)/.*"
+    __match__ = r"^(http(s)?://)(m\.|)weibo.(com|cn)/(?!(u/)).+"
 
     async def parse(
         self, url: str
