@@ -218,7 +218,7 @@ class DownloadResult(Generic[T]):
         model: str = None,
         provider: Literal["openai"] = None,
         prompt: str = None,
-        transcriptions_provider: str = None,
+        transcriptions_provider: Literal["openai", "fast_whisper", "azure"] = None,
         transcriptions_api_key: str = None,
         transcriptions_base_url: str = None,
     ) -> "SummaryResult":

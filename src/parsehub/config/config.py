@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, field_validator, BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -70,7 +71,7 @@ class ParseConfig(BaseModel):
 class SummaryConfig(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    provider: str | None = "openai"
+    provider: Literal["openai"] = "openai"
     api_key: str | None = None
     base_url: str | None = "https://api.openai.com/v1"
     model: str | None = "gpt-5-nano"
@@ -79,6 +80,6 @@ class SummaryConfig(BaseSettings):
         Summarize it in one sentence at the beginning and then write out n key points.
         """.strip()
     """使用"简体中文"总结文章和视频字幕的要点。在开头进行一句话总结, 然后写出n个要点。"""
-    transcriptions_provider: str | None = None
+    transcriptions_provider: Literal["openai", "fast_whisper", "azure"] = "openai"
     transcriptions_api_key: str | None = None
     transcriptions_base_url: str | None = None
