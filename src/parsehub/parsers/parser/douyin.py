@@ -106,9 +106,21 @@ class DYResult:
             if not bit_rate:
                 raise ParseError("抖音解析失败: 未获取到视频下载地址")
             bit_rate.sort(key=lambda x: x["quality_type"])
-            video_url = bit_rate[0]["play_addr"]["url_list"][0]
+            bit_rate = bit_rate[0]
+
+            video_url = bit_rate["play_addr"]["url_list"][0]
             thumb_url = video_data["cover"]["url_list"][-1]
-            return video_url, thumb_url
+
+            width = bit_rate["play_addr"]["width"]
+            height = bit_rate["play_addr"]["height"]
+            duration = bit_rate.get("duration", 0)
+            return {
+                "video_url": video_url,
+                "thumb_url": thumb_url,
+                "duration": duration,
+                "width": width,
+                "height": height,
+            }
 
         if images := data.get("images"):
             if images[0].get("video"):
@@ -116,7 +128,15 @@ class DYResult:
                 for image in images:
                     if video := image.get("video"):
                         vpi = v_p(video)
-                        multimedia.append(Video(vpi[0], thumb_url=vpi[1]))
+                        multimedia.append(
+                            Video(
+                                vpi["video_url"],
+                                thumb_url=vpi["thumb_url"],
+                                width=vpi["width"],
+                                height=vpi["height"],
+                                duration=vpi["duration"],
+                            )
+                        )
                     else:
                         multimedia.append(Image(image["url_list"][-1]))
 
@@ -146,10 +166,16 @@ class DYResult:
                 platform=platform,
             )
         else:
-            v = v_p(data.get("video"))
+            vpi = v_p(data.get("video"))
             return DYResult(
                 type=DYType.VIDEO,
-                video=Video(v[0], thumb_url=v[1]),
+                video=Video(
+                    vpi["video_url"],
+                    thumb_url=vpi["thumb_url"],
+                    width=vpi["width"],
+                    height=vpi["height"],
+                    duration=vpi["duration"],
+                ),
                 desc=desc,
                 platform=platform,
             )

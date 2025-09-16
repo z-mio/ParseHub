@@ -10,7 +10,7 @@ class LLM:
         provider: Literal["openai"],
         api_key: str,
         base_url: str = None,
-        model: str = "gpt-4o",
+        model: str = "gpt-5-mini",
     ):
         self.api_key = api_key
         self.base_url = base_url

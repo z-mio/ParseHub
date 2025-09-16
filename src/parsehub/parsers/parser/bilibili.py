@@ -99,6 +99,7 @@ class BiliParse(YtParser):
         if not data:
             raise ParseError("获取视频信息失败")
         duration = data["View"]["duration"]
+        dimension = data["View"]["dimension"]
         b3, b4 = await bili.get_buvid()
         if GlobalConfig.duration_limit and duration > 5400:  # 超过90分钟直接返回封面
             return BiliImageParseResult(
@@ -114,6 +115,7 @@ class BiliParse(YtParser):
             video_playurl = await bili.get_video_playurl(
                 bvid, data["View"]["cid"], b3, b4
             )
+
         durl = video_playurl["data"]["durl"][0]
         video_url = (
             self.change_source(durl["backup_url"][0])
@@ -123,7 +125,13 @@ class BiliParse(YtParser):
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
-            video=Video(video_url, thumb_url=data["View"]["pic"]),
+            video=Video(
+                video_url,
+                thumb_url=data["View"]["pic"],
+                duration=duration,
+                width=dimension.get("width"),
+                height=dimension.get("height"),
+            ),
         )
 
     async def ytp_parse(

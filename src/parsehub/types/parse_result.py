@@ -305,7 +305,7 @@ class DownloadResult(Generic[T]):
 
     @staticmethod
     async def _video_to_subtitles(
-        media_: Media,
+        media_: Video,
         api_key: str,
         base_url: str,
         transcriptions_provider: str,
