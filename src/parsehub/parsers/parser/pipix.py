@@ -1,4 +1,5 @@
 import json
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
@@ -28,7 +29,13 @@ class PipixParser(Parser):
         if ppx.video_url:
             return VideoParseResult(
                 title=ppx.content,
-                video=Video(ppx.video_url, thumb_url=ppx.video_thumb),
+                video=Video(
+                    ppx.video_url,
+                    thumb_url=ppx.video_thumb,
+                    duration=ppx.video_duration,
+                    height=ppx.video_height,
+                    width=ppx.video_width,
+                ),
                 raw_url=url,
             )
         else:
@@ -55,10 +62,10 @@ class Pipix:
         item = data.get("ppxItemDetail", {}).get("item")
         if not item:
             raise Exception("皮皮虾数据解析失败")
-
         ppt = PipixPostType(item["item_type"])
         content = item["content"]
         images = video = video_thumb = None
+        video_duration = video_height = video_width = 0
         match ppt:
             case PipixPostType.IMAGE:
                 if cover := item.get("cover"):
@@ -67,8 +74,20 @@ class Pipix:
                 video_download = item["video"]["video_download"]
                 video_thumb = video_download["cover_image"]["download_list"][0]["url"]
                 video = video_download["url_list"][0]["url"]
+                video_duration = math.ceil(video_download["duration"])
+                video_height = video_download["height"]
+                video_width = video_download["width"]
 
-        return PipixPost(ppt, content, images, video, video_thumb)
+        return PipixPost(
+            ppt,
+            content,
+            images,
+            video,
+            video_thumb,
+            video_duration,
+            video_height,
+            video_width,
+        )
 
 
 @dataclass
@@ -78,6 +97,9 @@ class PipixPost:
     img_url: list | None = None
     video_url: str | None = None
     video_thumb: str | None = None
+    video_duration: int | None = 0
+    video_height: int | None = 0
+    video_width: int | None = 0
 
 
 class PipixPostType(Enum):
