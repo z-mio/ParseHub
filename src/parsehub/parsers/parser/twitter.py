@@ -1,4 +1,6 @@
 import re
+from dataclasses import dataclass
+from typing import Union
 
 import httpx
 from loguru import logger
@@ -43,17 +45,15 @@ class TwitterParser(Parser):
     @staticmethod
     async def media_parse(url, tweet: "TwitterTweet"):
         media = []
-        for i, v in enumerate(tweet.media):
-            for t, m in v.items():
-                if t == "photo":
-                    path = Image(m)
-                elif t == "video":
-                    path = Video(m)
-                elif t == "animated_gif":
-                    path = Ani(path=m, ext="mp4")
-                else:
-                    continue
-                media.append(path)
+        for m in tweet.media:
+            match m:
+                case TwitterPhoto():
+                    path = Image(m.url)
+                case TwitterVideo():
+                    path = Video(m.url, height=m.height, width=m.width)
+                case TwitterAni():
+                    path = Ani(m.url, ext="mp4")
+            media.append(path)
         return MultimediaParseResult(desc=tweet.full_text, media=media, raw_url=url)
 
 
@@ -131,15 +131,26 @@ class Twitter:
 
         full_text = legacy.get("full_text", "")
         media = legacy["entities"].get("media", [])
-        media = [
-            {
-                i["type"]: i["media_url_https"]
-                if i["type"] == "photo"
-                else i["video_info"]["variants"][-1]["url"]
-            }
-            for i in media
-        ]
-        return TwitterTweet(tweet_id=tweet_id, full_text=full_text, media=media)
+        medias = []
+        for i in media:
+            match i["type"]:
+                case "photo":
+                    medias.append(TwitterPhoto(url=i["media_url_https"]))
+                case "video":
+                    original_info = i.get("original_info", {})
+                    medias.append(
+                        TwitterVideo(
+                            url=i["video_info"]["variants"][-1]["url"],
+                            height=original_info.get("height", 0),
+                            width=original_info.get("width", 0),
+                        )
+                    )
+                case "animated_gif":
+                    medias.append(
+                        TwitterAni(url=i["video_info"]["variants"][-1]["url"])
+                    )
+
+        return TwitterTweet(tweet_id=tweet_id, full_text=full_text, media=medias)
 
     @staticmethod
     def get_id_by_url(url: str):
@@ -166,12 +177,34 @@ class Twitter:
 
 
 class TwitterTweet:
-    def __init__(self, tweet_id: str, full_text: str, media: list[dict]):
+    def __init__(
+        self,
+        tweet_id: str,
+        full_text: str,
+        media: list[Union["TwitterVideo", "TwitterPhoto", "TwitterAni"]],
+    ):
         self.tweet_id = tweet_id
         self.full_text = (
             re.sub(r"https://t\.co/[^\s,]+$", "", full_text) if media else full_text
         )
         self.media = media
+
+
+@dataclass
+class TwitterVideo:
+    url: str
+    height: int
+    width: int
+
+
+@dataclass
+class TwitterPhoto:
+    url: str
+
+
+@dataclass
+class TwitterAni:
+    url: str
 
 
 __all__ = ["TwitterParser"]

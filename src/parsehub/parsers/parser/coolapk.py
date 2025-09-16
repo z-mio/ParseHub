@@ -78,9 +78,7 @@ class Coolapk:
                 str(content)
             )
             text_content = "".join(
-                BeautifulSoup(markdown(markdown_content), "lxml").find_all(
-                    string=True
-                )
+                BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True)
             )
             imgs = [
                 f"https:{i['src']}"

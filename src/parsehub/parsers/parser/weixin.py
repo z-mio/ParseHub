@@ -83,9 +83,7 @@ class WX:
                 str(rich_media_content), heading_style="ATX"
             )
             text_content = "".join(
-                BeautifulSoup(markdown(markdown_content), "lxml").find_all(
-                    string=True
-                )
+                BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True)
             )
             return cls(title, imgs, markdown_content, text_content)
         elif share_content_page := soup.find("div", {"class": "share_content_page"}):
@@ -99,9 +97,7 @@ class WX:
                 heading_style="ATX",
             )
             text_content = "".join(
-                BeautifulSoup(markdown(markdown_content), "lxml").find_all(
-                    string=True
-                )
+                BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True)
             )
             return cls(title, imgs, markdown_content, text_content)
         else:
