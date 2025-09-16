@@ -1,5 +1,4 @@
 import asyncio
-from calendar import error
 from concurrent.futures import ProcessPoolExecutor
 
 from ...utiles.img_host import ImgHost
@@ -69,6 +68,8 @@ class YtParser(Parser):
         duration = dl["duration"]
         thumbnail = dl["thumbnail"]
         description = dl["description"]
+        width = dl.get("width", 0)
+        height = dl.get("height", 0)
 
         return YtVideoInfo(
             raw_video_info=dl,
@@ -77,6 +78,8 @@ class YtParser(Parser):
             thumbnail=thumbnail,
             duration=duration,
             url=url,
+            width=width,
+            height=height,
             paramss=self.params,
         )
 
@@ -227,4 +230,6 @@ class YtVideoInfo:
     thumbnail: str
     duration: int
     url: str
+    width: int
+    height: int
     paramss: dict = None

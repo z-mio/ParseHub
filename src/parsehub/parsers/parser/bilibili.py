@@ -129,8 +129,8 @@ class BiliParse(YtParser):
                 video_url,
                 thumb_url=data["View"]["pic"],
                 duration=duration,
-                width=dimension.get("width"),
-                height=dimension.get("height"),
+                width=dimension.get("width", 0),
+                height=dimension.get("height", 0),
             ),
         )
 
