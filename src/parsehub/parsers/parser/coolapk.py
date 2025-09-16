@@ -44,8 +44,8 @@ class CoolapkImageParseResult(ImageParseResult):
     async def download(
         self,
         path: str | Path = None,
-        callback: Callable = None,
-        callback_args: Callable[[int, int, str | None, tuple], Awaitable[None]] = (),
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
+        callback_args: tuple = (),
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         headers = config.headers or {}

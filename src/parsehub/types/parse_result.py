@@ -67,22 +67,23 @@ class ParseResult(ABC):
         if isinstance(self.media, list):
             path_list = []
             op = (Path(path) if path else config.save_dir).joinpath(f"{time.time_ns()}")
-            for i, image in enumerate(self.media):
-                if not image.is_url:
-                    path_list.append(image)
+            for i, media in enumerate(self.media):
+                if not media.is_url:
+                    path_list.append(media)
                     continue
                 try:
                     f = await download_file(
-                        image.path,
-                        f"{op}/{i}.{image.ext}",
+                        media.path,
+                        f"{op}/{i}.{media.ext}",
                         proxies=config.proxy,
                         headers=config.headers,
                     )
                 except Exception as e:
                     shutil.rmtree(op)
                     raise DownloadError(f"下载失败: {e}")
-
-                path_list.append(image.__class__(f, ext=image.ext))
+                n_m = media.__class__(**vars(media))
+                n_m.path = f
+                path_list.append(n_m)
 
                 if callback:
                     await callback(
@@ -120,7 +121,9 @@ class ParseResult(ABC):
             if not os.stat(r).st_size > 10 * 1024:
                 os.remove(r)
                 raise DownloadError("下载失败")
-            return DownloadResult(self, self.media.__class__(r, ext=self.media.ext))
+            n_m = self.media.__class__(**vars(self.media))
+            n_m.path = r
+            return DownloadResult(self, n_m)
 
     async def summary(
         self,
@@ -308,7 +311,7 @@ class DownloadResult(Generic[T]):
         media_: Video,
         api_key: str,
         base_url: str,
-        transcriptions_provider: str,
+        transcriptions_provider: Literal["openai", "fast_whisper", "azure"],
     ) -> str:
         if not media_.subtitles:
             tr = await Transcriptions(api_key=api_key, base_url=base_url).transcription(

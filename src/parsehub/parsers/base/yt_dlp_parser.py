@@ -179,7 +179,14 @@ class YtVideoParseResult(VideoParseResult):
 
         return DownloadResult(
             self,
-            Video(path=str(video_path), subtitles=subtitles, thumb_url=thumb),
+            Video(
+                path=str(video_path),
+                subtitles=subtitles,
+                thumb_url=thumb,
+                height=self.dl.height,
+                width=self.dl.width,
+                duration=self.dl.duration,
+            ),
             dir_,
         )
 
