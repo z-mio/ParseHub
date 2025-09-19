@@ -11,7 +11,7 @@ from ...types.parse_result import VideoParseResult, ImageParseResult
 from ...config.config import DownloadConfig, GlobalConfig
 from ...types import DownloadResult, ParseError, Video, UploadError
 from ...types.summary_result import SummaryResult
-from ...utiles.bilibili_api import BiliAPI
+from ...provider_api.bilibili import BiliAPI
 from ...utiles.img_host import ImgHost
 from aiofiles.tempfile import TemporaryDirectory
 

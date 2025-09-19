@@ -7,7 +7,7 @@ from ...types import (
     VideoParseResult,
     ImageParseResult,
 )
-from ...utiles.weibo_api import WeiboAPI, MediaType
+from ...provider_api.weibo import WeiboAPI, MediaType
 
 
 class WeiboParser(Parser):
