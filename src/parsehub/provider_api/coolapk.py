@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from markdown import markdown
 from markdownify import MarkdownConverter
 
-from src.parsehub.config import GlobalConfig
+from ..config import GlobalConfig
 
 
 @dataclass

@@ -7,7 +7,7 @@ from urllib.parse import unquote
 import httpx
 from bs4 import BeautifulSoup
 
-from src.parsehub.config import GlobalConfig
+from ..config import GlobalConfig
 
 
 class Pipix:

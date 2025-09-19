@@ -5,14 +5,8 @@ from bs4 import BeautifulSoup
 from markdown import markdown
 from markdownify import MarkdownConverter
 
-from src.parsehub.config import GlobalConfig
-from src.parsehub.types import ImageParseResult, ParseError
-
-
-class WXImageParseResult(ImageParseResult):
-    def __init__(self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX"):
-        super().__init__(title, photo, desc, raw_url)
-        self.wx = wx
+from ..config import GlobalConfig
+from ..types import ParseError
 
 
 class WXConverter(MarkdownConverter):

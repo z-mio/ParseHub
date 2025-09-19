@@ -5,8 +5,8 @@ from typing import Union
 import httpx
 from loguru import logger
 
-from src.parsehub.config import GlobalConfig
-from src.parsehub.types import ParseError
+from ..config import GlobalConfig
+from ..types import ParseError
 
 
 class Twitter:

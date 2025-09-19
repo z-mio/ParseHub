@@ -1,5 +1,6 @@
 from ..base.base import Parser
-from ...provider_api.weixin import WXImageParseResult, WX
+from ...provider_api.weixin import WX
+from ...types import ImageParseResult
 
 
 class WXParser(Parser):
@@ -20,4 +21,10 @@ class WXParser(Parser):
         )
 
 
-__all__ = ["WXParser"]
+class WXImageParseResult(ImageParseResult):
+    def __init__(self, title: str, photo: list[str], desc: str, raw_url: str, wx: "WX"):
+        super().__init__(title, photo, desc, raw_url)
+        self.wx = wx
+
+
+__all__ = ["WXParser", "WXImageParseResult"]
