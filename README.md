@@ -127,7 +127,7 @@ pc = ParseConfig(cookie="从浏览器中获取的cookie")
 
 - `twitter`
 - `instagram`
-- 'kuaishou'
+- `kuaishou`
 
 ## 参考项目
 
