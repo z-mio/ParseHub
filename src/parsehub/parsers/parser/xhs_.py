@@ -11,11 +11,13 @@ from ...types import (
 )
 
 
-class log:
+class Log:
     """用来隐藏日志"""
 
     @staticmethod
-    def write(*args, **kwargs): ...
+    def write(*args, **kwargs):
+        # print(args, kwargs)
+        ...
 
 
 class XhsParser(Parser):
@@ -30,12 +32,10 @@ class XhsParser(Parser):
         self, url: str
     ) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         url = await self.get_raw_url(url)
-
         async with XHS(user_agent="", cookie="") as xhs:
-            result = await xhs.extract(url, False, log=log)
+            result = await xhs.extract(url, False, log=Log)
         if not (result := result[0]):
             raise ParseError("小红书解析失败")
-
         k = {"title": result["作品标题"], "desc": result["作品描述"], "raw_url": url}
 
         if all(result["动图地址"]):
