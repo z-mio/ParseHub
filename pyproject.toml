@@ -1,6 +1,6 @@
 [project]
 name = "parsehub"
-version = "1.4.1"
+version = "1.4.2"
 description = "支持AI总结的社交媒体聚合解析器"
 readme = "README.md"
 requires-python = ">=3.12.0"
@@ -11,7 +11,7 @@ license = { text = "MIT" }
 dependencies = [
     "aiocache>=0.12.3",
     "aiofiles>=23.2,<24.dev0",
-    "beautifulsoup4==4.12.3",
+    "beautifulsoup4>=4.12.3",
     "dynamicadaptor>=0.5.2",
     "dynrender-skia>=0.2.5",
     "langchain>=0.2.5",
