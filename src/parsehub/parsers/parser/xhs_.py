@@ -33,8 +33,8 @@ class XhsParser(Parser):
     ) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         url = await self.get_raw_url(url)
         async with XHS(user_agent="", cookie="") as xhs:
-            result = await xhs.extract(url, False, log=Log)
-        if not (result := result[0]):
+            x_result = await xhs.extract(url, False, log=Log)
+        if not x_result or not (result := x_result[0]):
             raise ParseError("小红书解析失败")
         k = {"title": result["作品标题"], "desc": result["作品描述"], "raw_url": url}
 
