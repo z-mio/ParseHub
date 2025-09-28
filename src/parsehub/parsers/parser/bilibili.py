@@ -13,6 +13,7 @@ from ...types import DownloadResult, ParseError, Video, UploadError
 from ...types.summary_result import SummaryResult
 from ...provider_api.bilibili import BiliAPI
 from ...utiles.img_host import ImgHost
+from ...utiles.utile import cookie_ellipsis
 from aiofiles.tempfile import TemporaryDirectory
 
 
@@ -80,7 +81,13 @@ class BiliParse(YtParser):
 
     async def gen_dynamic_img(self, url: str) -> str:
         async with BiliAPI(proxy=self.cfg.proxy) as bili:
-            dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
+            try:
+                dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
+            except Exception as e:
+                if "风控" in str(e):
+                    raise ParseError(
+                        f"账号风控\n使用的cookie: {cookie_ellipsis(self.cfg.cookie)}"
+                    )
 
         message_formate = await formate_message("web", dynamic_info["item"])
         img = await DynRender().run(message_formate)
