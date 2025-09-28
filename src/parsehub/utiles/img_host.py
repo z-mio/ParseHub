@@ -1,57 +1,108 @@
 import os
-
+import aiofiles
 import httpx
 
-from tenacity import retry, stop_after_attempt
+from loguru import logger
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 class ImgHost:
-    def __init__(self, proxies: httpx.Proxy | str = None):
-        self.async_client = httpx.AsyncClient(proxy=proxies)
+    def __init__(self, proxy: httpx.Proxy | str = None):
+        self.proxy = proxy
+        self._client: httpx.AsyncClient | None = None
 
-    async def _to_file(self, filename_or_url):
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.aclose()
+
+    @retry(stop=stop_after_attempt(2), wait=wait_fixed(1))
+    async def _to_file(self, filename_or_url: str):
         if str(filename_or_url).startswith("http"):
-            response = await self.async_client.get(filename_or_url)
+            response = await self._get_client.get(filename_or_url)
             filename = filename_or_url.split("/")[-1]
-            with open(filename, "wb") as f:
-                f.write(response.content)
+            async with aiofiles.open(filename, "wb") as f:
+                await f.write(response.content)
+            return filename
         else:
-            filename = filename_or_url
-        return filename
+            return filename_or_url
 
-    @retry(stop=stop_after_attempt(5))
+    @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
     async def catbox(self, filename_or_url: str):
         host_url = "https://catbox.moe/user/api.php"
         filename = await self._to_file(filename_or_url)
-
         file = open(filename, "rb")
+        data = {
+            "reqtype": "fileupload",
+            "userhash": "",
+        }
         try:
-            data = {
-                "reqtype": "fileupload",
-                "userhash": "",
-            }
-            response = await self.async_client.post(
+            response = await self._get_client.post(
                 host_url, data=data, files={"fileToUpload": file}
             )
+            response.raise_for_status()
             return response.text
+        except Exception as e:
+            logger.exception(e)
+            logger.error("catbox 图片上传失败, 以上为错误信息")
         finally:
             file.close()
             os.remove(filename)
 
-    @retry(stop=stop_after_attempt(5))
+    @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
     async def litterbox(self, filename_or_url: str):
         host_url = "https://litterbox.catbox.moe/resources/internals/api.php"
         filename = await self._to_file(filename_or_url)
         file = open(filename, "rb")
+        data = {
+            "reqtype": "fileupload",
+            "fileNameLength": 16,
+            "time": "72h",
+        }
         try:
-            data = {
-                "reqtype": "fileupload",
-                "time": "1h",
-            }
-            response = await self.async_client.post(
+            response = await self._get_client.post(
                 host_url, data=data, files={"fileToUpload": file}
             )
+            response.raise_for_status()
             return response.text
+        except Exception as e:
+            logger.exception(e)
+            logger.error("litterbox 图片上传失败, 以上为错误信息")
         finally:
             file.close()
             os.remove(filename)
+
+    @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
+    async def zioooo(self, filename_or_url: str):
+        api_url = "https://img.zio.ooo/api/v2"
+        filename = await self._to_file(filename_or_url)
+        file = open(filename, "rb")
+        group = await self._get_client.get(api_url + "/group")
+        storage = group.json()["data"]["storages"][0]["id"]
+        data = {
+            "storage_id": storage,
+        }
+        try:
+            response = await self._get_client.post(
+                api_url + "/upload", data=data, files={"file": file}
+            )
+            response.raise_for_status()
+            return response.text
+        except Exception as e:
+            logger.exception(e)
+            logger.error("zioooo 图片上传失败, 以上为错误信息")
+        finally:
+            file.close()
+            os.remove(filename)
+
+    @property
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or getattr(self._client, "is_closed", False):
+            self._client = httpx.AsyncClient(proxy=self.proxy)
+        return self._client
+
+    async def aclose(self):
+        if self._client is not None and not getattr(self._client, "is_closed", False):
+            await self._client.aclose()
+            self._client = None
