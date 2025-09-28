@@ -55,16 +55,6 @@ class BiliParse(YtParser):
         else:
             return False
 
-    @staticmethod
-    def get_bvid(url: str):
-        m_bv = re.search(r"BV[0-9A-Za-z]{10,}", url)
-        if m_bv:
-            return m_bv.group(0)
-        m_av = re.search(r"(?i)\bav(\d+)\b", url)
-        if m_av:
-            return BiliAPI.av2bv(f"av{m_av.group(1)}")
-        return None
-
     def match(self, url: str) -> bool:
         if self._is_bvid(url):
             return True
@@ -88,19 +78,38 @@ class BiliParse(YtParser):
         except AttributeError:
             ...
 
+    async def gen_dynamic_img(self, url: str) -> str:
+        bili = BiliAPI(proxy=self.cfg.proxy)
+        dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
+        await bili.aclose()
+
+        message_formate = await formate_message("web", dynamic_info["item"])
+        img = await DynRender().run(message_formate)
+        img = skia.Image.fromarray(
+            array=img, colorType=skia.ColorType.kRGBA_8888_ColorType
+        )
+        async with TemporaryDirectory() as temp_dir:
+            f = Path(temp_dir) / "temp.png"
+            img.save(f.name)
+            try:
+                async with ImgHost(self.cfg.proxy) as ih:
+                    return await ih.zioooo(f.name)
+            except Exception:
+                raise UploadError("图片上传图床失败")
+
     async def bili_api_parse(
         self, url
     ) -> Union["BiliVideoParseResult", "BiliImageParseResult"]:
-        bili = BiliAPI()
-        bvid = self.get_bvid(url)
-        video_info = await bili.get_video_info(bvid)
+        bili = BiliAPI(proxy=self.cfg.proxy)
+        video_info = await bili.get_video_info(url)
 
-        data = video_info.get("data")
-        if not data:
+        if not (data := video_info.get("data")):
             raise ParseError("获取视频信息失败")
+
         duration = data["View"]["duration"]
         dimension = data["View"]["dimension"]
         b3, b4 = await bili.get_buvid()
+
         if GlobalConfig.duration_limit and duration > 5400:  # 超过90分钟直接返回封面
             return BiliImageParseResult(
                 title=data["View"]["title"],
@@ -109,12 +118,13 @@ class BiliParse(YtParser):
             )
         elif GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
             video_playurl = await bili.get_video_playurl(
-                bvid, data["View"]["cid"], b3, b4, False
+                url, data["View"]["cid"], b3, b4, False
             )
         else:
             video_playurl = await bili.get_video_playurl(
-                bvid, data["View"]["cid"], b3, b4
+                url, data["View"]["cid"], b3, b4
             )
+        await bili.aclose()
 
         durl = video_playurl["data"]["durl"][0]
         video_url = (
@@ -153,51 +163,6 @@ class BiliParse(YtParser):
                 **_d,
                 photo=result.media,
             )
-
-    async def gen_dynamic_img(self, url: str) -> str:
-        """生成动态页面的图片"""
-        dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)
-        params = {
-            "timezone_offset": "-480",
-            "id": dyn_id,
-            "features": "itemOpusStyle",
-        }
-        headers = {
-            "referer": f"https://www.bilibili.com/opus/{dyn_id}",
-            "user-agent": GlobalConfig.ua,
-        }
-        async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
-            message_json = await client.get(
-                "https://api.bilibili.com/x/polymer/web-dynamic/v1/detail",
-                headers=headers,
-                params=params,
-            )
-            message_json.raise_for_status()
-            mj = message_json.json()
-            if not (data := mj.get("data")):
-                match data.get("code"):
-                    case -352:
-                        raise ParseError("获取动态信息失败: -352 风控限制")
-                    case _:
-                        raise ParseError(f"获取动态信息失败: {mj}")
-        message_formate = await formate_message("web", data.get("item"))
-        img = await DynRender().run(message_formate)
-
-        # 将渲染后的图像转换为Skia Image对象
-        # noinspection PyArgumentList
-        img = skia.Image.fromarray(
-            array=img,
-            colorType=skia.ColorType.kRGBA_8888_ColorType,
-        )
-
-        # 保存图片到临时目录
-        async with TemporaryDirectory() as temp_dir:
-            f = Path(temp_dir) / "temp.png"
-            img.save(f.name)
-            try:
-                return await ImgHost(self.cfg.proxy).litterbox(f.name)
-            except Exception:
-                raise UploadError("图片上传图床失败")
 
     @staticmethod
     def change_source(url: str):

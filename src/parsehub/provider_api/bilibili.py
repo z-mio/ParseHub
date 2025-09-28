@@ -1,4 +1,5 @@
 import asyncio
+import re
 import time
 import urllib.parse
 from functools import reduce
@@ -7,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 XOR_CODE = 23442827791579
@@ -23,20 +25,50 @@ CODE_LEN = len(ENCODE_MAP)
 
 
 class BiliAPI:
-    def __init__(self):
+    def __init__(self, proxy: str = None):
         self.headers = {"User-Agent": USER_AGENT}
+        self.proxy = proxy
         self._client: httpx.AsyncClient | None = None
 
-    async def get_video_info(self, bvid: str):
+    async def get_dynamic_info(self, url: str, cookie: dict = None) -> dict:
+        """获取动态信息"""
+        dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)
+        params = {
+            "timezone_offset": "-480",
+            "id": dyn_id,
+            "features": "itemOpusStyle",
+        }
+        headers = self.headers.copy()
+        headers |= {
+            "referer": f"https://t.bilibili.com/{dyn_id}",
+        }
+        response = await self._get_client().get(
+            "https://api.bilibili.com/x/polymer/web-dynamic/v1/detail",
+            headers=headers,
+            params=params,
+            cookies=cookie,
+        )
+        response.raise_for_status()
+        mj = response.json()
+        if not (data := mj.get("data")):
+            match mj.get("code"):
+                case -352:
+                    raise Exception("获取动态信息失败: -352 风控限制")
+                case _:
+                    raise Exception(f"获取动态信息失败: {mj}")
+        return data
+
+    async def get_video_info(self, url: str):
         """获取视频详细信息"""
+        bvid = self.get_bvid(url)
         response = await self._get_client().get(
             "https://api.bilibili.com/x/web-interface/view/detail",
             params={"bvid": bvid},
-            headers=self.headers,
         )
         return response.json()
 
-    async def get_video_playurl(self, bvid, cid, b3, b4, is_high_quality=True) -> dict:
+    async def get_video_playurl(self, url, cid, b3, b4, is_high_quality=True) -> dict:
+        bvid = self.get_bvid(url)
         params = {
             "bvid": bvid,
             "cid": cid,
@@ -60,21 +92,19 @@ class BiliAPI:
             "ac_time_value": "",
             "opus-goback": "1",
         }
-        r = await self._get_client().get(
+        response = await self._get_client().get(
             "https://api.bilibili.com/x/player/playurl",
             params=params,
             cookies=cookies,
-            headers=self.headers,
         )
-        return r.json()
+        return response.json()
 
     async def get_buvid(self):
         """获取 buvid"""
-        r = await self._get_client().get(
+        response = await self._get_client().get(
             "https://api.bilibili.com/x/frontend/finger/spi",
-            headers=self.headers,
         )
-        data = r.json()
+        data = response.json()
         return data["data"]["b_3"], data["data"]["b_4"]
 
     async def ai_summary(self, bvid: str) -> "AISummaryResult":
@@ -98,13 +128,12 @@ class BiliAPI:
                 "w_rid": w_rid,
                 "wts": wts,
             },
-            headers=self.headers,
         )
         return AISummaryResult.parse(result.json())
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or getattr(self._client, "is_closed", False):
-            self._client = httpx.AsyncClient()
+            self._client = httpx.AsyncClient(proxy=self.proxy, headers=self.headers)
         return self._client
 
     async def aclose(self):
@@ -134,6 +163,15 @@ class BiliAPI:
             idx = ALPHABET.index(bvid[DECODE_MAP[i]])
             tmp = tmp * BASE + idx
         return f"av{(tmp & MASK_CODE) ^ XOR_CODE}"
+
+    def get_bvid(self, url: str):
+        m_bv = re.search(r"BV[0-9A-Za-z]{10,}", url)
+        if m_bv:
+            return m_bv.group(0)
+        m_av = re.search(r"(?i)\bav(\d+)\b", url)
+        if m_av:
+            return self.av2bv(f"av{m_av.group(1)}")
+        return None
 
 
 @dataclass

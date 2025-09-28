@@ -1,7 +1,6 @@
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 
-from ...utiles.img_host import ImgHost
 import time
 from dataclasses import dataclass
 from typing import Union, Callable, Awaitable

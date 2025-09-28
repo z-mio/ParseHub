@@ -113,7 +113,7 @@ if __name__ == '__main__':
 ## 关于登录
 
 - 为什么需要登录?
-    - 部分平台的帖子有限制，需要登录才能查看。
+    - 部分平台的内容有限制，需要登录才能查看。
 
 **通过 Cookie 登录:**
 
@@ -128,6 +128,7 @@ pc = ParseConfig(cookie="从浏览器中获取的cookie")
 - `twitter`
 - `instagram`
 - `kuaishou`
+- `bilibili`
 
 ## 参考项目
 
