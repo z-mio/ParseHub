@@ -22,9 +22,6 @@ class Media(ABC):
     thumb_url: str = None
     width: int = 0
     height: int = 0
-    duration: int = 0
-    """视频时长，单位秒"""
-    subtitles: Subtitles = None
 
     def __str__(self):
         return str(self.path)
@@ -58,6 +55,7 @@ class Video(Media):
     ext: str = "mp4"
     thumb_url: str = None
     duration: int = 0
+    """视频时长，单位秒"""
     width: int = 0
     height: int = 0
     subtitles: Subtitles = None
