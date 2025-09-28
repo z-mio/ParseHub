@@ -1,9 +1,14 @@
 import os
+import shutil
+from pathlib import Path
+
 import aiofiles
 import httpx
 
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_fixed
+
+from ..config.config import TEMP_DIR
 
 
 class ImgHost:
@@ -18,7 +23,7 @@ class ImgHost:
         await self.aclose()
 
     @retry(stop=stop_after_attempt(2), wait=wait_fixed(1))
-    async def _to_file(self, filename_or_url: str):
+    async def _to_file(self, filename_or_url: str | Path):
         if str(filename_or_url).startswith("http"):
             response = await self._get_client.get(filename_or_url)
             filename = filename_or_url.split("/")[-1]
@@ -26,10 +31,12 @@ class ImgHost:
                 await f.write(response.content)
             return filename
         else:
-            return filename_or_url
+            tmp_name = TEMP_DIR / f"tmp_{Path(filename_or_url).name}"
+            shutil.copy2(filename_or_url, tmp_name)
+            return tmp_name
 
     @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
-    async def catbox(self, filename_or_url: str):
+    async def catbox(self, filename_or_url: str | Path):
         host_url = "https://catbox.moe/user/api.php"
         filename = await self._to_file(filename_or_url)
         file = open(filename, "rb")
@@ -44,14 +51,14 @@ class ImgHost:
             response.raise_for_status()
             return response.text
         except Exception as e:
-            logger.exception(e)
-            logger.error("catbox 图片上传失败, 以上为错误信息")
+            logger.error("catbox 图片上传失败, 以下为错误信息")
+            raise e
         finally:
             file.close()
             os.remove(filename)
 
     @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
-    async def litterbox(self, filename_or_url: str):
+    async def litterbox(self, filename_or_url: str | Path):
         host_url = "https://litterbox.catbox.moe/resources/internals/api.php"
         filename = await self._to_file(filename_or_url)
         file = open(filename, "rb")
@@ -67,14 +74,14 @@ class ImgHost:
             response.raise_for_status()
             return response.text
         except Exception as e:
-            logger.exception(e)
-            logger.error("litterbox 图片上传失败, 以上为错误信息")
+            logger.error("litterbox 图片上传失败, 以下为错误信息")
+            raise e
         finally:
             file.close()
             os.remove(filename)
 
     @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
-    async def zioooo(self, filename_or_url: str):
+    async def zioooo(self, filename_or_url: str | Path):
         api_url = "https://img.zio.ooo/api/v2"
         filename = await self._to_file(filename_or_url)
         file = open(filename, "rb")
@@ -94,8 +101,8 @@ class ImgHost:
             data = j["data"]
             return data["public_url"]
         except Exception as e:
-            logger.exception(e)
-            logger.error("zioooo 图片上传失败, 以上为错误信息")
+            logger.error("zioooo 图片上传失败, 以下为错误信息")
+            raise e
         finally:
             file.close()
             os.remove(filename)

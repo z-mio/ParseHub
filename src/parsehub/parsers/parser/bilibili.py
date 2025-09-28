@@ -79,9 +79,8 @@ class BiliParse(YtParser):
             ...
 
     async def gen_dynamic_img(self, url: str) -> str:
-        bili = BiliAPI(proxy=self.cfg.proxy)
-        dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
-        await bili.aclose()
+        async with BiliAPI(proxy=self.cfg.proxy) as bili:
+            dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
 
         message_formate = await formate_message("web", dynamic_info["item"])
         img = await DynRender().run(message_formate)
@@ -90,41 +89,42 @@ class BiliParse(YtParser):
         )
         async with TemporaryDirectory() as temp_dir:
             f = Path(temp_dir) / "temp.png"
-            img.save(f.name)
+            img.save(str(f))
             try:
-                async with ImgHost(self.cfg.proxy) as ih:
-                    return await ih.zioooo(f.name)
+                async with ImgHost() as ih:
+                    return await ih.zioooo(f)
             except Exception:
-                raise UploadError("图片上传图床失败")
+                raise UploadError("动态上传失败")
 
     async def bili_api_parse(
         self, url
     ) -> Union["BiliVideoParseResult", "BiliImageParseResult"]:
-        bili = BiliAPI(proxy=self.cfg.proxy)
-        video_info = await bili.get_video_info(url)
+        async with BiliAPI(proxy=self.cfg.proxy) as bili:
+            video_info = await bili.get_video_info(url)
 
-        if not (data := video_info.get("data")):
-            raise ParseError("获取视频信息失败")
+            if not (data := video_info.get("data")):
+                raise ParseError("获取视频信息失败")
 
-        duration = data["View"]["duration"]
-        dimension = data["View"]["dimension"]
-        b3, b4 = await bili.get_buvid()
+            duration = data["View"]["duration"]
+            dimension = data["View"]["dimension"]
+            b3, b4 = await bili.get_buvid()
 
-        if GlobalConfig.duration_limit and duration > 5400:  # 超过90分钟直接返回封面
-            return BiliImageParseResult(
-                title=data["View"]["title"],
-                raw_url=url,
-                photo=[data["View"]["pic"]],
-            )
-        elif GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
-            video_playurl = await bili.get_video_playurl(
-                url, data["View"]["cid"], b3, b4, False
-            )
-        else:
-            video_playurl = await bili.get_video_playurl(
-                url, data["View"]["cid"], b3, b4
-            )
-        await bili.aclose()
+            if (
+                GlobalConfig.duration_limit and duration > 5400
+            ):  # 超过90分钟直接返回封面
+                return BiliImageParseResult(
+                    title=data["View"]["title"],
+                    raw_url=url,
+                    photo=[data["View"]["pic"]],
+                )
+            elif GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
+                video_playurl = await bili.get_video_playurl(
+                    url, data["View"]["cid"], b3, b4, False
+                )
+            else:
+                video_playurl = await bili.get_video_playurl(
+                    url, data["View"]["cid"], b3, b4
+                )
 
         durl = video_playurl["data"]["durl"][0]
         video_url = (

@@ -30,6 +30,12 @@ class BiliAPI:
         self.proxy = proxy
         self._client: httpx.AsyncClient | None = None
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.aclose()
+
     async def get_dynamic_info(self, url: str, cookie: dict = None) -> dict:
         """获取动态信息"""
         dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)

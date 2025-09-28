@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Literal
@@ -9,6 +10,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
 load_dotenv()
+TEMP_DIR = Path("./temp")
+if TEMP_DIR.exists():
+    shutil.rmtree(str(TEMP_DIR), ignore_errors=True)
+TEMP_DIR.mkdir(exist_ok=True)
 
 
 class GlobalConfig:
