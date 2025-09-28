@@ -78,17 +78,21 @@ class ImgHost:
         api_url = "https://img.zio.ooo/api/v2"
         filename = await self._to_file(filename_or_url)
         file = open(filename, "rb")
-        group = await self._get_client.get(api_url + "/group")
-        storage = group.json()["data"]["storages"][0]["id"]
-        data = {
-            "storage_id": storage,
-        }
         try:
+            group = await self._get_client.get(api_url + "/group")
+            storage = group.json()["data"]["storages"][0]["id"]
+            data = {
+                "storage_id": storage,
+            }
             response = await self._get_client.post(
                 api_url + "/upload", data=data, files={"file": file}
             )
             response.raise_for_status()
-            return response.text
+            j = response.json()
+            if j["status"] != "success":
+                raise Exception(f"zioooo 图片上传失败: {j['message']}")
+            data = j["data"]
+            return data["public_url"]
         except Exception as e:
             logger.exception(e)
             logger.error("zioooo 图片上传失败, 以上为错误信息")
