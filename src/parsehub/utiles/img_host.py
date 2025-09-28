@@ -103,7 +103,7 @@ class ImgHost:
     @property
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or getattr(self._client, "is_closed", False):
-            self._client = httpx.AsyncClient(proxy=self.proxy)
+            self._client = httpx.AsyncClient(proxy=self.proxy, timeout=30)
         return self._client
 
     async def aclose(self):
