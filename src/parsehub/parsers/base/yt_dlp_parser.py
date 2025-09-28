@@ -172,17 +172,13 @@ class YtVideoParseResult(VideoParseResult):
             raise DownloadError("未获取到下载完成的视频")
         video_path = v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles.parse(v[0])
-        try:
-            thumb = await ImgHost(proxies=config.proxy).litterbox(self.dl.thumbnail)
-        except Exception:
-            thumb = None
 
         return DownloadResult(
             self,
             Video(
                 path=str(video_path),
                 subtitles=subtitles,
-                thumb_url=thumb,
+                thumb_url=self.dl.thumbnail,
                 height=self.dl.height,
                 width=self.dl.width,
                 duration=self.dl.duration,
