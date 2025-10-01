@@ -109,7 +109,8 @@ class DYResult:
             bit_rate = bit_rate[0]
 
             video_url = bit_rate["play_addr"]["url_list"][0]
-            thumb_url = video_data["cover"]["url_list"][-1]
+            thumb_url_list = video_data["cover"]["url_list"]
+            thumb_url = thumb_url_list[-1] if thumb_url_list else None
 
             width = bit_rate["play_addr"]["width"]
             height = bit_rate["play_addr"]["height"]
