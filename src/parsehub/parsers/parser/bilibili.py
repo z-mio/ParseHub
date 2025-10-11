@@ -173,7 +173,11 @@ class BiliParse(YtParser):
 
     @staticmethod
     def change_source(url: str):
-        return re.sub(r"upos-.*.bilivideo.com", "upos-sz-upcdnbda2.bilivideo.com", url)
+        return re.sub(
+            r"upos-.*.(bilivideo.com|mirrorakam.akamaized.net)",
+            "upos-sz-upcdnbda2.bilivideo.com",
+            url,
+        )
 
 
 class BiliDownloadResult(DownloadResult):
