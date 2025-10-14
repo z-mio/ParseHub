@@ -4,7 +4,6 @@ from pathlib import Path
 
 import aiofiles
 import httpx
-
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -45,9 +44,7 @@ class ImgHost:
             "userhash": "",
         }
         try:
-            response = await self._get_client.post(
-                host_url, data=data, files={"fileToUpload": file}
-            )
+            response = await self._get_client.post(host_url, data=data, files={"fileToUpload": file})
             response.raise_for_status()
             return response.text
         except Exception as e:
@@ -68,9 +65,7 @@ class ImgHost:
             "time": "72h",
         }
         try:
-            response = await self._get_client.post(
-                host_url, data=data, files={"fileToUpload": file}
-            )
+            response = await self._get_client.post(host_url, data=data, files={"fileToUpload": file})
             response.raise_for_status()
             return response.text
         except Exception as e:
@@ -91,9 +86,7 @@ class ImgHost:
             data = {
                 "storage_id": storage,
             }
-            response = await self._get_client.post(
-                api_url + "/upload", data=data, files={"file": file}
-            )
+            response = await self._get_client.post(api_url + "/upload", data=data, files={"file": file})
             response.raise_for_status()
             j = response.json()
             if j["status"] != "success":

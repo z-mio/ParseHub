@@ -12,7 +12,9 @@ from ..types import ParseError
 class Twitter:
     def __init__(self, proxy: str | None = None, cookie: dict = None):
         self.proxy = proxy
-        self.authorization = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+        self.authorization = (
+            "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+        )
         self.cookie = cookie
 
     async def fetch_tweet(self, url: str) -> "TwitterTweet":
@@ -34,17 +36,24 @@ class Twitter:
 
         params = {
             "variables": f'{{"tweetId":"{tweet_id}","withCommunity":false,"includePromotedContent":false,"withVoice":false}}',
-            "features": '{"creator_subscriptions_tweet_preview_api_enabled":true,"communities_web_enable_tweet_community_results_fetch":true,'
+            "features": '{"creator_subscriptions_tweet_preview_api_enabled":true,'
+            '"communities_web_enable_tweet_community_results_fetch":true,'
             '"c9s_tweet_anatomy_moderator_badge_enabled":true,"tweetypie_unmention_optimization_enabled":true,'
-            '"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled":true,'
+            '"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled"'
+            ":true,"
             '"view_counts_everywhere_api_enabled":true,"longform_notetweets_consumption_enabled":true,'
             '"responsive_web_twitter_article_tweet_consumption_enabled":true,"tweet_awards_web_tipping_enabled":false,'
-            '"creator_subscriptions_quote_tweet_preview_enabled":false,"freedom_of_speech_not_reach_fetch_enabled":true,'
-            '"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":true,'
-            '"tweet_with_visibility_results_prefer_gql_media_interstitial_enabled":false,"rweb_video_timestamps_enabled":true,'
+            '"creator_subscriptions_quote_tweet_preview_enabled":false,"freedom_of_speech_not_reach_fetch_enabled"'
+            ":true,"
+            '"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enable'
+            'd":true,'
+            '"tweet_with_visibility_results_prefer_gql_media_interstitial_enabled":false,"rweb_video_timestamps_enabled'
+            '":true,'
             '"longform_notetweets_rich_text_read_enabled":true,"longform_notetweets_inline_media_enabled":true,'
-            '"rweb_tipjar_consumption_enabled":true,"responsive_web_graphql_exclude_directive_enabled":true,"verified_phone_label_enabled":false,'
-            '"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"responsive_web_graphql_timeline_navigation_enabled":true,'
+            '"rweb_tipjar_consumption_enabled":true,"responsive_web_graphql_exclude_directive_enabled":true,"verified_'
+            'phone_label_enabled":false,'
+            '"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"responsive_web_graphql_timeline'
+            '_navigation_enabled":true,'
             '"responsive_web_enhance_cards_enabled":false}',
             "fieldToggles": '{"withArticleRichContentState":true,"withArticlePlainText":false}',
         }
@@ -98,9 +107,7 @@ class Twitter:
                         )
                     )
                 case "animated_gif":
-                    medias.append(
-                        TwitterAni(url=i["video_info"]["variants"][-1]["url"])
-                    )
+                    medias.append(TwitterAni(url=i["video_info"]["variants"][-1]["url"]))
 
         return TwitterTweet(tweet_id=tweet_id, full_text=full_text, media=medias)
 
@@ -113,9 +120,7 @@ class Twitter:
             "Authorization": self.authorization,
         }
         async with httpx.AsyncClient(proxy=self.proxy) as client:
-            response = await client.post(
-                "https://api.twitter.com/1.1/guest/activate.json", headers=headers
-            )
+            response = await client.post("https://api.twitter.com/1.1/guest/activate.json", headers=headers)
         return response.json()["guest_token"]
 
     def check_cookie(self):
@@ -136,9 +141,7 @@ class TwitterTweet:
         media: list[Union["TwitterVideo", "TwitterPhoto", "TwitterAni"]],
     ):
         self.tweet_id = tweet_id
-        self.full_text = (
-            re.sub(r"https://t\.co/[^\s,]+$", "", full_text) if media else full_text
-        )
+        self.full_text = re.sub(r"https://t\.co/[^\s,]+$", "", full_text) if media else full_text
         self.media = media
 
 

@@ -26,9 +26,7 @@ class TieBa:
     async def get_tieba_img_url(html: Response):
         """获取帖子中所有图片的URL"""
         soup = BeautifulSoup(html.text, "lxml")
-        d_post_content_firstfloor = soup.find(
-            "div", {"class": "d_post_content_firstfloor"}
-        )
+        d_post_content_firstfloor = soup.find("div", {"class": "d_post_content_firstfloor"})
         img_tags = d_post_content_firstfloor.find_all("img", {"class": "BDE_Image"})
         return [img["src"] for img in img_tags if "src" in img.attrs]
 
@@ -36,22 +34,16 @@ class TieBa:
     async def get_tieba_video_url(html: Response):
         """获取帖子中所有视频的URL"""
         soup = BeautifulSoup(html.text, "lxml")
-        d_post_content_firstfloor = soup.find(
-            "div", {"class": "d_post_content_firstfloor"}
-        )
+        d_post_content_firstfloor = soup.find("div", {"class": "d_post_content_firstfloor"})
 
-        if video_tags := d_post_content_firstfloor.find(
-            "embed", {"class": "BDE_Flash"}
-        ):
+        if video_tags := d_post_content_firstfloor.find("embed", {"class": "BDE_Flash"}):
             return video_tags["data-video"]
         return None
 
     async def get_the_content(self, html: Response):
         """获取帖子的标题和内容"""
         soup = BeautifulSoup(html.text, "lxml")
-        title = soup.find(
-            "h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}
-        ) or soup.find("h1", {"class": "core_title_txt"})
+        title = soup.find("h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}) or soup.find("h1", {"class": "core_title_txt"})
         if not title:
             raise Exception("未获取到标题内容")
         title = title.text.strip()

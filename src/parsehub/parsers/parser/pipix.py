@@ -1,8 +1,8 @@
 from typing import Union
 
-from ..base.base import Parser
 from ...provider_api.pipix import Pipix
-from ...types import VideoParseResult, ImageParseResult, ParseError, Video
+from ...types import ImageParseResult, ParseError, Video, VideoParseResult
+from ..base.base import Parser
 
 
 class PipixParser(Parser):

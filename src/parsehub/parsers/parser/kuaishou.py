@@ -1,12 +1,10 @@
-from typing import Union
-
-from ..base.base import Parser
 from ...provider_api.kuaishou import KuaiShouAPI
 from ...types import (
-    VideoParseResult,
     ParseError,
     Video,
+    VideoParseResult,
 )
+from ..base.base import Parser
 
 
 class KuaiShouParser(Parser):
@@ -22,7 +20,7 @@ class KuaiShouParser(Parser):
         try:
             result = await ks.get_video_info(url)
         except Exception as e:
-            raise ParseError(f"快手解析失败: {e}")
+            raise ParseError(f"快手解析失败: {e}") from e
         else:
             return VideoParseResult(
                 title=result.title,

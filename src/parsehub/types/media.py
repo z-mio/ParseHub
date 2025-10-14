@@ -1,5 +1,4 @@
 import os
-from abc import ABC
 from dataclasses import dataclass
 from typing import TypeVar
 
@@ -9,7 +8,7 @@ MediaT = TypeVar("MediaT", bound="Media")
 
 
 @dataclass
-class Media(ABC):
+class Media:
     """媒体
 
     path: 本地路径或URL

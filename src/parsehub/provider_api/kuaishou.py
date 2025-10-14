@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from ..config.config import GlobalConfig
+
 import httpx
+
+from ..config.config import GlobalConfig
 
 
 class KuaiShouAPI:
@@ -103,9 +105,7 @@ class KuaiShouAPI:
         }
         """,
         }
-        async with httpx.AsyncClient(
-            proxy=self.proxy, headers=self.headers, cookies=self.cookie
-        ) as client:
+        async with httpx.AsyncClient(proxy=self.proxy, headers=self.headers, cookies=self.cookie) as client:
             response = await client.post(self.api_url, json=data)
             response.raise_for_status()
             data = response.json()

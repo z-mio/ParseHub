@@ -3,7 +3,6 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from inspect import signature
-from typing import List
 
 import httpx
 
@@ -151,7 +150,7 @@ class MixMediaInfoItem(Info):
 
 @dataclass
 class MixMediaInfo:
-    items: List[MixMediaInfoItem] = None
+    items: list[MixMediaInfoItem] = None
 
     @staticmethod
     def parse(mix_media_info_dict: dict) -> "MixMediaInfo":
@@ -184,9 +183,7 @@ class Data:
         if page_info := data_dict.get("page_info"):
             data_dict["page_info"] = PageInfo.parse(page_info)
         if pic_infos := data_dict.get("pic_infos"):
-            data_dict["pic_infos"] = [
-                PicInfo.parse(pic_info) for pic_info in pic_infos.values()
-            ]
+            data_dict["pic_infos"] = [PicInfo.parse(pic_info) for pic_info in pic_infos.values()]
         if mix_media_info := data_dict.get("mix_media_info"):
             data_dict["mix_media_info"] = MixMediaInfo.parse(mix_media_info)
         if retweeted_status := data_dict.get("retweeted_status"):
@@ -195,7 +192,7 @@ class Data:
 
     @classmethod
     def from_kwargs(cls, **kwargs):
-        cls_fields = {field for field in signature(cls).parameters}
+        cls_fields = set(signature(cls).parameters)
 
         native_args, new_args = {}, {}
         for name, val in kwargs.items():

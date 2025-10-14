@@ -2,19 +2,18 @@ import asyncio
 import re
 
 import requests
+from instaloader import BadResponseException, InstaloaderContext, Post
 
-from ..base.base import Parser
 from ...types import (
-    MultimediaParseResult,
-    VideoParseResult,
-    ImageParseResult,
-    Video,
     Image,
+    ImageParseResult,
+    MultimediaParseResult,
     ParseError,
+    Video,
+    VideoParseResult,
 )
-from instaloader import Post, InstaloaderContext, BadResponseException
-
 from ...utiles.utile import cookie_ellipsis
+from ..base.base import Parser
 
 
 class InstagramParser(Parser):
@@ -24,9 +23,7 @@ class InstagramParser(Parser):
     __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reel|share|.*/p)/.*"
     __redirect_keywords__ = ["share"]
 
-    async def parse(
-        self, url: str
-    ) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
+    async def parse(self, url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
         url = await self.get_raw_url(url)
 
         shortcode = self.get_short_code(url)
@@ -39,18 +36,13 @@ class InstagramParser(Parser):
         match post.typename:
             case "GraphSidecar":
                 media = [
-                    Video(i.video_url, thumb_url=i.display_url)
-                    if i.is_video
-                    else Image(i.display_url)
-                    for i in post.get_sidecar_nodes()
+                    Video(i.video_url, thumb_url=i.display_url) if i.is_video else Image(i.display_url) for i in post.get_sidecar_nodes()
                 ]
                 return MultimediaParseResult(media=media, **k)
             case "GraphImage":
                 return ImageParseResult(photo=[post.url], **k)
             case "GraphVideo":
-                return VideoParseResult(
-                    video=Video(post.video_url, thumb_url=post.url), **k
-                )
+                return VideoParseResult(video=Video(post.video_url, thumb_url=post.url), **k)
 
     async def _parse(self, url, shortcode, cookie=None):
         try:
@@ -62,25 +54,23 @@ class InstagramParser(Parser):
                 ),
                 30,
             )
-        except asyncio.TimeoutError:
-            raise ParseError("解析超时")
+        except TimeoutError as e:
+            raise ParseError("解析超时") from e
         except BadResponseException as e:
             match str(e):
                 case "Fetching Post metadata failed.":
                     if self.cfg.cookie and cookie is None:
                         return await self._parse(url, shortcode, self.cfg.cookie)
                     else:
-                        raise ParseError(
-                            "受限视频无法解析: 你必须年满 18 周岁才能观看这个视频"
-                        )
+                        raise ParseError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频") from e
                 case _:
-                    raise ParseError("无法获取帖子内容")
+                    raise ParseError("无法获取帖子内容") from e
         except Exception as e:
             if cookie:
                 text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(cookie)}"
             else:
                 text = e
-            raise ParseError(f"无法获取帖子内容: {text}")
+            raise ParseError(f"无法获取帖子内容: {text}") from e
         else:
             return post
 

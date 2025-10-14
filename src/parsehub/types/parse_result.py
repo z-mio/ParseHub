@@ -1,28 +1,26 @@
+import asyncio
 import os
 import shutil
 import time
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Callable, Generic, TypeVar, Literal, Awaitable
+from typing import Literal, TypeVar
 
-from . import DownloadError
-from .media import Media, Video
-from ..utiles.utile import progress, img2base64
-from ..utiles.download_file import download_file
-import asyncio
-from abc import ABC
 from langchain_core.messages import HumanMessage, SystemMessage
-from ..tools import LLM, Transcriptions
-from .media import Image, MediaT
-from .subtitles import Subtitles, Subtitle
-from .summary_result import SummaryResult
-from ..config.config import DownloadConfig, SummaryConfig
-from ..utiles.utile import video_to_png
 
+from ..config.config import DownloadConfig, SummaryConfig
+from ..tools import LLM, Transcriptions
+from ..utiles.download_file import download_file
+from ..utiles.utile import img2base64, progress, video_to_png
+from . import DownloadError
+from .media import Image, Media, MediaT, Video
+from .subtitles import Subtitle, Subtitles
+from .summary_result import SummaryResult
 
 T = TypeVar("T", bound="ParseResult")
 
 
-class ParseResult(ABC):
+class ParseResult:
     """解析结果基类"""
 
     def __init__(
@@ -81,7 +79,7 @@ class ParseResult(ABC):
                     )
                 except Exception as e:
                     shutil.rmtree(op)
-                    raise DownloadError(f"下载失败: {e}")
+                    raise DownloadError(f"下载失败: {e}") from e
                 n_m = media.__class__(**vars(media))
                 n_m.path = f
                 path_list.append(n_m)
@@ -116,7 +114,7 @@ class ParseResult(ABC):
                     progress_args=callback_args,
                 )
             except Exception as e:
-                raise DownloadError(f"下载失败: {e}")
+                raise DownloadError(f"下载失败: {e}") from e
 
             # 小于10KB为下载失败
             if not os.stat(r).st_size > 10 * 1024:
@@ -146,9 +144,7 @@ class ParseResult(ABC):
         :param download_config: 下载配置
         """
         dr = await self.download(config=download_config)
-        sr = await dr.summary(
-            api_key, base_url, model, provider, prompt, transcriptions_provider
-        )
+        sr = await dr.summary(api_key, base_url, model, provider, prompt, transcriptions_provider)
         dr.delete()
         return sr
 
@@ -193,10 +189,8 @@ class MultimediaParseResult(ParseResult):
         super().__init__(title=title, media=media, desc=desc, raw_url=raw_url)
 
 
-class DownloadResult(Generic[T]):
-    def __init__(
-        self, parse_result: T, media: list[MediaT] | MediaT, save_dir: str | Path = None
-    ):
+class DownloadResult[T]:
+    def __init__(self, parse_result: T, media: list[MediaT] | MediaT, save_dir: str | Path = None):
         """
         下载结果
         :param parse_result: 解析结果
@@ -270,11 +264,7 @@ class DownloadResult(Generic[T]):
             else:
                 ...
 
-        result: list[str] = [
-            i
-            for i in await asyncio.gather(*tasks, return_exceptions=True)
-            if not isinstance(i, BaseException)
-        ]
+        result: list[str] = [i for i in await asyncio.gather(*tasks, return_exceptions=True) if not isinstance(i, BaseException)]
         content = [
             {
                 "type": "text",
@@ -318,12 +308,7 @@ class DownloadResult(Generic[T]):
             tr = await Transcriptions(api_key=api_key, base_url=base_url).transcription(
                 media_.path, transcriptions_provider=transcriptions_provider
             )
-            media_.subtitles = Subtitles(
-                [
-                    Subtitle(begin=str(c.begin), end=str(c.end), text=c.text)
-                    for c in tr.chucks
-                ]
-            )
+            media_.subtitles = Subtitles([Subtitle(begin=str(c.begin), end=str(c.end), text=c.text) for c in tr.chucks])
         return media_.subtitles.to_str() if media_.subtitles.subtitles[5:] else ""
 
     def delete(self):

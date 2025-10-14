@@ -1,17 +1,17 @@
 import asyncio
+import math
+import os
 import shutil
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 from aiofiles.tempfile import TemporaryDirectory
+from openai import AsyncOpenAI
+from pydub import AudioSegment
 
 from ..utiles.azure import Azure
 from ..utiles.whisper_api import WhisperAPI
-from pydub import AudioSegment
-from openai import AsyncOpenAI
-import math
-import os
-from pathlib import Path
 
 
 class Transcriptions:
@@ -57,9 +57,7 @@ class Transcriptions:
     async def openai(self, audio_path: str):
         oai = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
         audio = open(audio_path, "rb")
-        r = await oai.audio.transcriptions.create(
-            model="whisper-1", file=audio, response_format="verbose_json"
-        )
+        r = await oai.audio.transcriptions.create(model="whisper-1", file=audio, response_format="verbose_json")
         chucks = [Chunk(begin=i.start, end=i.end, text=i.text) for i in r.segments]
         tr = TranscriptionResult(text=r.text, chucks=chucks)
         audio.close()
@@ -75,16 +73,11 @@ class Transcriptions:
     async def azure(self, audio_path: str):
         az = Azure(self.base_url, self.api_key)
         result = await az.speech_to_text(audio_path)
-        chucks = [
-            Chunk(begin=phrase.begin, end=phrase.end, text=phrase.text)
-            for phrase in result.phrases
-        ]
+        chucks = [Chunk(begin=phrase.begin, end=phrase.end, text=phrase.text) for phrase in result.phrases]
         return TranscriptionResult(text=result.text, chucks=chucks)
 
     @staticmethod
-    async def split_audio(
-        file: str | Path, op_dir: str | Path, chunk_size_mb: int = 20
-    ):
+    async def split_audio(file: str | Path, op_dir: str | Path, chunk_size_mb: int = 20):
         """音频切片，并输出到指定文件夹
         :param file: 音频文件路径
         :param op_dir: 切片输出文件夹路径
@@ -99,9 +92,7 @@ class Transcriptions:
             return shutil.copy2(file, Path(op_dir, "chunk_1.mp3"))
 
         duration_ms = len(audio)
-        chunk_duration_ms = math.floor(
-            duration_ms * (chunk_size_bytes / file_size_bytes)
-        )
+        chunk_duration_ms = math.floor(duration_ms * (chunk_size_bytes / file_size_bytes))
 
         async def process_chunk(c, op):
             await asyncio.to_thread(c.export, op, "mp3")
@@ -109,9 +100,7 @@ class Transcriptions:
         tasks = []
         for i, chunk_start in enumerate(range(0, duration_ms, chunk_duration_ms)):
             chunk_end = chunk_start + chunk_duration_ms
-            chunk_start = (
-                chunk_start if not i else chunk_start - 1000
-            )  # 往前加1秒，避免边界问题
+            chunk_start = chunk_start if not i else chunk_start - 1000  # 往前加1秒，避免边界问题
             chunk = audio[chunk_start:chunk_end]
 
             output_filename = f"chunk_{i + 1}.mp3"

@@ -1,12 +1,13 @@
+import base64
 import importlib
 import inspect
 import pkgutil
 import re
-import base64
-import aiofiles
-import httpx
-import cv2
 from typing import Literal
+
+import aiofiles
+import cv2
+import httpx
 from urlextract import URLExtract
 
 from .. import parsers
@@ -23,17 +24,11 @@ def is_method_overridden(method_name, base_class, derived_class):
     if base_method is None or derived_method is None:
         return False
 
-    return (
-        base_method != derived_method
-        and inspect.isfunction(base_method)
-        and inspect.isfunction(derived_method)
-    )
+    return base_method != derived_method and inspect.isfunction(base_method) and inspect.isfunction(derived_method)
 
 
 def get_all_subclasses(cls):
-    for _, module_name, _ in pkgutil.walk_packages(
-        parsers.__path__, f"{parsers.__name__}."
-    ):
+    for _, module_name, _ in pkgutil.walk_packages(parsers.__path__, f"{parsers.__name__}."):
         importlib.import_module(module_name)
 
     subclasses = set(cls.__subclasses__())
@@ -43,9 +38,7 @@ def get_all_subclasses(cls):
 
 
 def progress(current, total, type_=Literal["数量", "百分比"]):
-    return (
-        f"{current * 100 / total:.0f}%" if type_ == "百分比" else f"{current}/{total}"
-    )
+    return f"{current * 100 / total:.0f}%" if type_ == "百分比" else f"{current}/{total}"
 
 
 def timestamp_to_time(timestamp):

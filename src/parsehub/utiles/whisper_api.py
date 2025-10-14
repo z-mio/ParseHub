@@ -3,9 +3,9 @@
 """
 
 import asyncio
+from dataclasses import dataclass
 
 import httpx
-from dataclasses import dataclass
 
 
 class WhisperAPI:
@@ -27,7 +27,7 @@ class WhisperAPI:
                 data = result.json()
                 wi = WhisperResult.parse(data)
         except Exception as e:
-            raise Exception(f"语音转文字失败: {e}")
+            raise Exception(f"语音转文字失败: {e}") from e
         else:
             return wi
 
@@ -64,9 +64,5 @@ class Chunk:
 
 if __name__ == "__main__":
     api = WhisperAPI("http://127.0.0.1:6006")
-    result = asyncio.run(
-        api.transcribe(
-            r"D:\PycharmProjects\ParseHub\src\test\downloads\1725616436283858100.mp4"
-        )
-    )
+    result = asyncio.run(api.transcribe(r"D:\PycharmProjects\ParseHub\src\test\downloads\1725616436283858100.mp4"))
     print(result)

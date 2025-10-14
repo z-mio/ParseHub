@@ -1,13 +1,13 @@
-from ..base.base import Parser
+from ...provider_api.weibo import MediaType, WeiboAPI
 from ...types import (
+    Ani,
+    Image,
+    ImageParseResult,
     MultimediaParseResult,
     Video,
-    Image,
-    Ani,
     VideoParseResult,
-    ImageParseResult,
 )
-from ...provider_api.weibo import WeiboAPI, MediaType
+from ..base.base import Parser
 
 
 class WeiboParser(Parser):
@@ -16,9 +16,7 @@ class WeiboParser(Parser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)(m\.|)weibo.(com|cn)/(?!(u/)).+"
 
-    async def parse(
-        self, url: str
-    ) -> MultimediaParseResult | VideoParseResult | ImageParseResult:
+    async def parse(self, url: str) -> MultimediaParseResult | VideoParseResult | ImageParseResult:
         url = await self.get_raw_url(url)
 
         weibo = await WeiboAPI(self.cfg.proxy).parse(url)
@@ -35,11 +33,7 @@ class WeiboParser(Parser):
                         thumb_url=data.page_info.page_pic,
                     ),
                 )
-        for i in (
-            ((rs := data.retweeted_status) and rs.pic_infos)
-            or data.pic_infos
-            or (data.mix_media_info and data.mix_media_info.items)
-        ):
+        for i in ((rs := data.retweeted_status) and rs.pic_infos) or data.pic_infos or (data.mix_media_info and data.mix_media_info.items):
             match i.type:
                 case MediaType.VIDEO:
                     media.append(Video(i.media_url, thumb_url=i.thumb_url))

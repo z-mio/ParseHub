@@ -35,9 +35,7 @@ class ZuiYouPost:
             img_url = list(img["urls"].values())[-1]["urls"][-1]
             if img.get("video"):
                 video_url = videos[str(id_)]["url"]
-                media.append(
-                    Media(url=video_url, thumb_url=img_url, type=MediaType.VIDEO)
-                )
+                media.append(Media(url=video_url, thumb_url=img_url, type=MediaType.VIDEO))
                 continue
             media.append(Media(url=img_url, thumb_url=img_url, type=MediaType.PHOTO))
 
@@ -58,8 +56,4 @@ class ZuiYou:
 
     @staticmethod
     def get_id_by_url(url: str) -> int:
-        return (
-            pid := dict(qc.split("=") for qc in urlparse(url).query.split("&")).get(
-                "pid"
-            )
-        ) and int(pid)
+        return (pid := dict(qc.split("=") for qc in urlparse(url).query.split("&")).get("pid")) and int(pid)

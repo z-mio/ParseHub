@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 from xml.etree import ElementTree
 
 
@@ -13,7 +12,7 @@ class Subtitle:
 
 @dataclass
 class Subtitles:
-    def __init__(self, subtitles: List[Subtitle] | None = None):
+    def __init__(self, subtitles: list[Subtitle] | None = None):
         self.subtitles = subtitles
 
     @classmethod
@@ -41,9 +40,7 @@ class Subtitles:
         return cls(subtitles=subtitles)
 
     def to_str(self) -> str:
-        return "\n".join(
-            [f"{i.begin}-{i.end}: {i.text}" for i in self.subtitles]
-        ).strip()
+        return "\n".join([f"{i.begin}-{i.end}: {i.text}" for i in self.subtitles]).strip()
 
     def __str__(self) -> str:
         return self.to_str()
@@ -53,8 +50,6 @@ class Subtitles:
 
 
 if __name__ == "__main__":
-    subs = Subtitles.parse(
-        r"E:\Downloads\Certificate in Python for Quantitative Analytics - Oct 2024 [CnA8l-UDAk0].en.ttml"
-    )
+    subs = Subtitles.parse(r"E:\Downloads\Certificate in Python for Quantitative Analytics - Oct 2024 [CnA8l-UDAk0].en.ttml")
     for sub in subs.subtitles[:5]:
         print(f"{sub.begin} --> {sub.end}: {sub.text}")

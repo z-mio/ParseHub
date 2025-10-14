@@ -20,8 +20,6 @@ class LLM:
     def select_provider(self, provider: str) -> BaseChatModel:
         match provider:
             case "openai":
-                return ChatOpenAI(
-                    api_key=self.api_key, base_url=self.base_url, model=self.model
-                )
+                return ChatOpenAI(api_key=self.api_key, base_url=self.base_url, model=self.model)
             case _:
                 ...

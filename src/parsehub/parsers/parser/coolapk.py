@@ -1,10 +1,10 @@
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Callable, Awaitable
 
-from ..base.base import Parser
 from ...config import DownloadConfig
 from ...provider_api.coolapk import Coolapk
-from ...types import ImageParseResult, DownloadResult, ParseError
+from ...types import DownloadResult, ImageParseResult, ParseError
+from ..base.base import Parser
 
 
 class CoolapkParser(Parser):
@@ -31,9 +31,7 @@ class CoolapkParser(Parser):
 
 
 class CoolapkImageParseResult(ImageParseResult):
-    def __init__(
-        self, title: str, photo: list[str], desc: str, raw_url: str, coolapk: "Coolapk"
-    ):
+    def __init__(self, title: str, photo: list[str], desc: str, raw_url: str, coolapk: "Coolapk"):
         super().__init__(title, photo, desc, raw_url)
         self.coolapk = coolapk
 

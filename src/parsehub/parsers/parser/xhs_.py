@@ -3,15 +3,15 @@ from typing import Union
 import httpx
 
 from ...deps.xhs.source import XHS
-from ..base import Parser
 from ...types import (
-    VideoParseResult,
-    ImageParseResult,
-    ParseError,
-    MultimediaParseResult,
-    Video,
     Image,
+    ImageParseResult,
+    MultimediaParseResult,
+    ParseError,
+    Video,
+    VideoParseResult,
 )
+from ..base import Parser
 
 
 class Log:

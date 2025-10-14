@@ -1,18 +1,19 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Union
 
 import httpx
-from enum import Enum
-from ..base.base import Parser
+
 from ...config import GlobalConfig
 from ...types import (
-    VideoParseResult,
+    Image,
     ImageParseResult,
+    MultimediaParseResult,
     ParseError,
     Video,
-    Image,
-    MultimediaParseResult,
+    VideoParseResult,
 )
+from ..base.base import Parser
 
 
 class DouyinParser(Parser):
@@ -23,9 +24,7 @@ class DouyinParser(Parser):
     __redirect_keywords__ = ["v.douyin", "vt.tiktok"]
     __reserved_parameters__ = ["modal_id"]
 
-    async def parse(
-        self, url: str
-    ) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
+    async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         url = await self.get_raw_url(url)
         data = await self.parse_api(url)
 
@@ -45,11 +44,9 @@ class DouyinParser(Parser):
         async with httpx.AsyncClient(timeout=15) as client:
             params = {"url": url, "minimal": False}
             try:
-                response = await client.get(
-                    f"{GlobalConfig.douyin_api}/api/hybrid/video_data", params=params
-                )
-            except httpx.ReadTimeout:
-                raise ParseError("抖音解析超时")
+                response = await client.get(f"{GlobalConfig.douyin_api}/api/hybrid/video_data", params=params)
+            except httpx.ReadTimeout as e:
+                raise ParseError("抖音解析超时") from e
         if response.status_code != 200:
             raise ParseError("抖音解析失败")
         return DYResult.parse(url, response.json())
@@ -157,9 +154,7 @@ class DYResult:
                 )
         elif image_post_info := data.get("image_post_info"):
             images = image_post_info.get("images")
-            image_list = [
-                Image(image["display_image"]["url_list"][-1]) for image in images
-            ]
+            image_list = [Image(image["display_image"]["url_list"][-1]) for image in images]
             return DYResult(
                 type=DYType.IMAGE,
                 image_list=image_list,

@@ -1,6 +1,6 @@
-from ..base.base import Parser
 from ...provider_api.weixin import WX
 from ...types import ImageParseResult
+from ..base.base import Parser
 
 
 class WXParser(Parser):

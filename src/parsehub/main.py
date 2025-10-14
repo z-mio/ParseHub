@@ -1,7 +1,7 @@
+from .config import ParseConfig
 from .parsers.base.base import Parser
 from .types.parse_result import ParseResult
 from .utiles.utile import get_all_subclasses
-from .config import ParseConfig
 
 
 class ParseHub:
@@ -20,9 +20,7 @@ class ParseHub:
     @staticmethod
     def __load_parser() -> list[type[Parser]]:
         all_subclasses = get_all_subclasses(Parser)
-        return [
-            subclass for subclass in all_subclasses if getattr(subclass, "__match__")
-        ]
+        return [subclass for subclass in all_subclasses if subclass.__match__]
 
     async def parse(self, url: str) -> ParseResult:
         """解析平台分享链接
@@ -46,7 +44,4 @@ class ParseHub:
 
     def get_supported_platforms(self) -> list[str]:
         """获取支持的平台列表"""
-        return [
-            f"{parser.__platform__}: {'|'.join(parser.__supported_type__)}"
-            for parser in self.parsers
-        ]
+        return [f"{parser.__platform__}: {'|'.join(parser.__supported_type__)}" for parser in self.parsers]

@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
 TEMP_DIR = Path("./temp")
@@ -47,13 +47,10 @@ class ParseConfig(BaseModel):
                 try:
                     data = json.loads(s)
                 except Exception as e:
-                    raise ValueError(f"cookie JSON解析失败: {e}")
+                    raise ValueError(f"cookie JSON解析失败: {e}") from e
                 if not isinstance(data, dict):
                     raise ValueError("cookie JSON必须是对象类型")
-                return {
-                    str(k).strip(): "" if v is None else str(v).strip()
-                    for k, v in data.items()
-                }
+                return {str(k).strip(): "" if v is None else str(v).strip() for k, v in data.items()}
 
             if s.lower().startswith("cookie:"):
                 s = s[7:].strip()
@@ -81,7 +78,7 @@ class SummaryConfig(BaseSettings):
     base_url: str | None = "https://api.openai.com/v1"
     model: str | None = "gpt-5-nano"
     prompt: str = """
-        Use "Simplified Chinese" to summarize the key points of articles and video subtitles. 
+        Use "Simplified Chinese" to summarize the key points of articles and video subtitles.
         Summarize it in one sentence at the beginning and then write out n key points.
         """.strip()
     """使用"简体中文"总结文章和视频字幕的要点。在开头进行一句话总结, 然后写出n个要点。"""

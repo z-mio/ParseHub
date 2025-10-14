@@ -1,6 +1,6 @@
-from ..base.base import Parser
 from ...provider_api.zuiyou import MediaType, ZuiYou
-from ...types import MultimediaParseResult, Video, Image
+from ...types import Image, MultimediaParseResult, Video
+from ..base.base import Parser
 
 
 class ZuiYouParser(Parser):
@@ -16,9 +16,7 @@ class ZuiYouParser(Parser):
         return MultimediaParseResult(
             desc=zy.content,
             media=[
-                Video(path=i.url, thumb_url=i.thumb_url)
-                if i.type == MediaType.VIDEO
-                else Image(path=i.url, thumb_url=i.thumb_url)
+                Video(path=i.url, thumb_url=i.thumb_url) if i.type == MediaType.VIDEO else Image(path=i.url, thumb_url=i.thumb_url)
                 for i in zy.media
             ],
             raw_url=url,

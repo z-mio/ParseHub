@@ -1,8 +1,8 @@
 import asyncio
 import os
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import aiofiles
 import httpx
@@ -92,7 +92,7 @@ async def download_file(
                 httpx.PoolTimeout,
             ) as e:
                 if attempt == max_retries:
-                    raise DownloadError(f"连接超时: {e}")
+                    raise DownloadError(f"连接超时: {e}") from e
                 await asyncio.sleep(2**attempt)  # 指数退避
                 continue
 
@@ -102,7 +102,7 @@ async def download_file(
                 httpx.ReadError,
             ) as e:
                 if attempt == max_retries:
-                    raise DownloadError(f"网络连接错误: {e}")
+                    raise DownloadError(f"网络连接错误: {e}") from e
                 # 更新断点续传位置
                 if save_path.exists():
                     resume_pos = save_path.stat().st_size
@@ -119,14 +119,14 @@ async def download_file(
                         save_path.unlink()
                     resume_pos = 0
                     if attempt == max_retries:
-                        raise DownloadError(f"HTTP错误: {e.response.status_code}")
+                        raise DownloadError(f"HTTP错误: {e.response.status_code}") from e
                     continue
                 else:
-                    raise DownloadError(f"HTTP错误: {e.response.status_code}")
+                    raise DownloadError(f"HTTP错误: {e.response.status_code}") from e
 
             except Exception as e:
                 if attempt == max_retries:
-                    raise DownloadError(f"下载失败: {e}")
+                    raise DownloadError(f"下载失败: {e}") from e
                 # 更新断点续传位置
                 if save_path.exists():
                     resume_pos = save_path.stat().st_size

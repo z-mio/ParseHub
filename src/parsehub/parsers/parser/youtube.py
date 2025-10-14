@@ -1,6 +1,5 @@
-from typing import Union
 
-from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
+from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
 
 
 class YtbParse(YtParser):
@@ -11,7 +10,7 @@ class YtbParse(YtParser):
     __redirect_keywords__ = ["m.youtube.com"]
     __reserved_parameters__ = ["v", "list", "index"]
 
-    async def parse(self, url: str) -> Union[YtVideoParseResult, YtImageParseResult]:
+    async def parse(self, url: str) -> YtVideoParseResult | YtImageParseResult:
         url = await self.get_raw_url(url)
         return await super().parse(url)
 

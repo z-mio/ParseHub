@@ -1,11 +1,11 @@
 import re
 from abc import ABC, abstractmethod
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from ...config.config import ParseConfig, GlobalConfig
-from ...types import ParseResult, ParseError
+from ...config.config import GlobalConfig, ParseConfig
+from ...types import ParseError, ParseResult
 from ...utiles.utile import match_url
 
 
@@ -47,7 +47,7 @@ class Parser(ABC):
         url = match_url(url)
         if not url.startswith("http"):
             url = f"https://{url}"
-        if any(map(lambda x: x in url, self.__redirect_keywords__)):
+        if any(x in url for x in self.__redirect_keywords__):
             async with httpx.AsyncClient(proxy=self.cfg.proxy, timeout=30) as client:
                 try:
                     r = await client.get(
@@ -56,10 +56,10 @@ class Parser(ABC):
                         headers={"User-Agent": GlobalConfig.ua},
                     )
                     r.raise_for_status()
-                except (httpx.ReadTimeout, httpx.ConnectTimeout):
-                    raise ParseError("获取原始链接超时")
-                except Exception:
-                    raise ParseError("获取原始链接失败")
+                except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                    raise ParseError("获取原始链接超时") from e
+                except Exception as e:
+                    raise ParseError("获取原始链接失败") from e
                 url = str(r.url)
 
         parsed_url = urlparse(url)

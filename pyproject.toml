@@ -53,6 +53,25 @@ packages = ["src/parsehub"]
 Repository = "https://github.com/z-mio/parsehub"
 Issues = "https://github.com/z-mio/parsehub/issues"
 
-# https://github.com/astral-sh/uv/issues/9513#issuecomment-2519527822
-[tool.setuptools]
-license-files = []
+[tool.ruff]
+line-length = 140
+exclude = [
+    "test",
+    "src/parsehub/deps/xhs"
+]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle 错误检查
+    "W", # pycodestyle 警告检查
+    "F", # pyflakes 错误检查
+    "I", # isort 导入排序
+    "B", # flake8-bugbear 常见错误检查
+    "C4", # flake8-comprehensions 列表/字典推导式检查
+    "UP", # pyupgrade 自动升级语法
+]
+ignore = [
+    "B008", # 不在参数默认值中执行函数调用
+    "C901", # 函数复杂度过高
+]
+

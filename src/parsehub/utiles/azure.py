@@ -1,8 +1,8 @@
 import asyncio
+import os
 from dataclasses import dataclass
 
 import httpx
-import os
 
 
 class Azure:
@@ -14,9 +14,7 @@ class Azure:
         self.endpoint = endpoint or os.getenv("AZURE_SPEECH_REGION")
         self.subscription_key = subscription_key or os.getenv("AZURE_SPEECH_KEY")
         if not self.endpoint or not self.subscription_key:
-            raise ValueError(
-                "Azure 端点或密钥未配置, 请在环境变量中配置 AZURE_SPEECH_REGION 和 AZURE_SPEECH_KEY"
-            )
+            raise ValueError("Azure 端点或密钥未配置, 请在环境变量中配置 AZURE_SPEECH_REGION 和 AZURE_SPEECH_KEY")
 
     async def speech_to_text(self, audio_file_path: str):
         """
@@ -24,10 +22,7 @@ class Azure:
         :param audio_file_path:
         :return:
         """
-        url = (
-            self.endpoint
-            + "/speechtotext/transcriptions:transcribe?api-version=2024-11-15"
-        )
+        url = self.endpoint + "/speechtotext/transcriptions:transcribe?api-version=2024-11-15"
         headers = {
             "Ocp-Apim-Subscription-Key": self.subscription_key,
             "Media-Type": "multipart/form-data",

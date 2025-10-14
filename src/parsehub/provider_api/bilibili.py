@@ -2,13 +2,12 @@ import asyncio
 import re
 import time
 import urllib.parse
+from dataclasses import dataclass
 from functools import reduce
 from hashlib import md5
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
-
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 XOR_CODE = 23442827791579
@@ -121,9 +120,7 @@ class BiliAPI:
         wbi = await BiliWbiSigner().wbi(bvid=bvid, cid=cid, up_mid=up_mid)
         return await self.get_ai_summary(bvid, cid, up_mid, wbi["w_rid"], wbi["wts"])
 
-    async def get_ai_summary(
-        self, bvid: str, cid: int, up_mid: int, w_rid: str, wts: int
-    ):
+    async def get_ai_summary(self, bvid: str, cid: int, up_mid: int, w_rid: str, wts: int):
         url = "https://api.bilibili.com/x/web-interface/view/conclusion/get"
         result = await self._get_client().get(
             url,
@@ -199,9 +196,7 @@ class Outline:
     @staticmethod
     def parse(data: dict[str, Any]) -> "Outline":
         part_outline = [PartOutline.parse(item) for item in data["part_outline"]]
-        return Outline(
-            title=data["title"], part_outline=part_outline, timestamp=data["timestamp"]
-        )
+        return Outline(title=data["title"], part_outline=part_outline, timestamp=data["timestamp"])
 
 
 @dataclass
@@ -214,9 +209,7 @@ class ModelResult:
     def parse(data: dict[str, Any]) -> "ModelResult":
         if outline := data.get("outline"):
             outline = [Outline.parse(item) for item in outline]
-        return ModelResult(
-            result_type=data["result_type"], summary=data["summary"], outline=outline
-        )
+        return ModelResult(result_type=data["result_type"], summary=data["summary"], outline=outline)
 
 
 @dataclass
@@ -339,9 +332,7 @@ class BiliWbiSigner:
         mixin_key = self.get_mixin_key(img_key + sub_key)
         params["wts"] = round(time.time())  # 添加 wts 字段
         params = {k: str(v) for k, v in sorted(params.items())}  # 按 key 排序并转为 str
-        query = urllib.parse.urlencode(
-            params, safe="!'()*"
-        )  # 序列化参数并指定不编码字符
+        query = urllib.parse.urlencode(params, safe="!'()*")  # 序列化参数并指定不编码字符
         wbi_sign = md5((query + mixin_key).encode()).hexdigest()  # 计算 w_rid
         params["w_rid"] = wbi_sign
         return params
@@ -360,9 +351,9 @@ class BiliWbiSigner:
                 img_url: str = json_data["data"]["wbi_img"]["img_url"]
                 sub_url: str = json_data["data"]["wbi_img"]["sub_url"]
             except httpx.HTTPError as e:
-                raise Exception(f"请求 wbi_img 失败: {e}")
+                raise Exception(f"请求 wbi_img 失败: {e}") from e
             except (KeyError, TypeError, ValueError) as e:
-                raise Exception(f"解析 wbi_img 失败: {e}")
+                raise Exception(f"解析 wbi_img 失败: {e}") from e
 
             img_key = img_url.rsplit("/", 1)[1].split(".")[0]
             sub_key = sub_url.rsplit("/", 1)[1].split(".")[0]

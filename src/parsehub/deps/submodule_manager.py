@@ -1,16 +1,13 @@
-from pathlib import Path
 import sys
-from typing import Dict, Optional
+from pathlib import Path
 
 
 class SubmoduleManager:
     def __init__(self):
         self.deps_dir = Path(__file__).parent
-        self.path_mappings: Dict[str, Path] = {}
+        self.path_mappings: dict[str, Path] = {}
 
-    def add_submodule(
-        self, name: str, relative_path: str, source_dir: Optional[str] = None
-    ):
+    def add_submodule(self, name: str, relative_path: str, source_dir: str | None = None):
         """添加子模块路径映射"""
         submodule_path = self.deps_dir / relative_path
         self.path_mappings[name] = submodule_path

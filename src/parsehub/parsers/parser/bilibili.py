@@ -1,20 +1,22 @@
 import re
-from typing import Union, Callable, Awaitable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import Union
+
 import httpx
 import skia
+from aiofiles.tempfile import TemporaryDirectory
 from dynamicadaptor.DynamicConversion import formate_message
 from dynrender_skia.Core import DynRender
 
-from ..base.yt_dlp_parser import YtParser, YtVideoParseResult, YtImageParseResult
-from ...types.parse_result import VideoParseResult, ImageParseResult
 from ...config.config import DownloadConfig, GlobalConfig
-from ...types import DownloadResult, ParseError, Video, UploadError
-from ...types.summary_result import SummaryResult
 from ...provider_api.bilibili import BiliAPI
+from ...types import DownloadResult, ParseError, UploadError, Video
+from ...types.parse_result import ImageParseResult, VideoParseResult
+from ...types.summary_result import SummaryResult
 from ...utiles.img_host import ImgHost
-from ...utiles.utile import cookie_ellipsis
-from aiofiles.tempfile import TemporaryDirectory
+from ...utiles.utile import cookie_ellipsis, timestamp_to_time
+from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
 
 
 class BiliParse(YtParser):
@@ -46,8 +48,8 @@ class BiliParse(YtParser):
             except Exception:
                 try:
                     return await self.ytp_parse(url)
-                except Exception:
-                    raise ParseError("Bilibili解析失败")
+                except Exception as e:
+                    raise ParseError("Bilibili解析失败") from e
 
     @staticmethod
     def _is_bvid(url: str):
@@ -85,27 +87,21 @@ class BiliParse(YtParser):
                 dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
             except Exception as e:
                 if "风控" in str(e):
-                    raise ParseError(
-                        f"账号风控\n使用的cookie: {cookie_ellipsis(self.cfg.cookie)}"
-                    )
+                    raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cfg.cookie)}") from e
 
         message_formate = await formate_message("web", dynamic_info["item"])
         img = await DynRender().run(message_formate)
-        img = skia.Image.fromarray(
-            array=img, colorType=skia.ColorType.kRGBA_8888_ColorType
-        )
+        img = skia.Image.fromarray(array=img, colorType=skia.ColorType.kRGBA_8888_ColorType)
         async with TemporaryDirectory() as temp_dir:
             f = Path(temp_dir) / "temp.png"
             img.save(str(f))
             try:
                 async with ImgHost() as ih:
                     return await ih.zioooo(f)
-            except Exception:
-                raise UploadError("动态上传失败")
+            except Exception as e:
+                raise UploadError("动态上传失败") from e
 
-    async def bili_api_parse(
-        self, url
-    ) -> Union["BiliVideoParseResult", "BiliImageParseResult"]:
+    async def bili_api_parse(self, url) -> Union["BiliVideoParseResult", "BiliImageParseResult"]:
         async with BiliAPI(proxy=self.cfg.proxy) as bili:
             video_info = await bili.get_video_info(url)
 
@@ -116,29 +112,19 @@ class BiliParse(YtParser):
             dimension = data["View"]["dimension"]
             b3, b4 = await bili.get_buvid()
 
-            if (
-                GlobalConfig.duration_limit and duration > 5400
-            ):  # 超过90分钟直接返回封面
+            if GlobalConfig.duration_limit and duration > 5400:  # 超过90分钟直接返回封面
                 return BiliImageParseResult(
                     title=data["View"]["title"],
                     raw_url=url,
                     photo=[data["View"]["pic"]],
                 )
             elif GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
-                video_playurl = await bili.get_video_playurl(
-                    url, data["View"]["cid"], b3, b4, False
-                )
+                video_playurl = await bili.get_video_playurl(url, data["View"]["cid"], b3, b4, False)
             else:
-                video_playurl = await bili.get_video_playurl(
-                    url, data["View"]["cid"], b3, b4
-                )
+                video_playurl = await bili.get_video_playurl(url, data["View"]["cid"], b3, b4)
 
         durl = video_playurl["data"]["durl"][0]
-        video_url = (
-            self.change_source(durl["backup_url"][0])
-            if durl.get("backup_url")
-            else durl["url"]
-        )
+        video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
@@ -151,9 +137,7 @@ class BiliParse(YtParser):
             ),
         )
 
-    async def ytp_parse(
-        self, url
-    ) -> Union["BiliYtVideoParseResult", "BiliYtImageParseResult"]:
+    async def ytp_parse(self, url) -> Union["BiliYtVideoParseResult", "BiliYtImageParseResult"]:
         result = await super().parse(url)
         _d = {
             "title": result.title,
@@ -184,31 +168,30 @@ class BiliDownloadResult(DownloadResult):
     async def summary(self, *args, **kwargs) -> SummaryResult:
         return await super().summary()
         # b站的AI总结现在需要登录, 暂时不再使用
-        # bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
-        # r = await BiliAPI().ai_summary(bvid)
-        #
-        # if not r.data or r.data.code == -1:
-        #     return await super().summary()
-        #
-        # model_result = r.data.model_result
-        # text = [f"**{model_result.summary}**\n"]
-        #
-        # if not model_result.outline:
-        #     return await super().summary()
-        #
-        # for i in model_result.outline:
-        #     c = "\n".join(
-        #         [
-        #             f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}"
-        #             # f"__[{timestamp_to_time(cc['timestamp'])}](https://www.bilibili.com/video/{bvid}/?t={cc['timestamp']})__ {cc['content']}"
-        #             for cc in i.part_outline
-        #         ]
-        #     )
-        #     t = f"\n● **{i.title}**\n{c}"
-        #     text.append(t)
-        #
-        # content = "\n".join(text)
-        # return SummaryResult(content)
+        bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
+        r = await BiliAPI().ai_summary(bvid)
+
+        if not r.data or r.data.code == -1:
+            return await super().summary()
+
+        model_result = r.data.model_result
+        text = [f"**{model_result.summary}**\n"]
+
+        if not model_result.outline:
+            return await super().summary()
+
+        for i in model_result.outline:
+            c = "\n".join(
+                [
+                    f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}"
+                    for cc in i.part_outline
+                ]
+            )
+            t = f"\n● **{i.title}**\n{c}"
+            text.append(t)
+
+        content = "\n".join(text)
+        return SummaryResult(content)
 
 
 class BiliVideoParseResult(VideoParseResult):
