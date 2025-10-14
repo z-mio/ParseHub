@@ -1,9 +1,9 @@
 from ...provider_api.weixin import WX
 from ...types import ImageParseResult
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class WXParser(Parser):
+class WXParser(BaseParser):
     __platform_id__ = "weixin"
     __platform__ = "微信公众号"
     __supported_type__ = ["图文"]

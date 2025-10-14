@@ -7,10 +7,10 @@ from ...types import (
     Video,
     VideoParseResult,
 )
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class WeiboParser(Parser):
+class WeiboParser(BaseParser):
     __platform_id__ = "weibo"
     __platform__ = "微博"
     __supported_type__ = ["视频", "图文"]

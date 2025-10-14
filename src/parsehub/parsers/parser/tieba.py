@@ -2,10 +2,10 @@ from typing import Union
 
 from ...provider_api.tieba import TieBa
 from ...types import ImageParseResult, ParseError, VideoParseResult
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class TieBaParser(Parser):
+class TieBaParser(BaseParser):
     __platform_id__ = "tieba"
     __platform__ = "贴吧"
     __supported_type__ = ["视频", "图文"]

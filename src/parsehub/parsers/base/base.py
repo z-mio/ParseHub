@@ -9,7 +9,7 @@ from ...types import ParseError, ParseResult
 from ...utiles.utile import match_url
 
 
-class Parser(ABC):
+class BaseParser(ABC):
     __platform_id__: str = None
     """平台ID"""
     __platform__: str = None

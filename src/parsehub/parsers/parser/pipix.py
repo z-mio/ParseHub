@@ -2,10 +2,10 @@ from typing import Union
 
 from ...provider_api.pipix import Pipix
 from ...types import ImageParseResult, ParseError, Video, VideoParseResult
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class PipixParser(Parser):
+class PipixParser(BaseParser):
     __platform_id__ = "pipix"
     __platform__ = "皮皮虾"
     __supported_type__ = ["视频", "图文"]

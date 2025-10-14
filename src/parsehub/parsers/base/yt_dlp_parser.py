@@ -18,7 +18,7 @@ from ...types import (
     Video,
     VideoParseResult,
 )
-from .base import Parser
+from .base import BaseParser
 
 EXC = ProcessPoolExecutor()
 
@@ -33,7 +33,7 @@ def download_video(yto_params: dict, urls: list[str]) -> None:
         raise RuntimeError(error_msg) from None
 
 
-class YtParser(Parser):
+class YtParser(BaseParser):
     """yt-dlp解析器"""
 
     async def parse(self, url: str) -> Union["YtVideoParseResult", "YtImageParseResult"]:

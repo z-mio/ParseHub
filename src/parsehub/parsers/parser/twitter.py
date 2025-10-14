@@ -7,10 +7,10 @@ from ...provider_api.twitter import (
 )
 from ...types import Ani, Image, MultimediaParseResult, ParseError, Video
 from ...utiles.utile import cookie_ellipsis
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class TwitterParser(Parser):
+class TwitterParser(BaseParser):
     __platform_id__ = "twitter"
     __platform__ = "Twitter"
     __supported_type__ = ["视频", "图文"]

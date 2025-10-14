@@ -1,9 +1,9 @@
 from ...provider_api.zuiyou import MediaType, ZuiYou
 from ...types import Image, MultimediaParseResult, Video
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class ZuiYouParser(Parser):
+class ZuiYouParser(BaseParser):
     __platform_id__ = "zuiyou"
     __platform__ = "最右"
     __supported_type__ = ["视频", "图文"]

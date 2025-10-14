@@ -4,10 +4,10 @@ from pathlib import Path
 from ...config import DownloadConfig
 from ...provider_api.coolapk import Coolapk
 from ...types import DownloadResult, ImageParseResult, ParseError
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class CoolapkParser(Parser):
+class CoolapkParser(BaseParser):
     __platform_id__ = "coolapk"
     __platform__ = "酷安"
     __supported_type__ = ["图文"]

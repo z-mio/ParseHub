@@ -11,7 +11,7 @@ from ...types import (
     Video,
     VideoParseResult,
 )
-from ..base import Parser
+from ..base import BaseParser
 
 
 class Log:
@@ -23,7 +23,7 @@ class Log:
         ...
 
 
-class XhsParser(Parser):
+class XhsParser(BaseParser):
     __platform_id__ = "xhs"
     __platform__ = "小红书"
     __supported_type__ = ["视频", "图文"]

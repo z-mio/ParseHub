@@ -4,10 +4,10 @@ from ...types import (
     Video,
     VideoParseResult,
 )
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class KuaiShouParser(Parser):
+class KuaiShouParser(BaseParser):
     __platform_id__ = "kuaishou"
     __platform__ = "快手"
     __supported_type__ = ["视频"]

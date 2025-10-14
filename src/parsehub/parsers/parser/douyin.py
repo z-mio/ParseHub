@@ -13,10 +13,10 @@ from ...types import (
     Video,
     VideoParseResult,
 )
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class DouyinParser(Parser):
+class DouyinParser(BaseParser):
     __platform_id__ = "douyin"
     __platform__ = "抖音|TikTok"
     __supported_type__ = ["视频", "图文"]

@@ -13,10 +13,10 @@ from ...types import (
     VideoParseResult,
 )
 from ...utiles.utile import cookie_ellipsis
-from ..base.base import Parser
+from ..base.base import BaseParser
 
 
-class InstagramParser(Parser):
+class InstagramParser(BaseParser):
     __platform_id__ = "instagram"
     __platform__ = "Instagram"
     __supported_type__ = ["视频", "图文"]
