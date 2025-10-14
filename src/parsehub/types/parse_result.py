@@ -64,9 +64,10 @@ class ParseResult(ABC):
         下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
         status: 进度或其他状态信息
         """
+        save_dir = Path(path) if path else config.save_dir
         if isinstance(self.media, list):
             path_list = []
-            op = (Path(path) if path else config.save_dir).joinpath(f"{time.time_ns()}")
+            op = save_dir.joinpath(f"{time.time_ns()}")
             for i, media in enumerate(self.media):
                 if not media.is_url:
                     path_list.append(media)
@@ -108,7 +109,7 @@ class ParseResult(ABC):
             try:
                 r = await download_file(
                     self.media.path,
-                    config.save_dir / f"{time.time_ns()}.{self.media.ext}",
+                    save_dir / f"{time.time_ns()}.{self.media.ext}",
                     headers=config.headers,
                     proxies=config.proxy,
                     progress=_callback if callback else None,
