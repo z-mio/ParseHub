@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from ..config.config import DownloadConfig, SummaryConfig
 from ..tools import LLM, Transcriptions
 from ..utiles.download_file import download_file
-from ..utiles.utile import img2base64, progress, video_to_png
+from ..utiles.utile import image_proces, progress, video_to_png
 from . import DownloadError
 from .media import Image, Media, MediaT, Video
 from .subtitles import Subtitle, Subtitles
@@ -258,9 +258,9 @@ class DownloadResult[T]:
                 )
                 if not subtitles:
                     img = await asyncio.to_thread(video_to_png, i.path)
-                    tasks.append(img2base64(img))
+                    tasks.append(image_proces(img))
             elif isinstance(i, Image):
-                tasks.append(img2base64(i.path))
+                tasks.append(image_proces(i.path))
             else:
                 ...
 

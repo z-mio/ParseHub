@@ -1,13 +1,17 @@
+import asyncio
 import base64
 import importlib
 import inspect
+import io
 import pkgutil
 import re
+from pathlib import Path
 from typing import Literal
 
 import aiofiles
 import cv2
 import httpx
+from PIL import Image
 from urlextract import URLExtract
 
 from .. import parsers
@@ -87,3 +91,20 @@ def cookie_ellipsis(cookie: dict) -> str:
     text = "; ".join([f"{k}={v}" for k, v in cookie.items()])
     c = min(len(text) // 3, 15)
     return f"{text[:c]}......{text[-c:]}"
+
+
+def img2webp(img) -> io.BytesIO:
+    with Image.open(img) as pil_img:
+        if pil_img.mode != "RGBA":
+            pil_img = pil_img.convert("RGBA")
+        output = io.BytesIO()
+        pil_img.save(output, format="WEBP")
+        output.seek(0)
+        return output
+
+
+async def image_proces(img: str | Path):
+    ext = Path(img).suffix.lower()
+    if ext in [".png", ".jpeg", ".gif", ".webp", ".jpg"]:
+        return await img2base64(img)
+    return base64.b64encode((await asyncio.to_thread(img2webp, img)).read()).decode("utf-8")
