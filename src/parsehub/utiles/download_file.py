@@ -38,12 +38,8 @@ async def download_file(
 
     async with httpx.AsyncClient(proxy=proxies, headers=headers) as client:
         save_dir, filename = os.path.split(save_path) if save_path else (None, None)
-        save_dir = (
-            Path(os.path.abspath(save_dir))
-            if save_dir
-            else Path.cwd().joinpath("downloads")
-        )
-        filename = filename or await get_file_name_form_url(url, client)
+        save_dir = Path(os.path.abspath(save_dir)) if save_dir else Path.cwd().joinpath("downloads")
+        filename = filename or await get_filename_by_url(url, client)
 
         if not filename:
             raise ValueError("无法获取文件名")
@@ -61,9 +57,7 @@ async def download_file(
                 if resume_pos > 0:
                     current_headers["Range"] = f"bytes={resume_pos}-"
 
-                async with client.stream(
-                    "GET", url, headers=current_headers, follow_redirects=True
-                ) as r:
+                async with client.stream("GET", url, headers=current_headers, follow_redirects=True) as r:
                     r.raise_for_status()
 
                     # 获取文件总大小
@@ -142,7 +136,7 @@ async def download_file(
         raise DownloadError("达到最大重试次数，下载失败")
 
 
-async def get_file_name_form_url(url: str, client: httpx.AsyncClient):
+async def get_filename_by_url(url: str, client: httpx.AsyncClient):
     response = await client.head(url, follow_redirects=True)
     response.raise_for_status()
     if content_disposition := response.headers.get("content-disposition"):
