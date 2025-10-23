@@ -79,18 +79,26 @@ class Twitter:
         result = result["data"]["tweetResult"].get("result")
         if not result:
             raise ParseError("error -4: 帖子或用户不存在")
+
         if tweet := result.get("tweet"):
             tweet_id = tweet.get("rest_id", {})
             legacy: dict = tweet.get("legacy")
         else:
             tweet_id = result.get("rest_id", {})
             legacy: dict = result.get("legacy")
+
         if not legacy:
             if result.get("__typename") == "TweetTombstone":
                 raise Exception("error -2: 该推文开启了限制, 匿名用户无法查看")
             raise Exception(f"error -3: {result.get('reason')}")
 
-        full_text = legacy.get("full_text", "")
+        if note_tweet := result.get("note_tweet"):
+            full_text = note_tweet.get("note_tweet_results", {}).get("result", {}).get("text", None)
+            if not full_text:
+                full_text = legacy.get("full_text", "")
+        else:
+            full_text = legacy.get("full_text", "")
+
         media = legacy["entities"].get("media", [])
         medias = []
         for i in media:
