@@ -181,12 +181,7 @@ class BiliDownloadResult(DownloadResult):
             return await super().summary()
 
         for i in model_result.outline:
-            c = "\n".join(
-                [
-                    f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}"
-                    for cc in i.part_outline
-                ]
-            )
+            c = "\n".join([f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}" for cc in i.part_outline])
             t = f"\n● **{i.title}**\n{c}"
             text.append(t)
 

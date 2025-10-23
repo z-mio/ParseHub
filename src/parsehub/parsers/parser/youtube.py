@@ -1,4 +1,3 @@
-
 from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
 
 
