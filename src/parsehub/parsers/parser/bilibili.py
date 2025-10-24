@@ -2,6 +2,7 @@ import re
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Union
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 import skia
@@ -108,19 +109,33 @@ class BiliParse(YtParser):
             if not (data := video_info.get("data")):
                 raise ParseError("获取视频信息失败")
 
-            duration = data["View"]["duration"]
-            dimension = data["View"]["dimension"]
+            p = int(parse_qs(urlparse(url).query).get("p", ["1"])[0])
+            view = data["View"]
+
+            cid = view["cid"]
+            part = ""
+            duration = view["duration"]
+            dimension = view["dimension"]
+
+            if p != 1 and (pages := view.get("pages")):
+                if page_info := next((i for i in pages if i["page"] == p), None):
+                    cid = page_info["cid"]
+                    part = page_info["part"]
+                    duration = page_info["duration"]
+                    dimension = page_info["dimension"]
+
             b3, b4 = await bili.get_buvid()
             if GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
-                video_playurl = await bili.get_video_playurl(url, data["View"]["cid"], b3, b4, False)
+                video_playurl = await bili.get_video_playurl(url, cid, b3, b4, False)
             else:
-                video_playurl = await bili.get_video_playurl(url, data["View"]["cid"], b3, b4)
+                video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
 
         durl = video_playurl["data"]["durl"][0]
         video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
+            desc=f"P{p}: {part}" if part else "",
             video=Video(
                 video_url,
                 thumb_url=data["View"]["pic"],
