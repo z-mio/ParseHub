@@ -45,9 +45,6 @@ class YtParser(BaseParser):
             "raw_url": url,
             "dl": video_info,
         }
-        # if GlobalConfig.duration_limit and video_info.duration > 5400:
-        #     return YtImageParseResult(photo=[video_info.thumbnail], **_d)
-        # else:
         return YtVideoParseResult(video=video_info.url, **_d)
 
     async def _parse(self, url) -> "YtVideoInfo":

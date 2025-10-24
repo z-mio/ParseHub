@@ -111,13 +111,6 @@ class BiliParse(YtParser):
             duration = data["View"]["duration"]
             dimension = data["View"]["dimension"]
             b3, b4 = await bili.get_buvid()
-
-            # if GlobalConfig.duration_limit and duration > 5400:  # 超过90分钟直接返回封面
-            #     return BiliImageParseResult(
-            #         title=data["View"]["title"],
-            #         raw_url=url,
-            #         photo=[data["View"]["pic"]],
-            #     )
             if GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
                 video_playurl = await bili.get_video_playurl(url, data["View"]["cid"], b3, b4, False)
             else:
