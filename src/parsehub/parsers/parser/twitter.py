@@ -32,7 +32,9 @@ class TwitterParser(BaseParser):
                     try:
                         tweet = await x2.fetch_tweet(url)
                     except Exception as e2:
-                        raise ParseError(f"Twitter 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(self.cfg.cookie)}") from e2
+                        raise ParseError(
+                            f"Twitter 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(self.cfg.cookie)}"
+                        ) from e2
                 else:
                     raise ParseError(e) from e
             else:

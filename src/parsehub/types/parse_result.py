@@ -42,7 +42,9 @@ class ParseResult:
         self.raw_url = raw_url
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(title={self.title or "''"}, desc={self.desc or "''"}, raw_url={self.raw_url})"
+        return (
+            f"{self.__class__.__name__}(title={self.title or "''"}, desc={self.desc or "''"}, raw_url={self.raw_url})"
+        )
 
     async def download(
         self,
@@ -264,7 +266,9 @@ class DownloadResult[T]:
             else:
                 ...
 
-        result: list[str] = [i for i in await asyncio.gather(*tasks, return_exceptions=True) if not isinstance(i, BaseException)]
+        result: list[str] = [
+            i for i in await asyncio.gather(*tasks, return_exceptions=True) if not isinstance(i, BaseException)
+        ]
         content = [
             {
                 "type": "text",

@@ -43,7 +43,9 @@ class TieBa:
     async def get_the_content(self, html: Response):
         """获取帖子的标题和内容"""
         soup = BeautifulSoup(html.text, "lxml")
-        title = soup.find("h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}) or soup.find("h1", {"class": "core_title_txt"})
+        title = soup.find("h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}) or soup.find(
+            "h1", {"class": "core_title_txt"}
+        )
         if not title:
             raise Exception("未获取到标题内容")
         title = title.text.strip()

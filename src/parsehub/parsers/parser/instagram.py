@@ -36,7 +36,8 @@ class InstagramParser(BaseParser):
         match post.typename:
             case "GraphSidecar":
                 media = [
-                    Video(i.video_url, thumb_url=i.display_url) if i.is_video else Image(i.display_url) for i in post.get_sidecar_nodes()
+                    Video(i.video_url, thumb_url=i.display_url) if i.is_video else Image(i.display_url)
+                    for i in post.get_sidecar_nodes()
                 ]
                 return MultimediaParseResult(media=media, **k)
             case "GraphImage":

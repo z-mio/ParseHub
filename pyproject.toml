@@ -56,7 +56,7 @@ Repository = "https://github.com/z-mio/parsehub"
 Issues = "https://github.com/z-mio/parsehub/issues"
 
 [tool.ruff]
-line-length = 140
+line-length = 120
 exclude = [
     "test",
     "src/parsehub/deps/xhs"

@@ -50,6 +50,8 @@ class Subtitles:
 
 
 if __name__ == "__main__":
-    subs = Subtitles.parse(r"E:\Downloads\Certificate in Python for Quantitative Analytics - Oct 2024 [CnA8l-UDAk0].en.ttml")
+    subs = Subtitles.parse(
+        r"E:\Downloads\Certificate in Python for Quantitative Analytics - Oct 2024 [CnA8l-UDAk0].en.ttml"
+    )
     for sub in subs.subtitles[:5]:
         print(f"{sub.begin} --> {sub.end}: {sub.text}")

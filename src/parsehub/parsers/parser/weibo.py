@@ -33,7 +33,11 @@ class WeiboParser(BaseParser):
                         thumb_url=data.page_info.page_pic,
                     ),
                 )
-        for i in ((rs := data.retweeted_status) and rs.pic_infos) or data.pic_infos or (data.mix_media_info and data.mix_media_info.items):
+        for i in (
+            ((rs := data.retweeted_status) and rs.pic_infos)
+            or data.pic_infos
+            or (data.mix_media_info and data.mix_media_info.items)
+        ):
             match i.type:
                 case MediaType.VIDEO:
                     media.append(Video(i.media_url, thumb_url=i.thumb_url))

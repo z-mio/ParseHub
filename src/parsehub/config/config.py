@@ -17,7 +17,10 @@ TEMP_DIR.mkdir(exist_ok=True)
 
 
 class GlobalConfig:
-    ua: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    ua: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    )
     douyin_api: str = "https://douyin.wtf"
     duration_limit: int = 0
     """部分平台下载超过指定时长的视频时, 下载最低画质, 单位秒, 0为不限制"""

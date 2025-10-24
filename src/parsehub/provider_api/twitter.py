@@ -13,7 +13,8 @@ class Twitter:
     def __init__(self, proxy: str | None = None, cookie: dict = None):
         self.proxy = proxy
         self.authorization = (
-            "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+            "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOu"
+            "H5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
         )
         self.cookie = cookie
 
@@ -35,7 +36,8 @@ class Twitter:
             cookie = self.cookie
 
         params = {
-            "variables": f'{{"tweetId":"{tweet_id}","withCommunity":false,"includePromotedContent":false,"withVoice":false}}',
+            "variables": f'{{"tweetId":"{tweet_id}","withComm'
+            f'unity":false,"includePromotedContent":false,"withVoice":false}}',
             "features": '{"creator_subscriptions_tweet_preview_api_enabled":true,'
             '"communities_web_enable_tweet_community_results_fetch":true,'
             '"c9s_tweet_anatomy_moderator_badge_enabled":true,"tweetypie_unmention_optimization_enabled":true,'
