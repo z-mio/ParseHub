@@ -131,7 +131,7 @@ class BiliParse(YtParser):
                 video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
 
         durl = video_playurl["data"]["durl"][0]
-        video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
+        video_url = self.change_source(durl["backup_url"][0] if durl.get("backup_url") else durl["url"])
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
