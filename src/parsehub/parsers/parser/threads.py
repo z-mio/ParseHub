@@ -158,7 +158,7 @@ class ThreadsParser(BaseParser):
                 caption += post["caption"]["text"]
             
             username = post["user"]["username"]
-            title = f"@{username}"
+            title = ""
             
             # 处理图片
             images = []
@@ -204,19 +204,19 @@ class ThreadsParser(BaseParser):
                         "url": post["image_versions2"]["candidates"][0]["url"]
                     })
                     image_type = "carousel"
-                else:
-                    # 使用用户头像作为后备
-                    images.append({
-                        "url": post["user"]["profile_pic_url"]
-                    })
-                    image_type = "single"
-            else:
-                # 使用用户头像作为后备
-                if post.get("user") and post["user"].get("profile_pic_url"):
-                    images.append({
-                        "url": post["user"]["profile_pic_url"]
-                    })
-                    image_type = "single"
+                # else:
+                #     # 使用用户头像作为后备
+                #     images.append({
+                #         "url": post["user"]["profile_pic_url"]
+                #     })
+                #     image_type = "single"
+            # else:
+            #     # 使用用户头像作为后备
+            #     if post.get("user") and post["user"].get("profile_pic_url"):
+            #         images.append({
+            #             "url": post["user"]["profile_pic_url"]
+            #         })
+            #         image_type = "single"
             
             # 检查视频
             if post.get("video_versions") and len(post["video_versions"]) > 0:
