@@ -158,7 +158,7 @@ class ThreadsParser(BaseParser):
                 caption += post["caption"]["text"]
             
             username = post["user"]["username"]
-            title = f"@{username} on Threads"
+            title = f"@{username}"
             
             # 处理图片
             images = []
