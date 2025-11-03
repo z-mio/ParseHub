@@ -23,16 +23,21 @@ class WeiboParser(BaseParser):
         data = weibo.data
         text = self.f_text(data.content)
         media = []
+
         if not data.pic_infos and data.page_info:
             if data.page_info.object_type == MediaType.VIDEO:
                 return VideoParseResult(
                     desc=text,
                     raw_url=url,
                     video=Video(
-                        data.page_info.media_info.mp4_hd_url,
+                        data.page_info.media_info.playback.url,
                         thumb_url=data.page_info.page_pic,
+                        width=data.page_info.media_info.playback.width,
+                        height=data.page_info.media_info.playback.height,
+                        duration=int(data.page_info.media_info.playback.duration),
                     ),
                 )
+
         for i in (
             ((rs := data.retweeted_status) and rs.pic_infos)
             or data.pic_infos
@@ -40,7 +45,9 @@ class WeiboParser(BaseParser):
         ):
             match i.type:
                 case MediaType.VIDEO:
-                    media.append(Video(i.media_url, thumb_url=i.thumb_url))
+                    media.append(
+                        Video(i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height, duration=i.duration)
+                    )
                 case MediaType.LIVE_PHOTO:
                     media.append(Video(i.media_url, ext="mov", thumb_url=i.thumb_url))
                 case MediaType.GIF:

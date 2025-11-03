@@ -22,12 +22,6 @@ class Media:
     width: int = 0
     height: int = 0
 
-    def __str__(self):
-        return str(self.path)
-
-    def __repr__(self):
-        return str(self.path)
-
     @property
     def is_url(self) -> bool:
         """是否为URL"""
