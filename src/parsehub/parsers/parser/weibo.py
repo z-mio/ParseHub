@@ -49,11 +49,19 @@ class WeiboParser(BaseParser):
                         Video(i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height, duration=i.duration)
                     )
                 case MediaType.LIVE_PHOTO:
-                    media.append(Video(i.media_url, ext="mov", thumb_url=i.thumb_url))
+                    media.append(
+                        Video(
+                            i.media_url,
+                            ext="mov",
+                            thumb_url=i.thumb_url,
+                            width=i.width,
+                            height=i.height,
+                        )
+                    )
                 case MediaType.GIF:
                     media.append(Ani(i.media_url, thumb_url=i.thumb_url))
                 case _:
-                    media.append(Image(i.media_url))
+                    media.append(Image(i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
         if all(isinstance(m, Image) for m in media):
             return ImageParseResult(desc=text, raw_url=url, photo=media)
         return MultimediaParseResult(desc=text, raw_url=url, media=media)
