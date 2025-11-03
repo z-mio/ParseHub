@@ -72,6 +72,8 @@ class Image(Media):
     path: str = None
     ext: str = "jpg"
     thumb_url: str = path
+    width: int = 0
+    height: int = 0
 
 
 @dataclass
