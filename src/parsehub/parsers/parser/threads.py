@@ -14,11 +14,11 @@ class ThreadsParser(BaseParser):
         post = await ThreadsAPI(proxy=self.cfg.proxy).parse(url)
         media = []
         if post.media:
-            media = []
-            for m in post.media:
+            pm = post.media if isinstance(post.media, list) else [post.media]
+            for m in pm:
                 match m.type:
                     case ThreadsMediaType.VIDEO:
-                        media.append(Video(path=m.url, thumb_url=m.thumbnail, width=m.width, height=m.height))
+                        media.append(Video(path=m.url, thumb_url=m.thumb_url, width=m.width, height=m.height))
                     case ThreadsMediaType.IMAGE:
                         media.append(Image(path=m.url, thumb_url=m.url, width=m.width, height=m.height))
         return MultimediaParseResult(desc=post.content, media=media, raw_url=url)
