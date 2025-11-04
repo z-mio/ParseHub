@@ -289,7 +289,6 @@ class WeiboContent:
 
     @staticmethod
     def parse(json_dict: dict) -> "WeiboContent":
-        print(json_dict)
         data = Data.parse(json_dict)
         return WeiboContent(data=data)
 
