@@ -1,3 +1,4 @@
+import re
 from typing import Union
 
 import httpx
@@ -37,7 +38,9 @@ class XhsParser(BaseParser):
             x_result = await xhs.extract(url, False, log=Log)
         if not x_result or not (result := x_result[0]):
             raise ParseError("小红书解析失败")
-        k = {"title": result["作品标题"], "desc": result["作品描述"], "raw_url": url}
+
+        desc = self.hashtag_handler(result["作品描述"])
+        k = {"title": result["作品标题"], "desc": desc, "raw_url": url}
 
         if all(result["动图地址"]):
             # livephoto
@@ -72,6 +75,13 @@ class XhsParser(BaseParser):
                     return extension
 
             return ""
+
+    @staticmethod
+    def hashtag_handler(desc: str):
+        hashtags = re.findall(r"#[^#\[\]]+\[话题]#", desc)
+        for hashtag in hashtags:
+            desc = desc.replace(hashtag, hashtag.replace("[话题]#", ""))
+        return desc
 
 
 __all__ = ["XhsParser"]
