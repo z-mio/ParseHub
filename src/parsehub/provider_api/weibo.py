@@ -1,3 +1,4 @@
+import abc
 import asyncio
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -41,7 +42,7 @@ class MediaType(Enum):
     GIF = "gif"
 
 
-class Info:
+class Info(abc.ABC):
     @property
     @abstractmethod
     def media_url(self):
@@ -54,12 +55,34 @@ class Info:
 
 
 @dataclass
+class Playback:
+    url: str
+    width: int = 0
+    height: int = 0
+    duration: float = 0
+    bitrate: int = 0
+    size: int = 0
+
+    @classmethod
+    def parse(cls, playback: dict) -> "Playback":
+        pi = playback["play_info"]
+        url = pi["url"]
+        width = pi["width"]
+        height = pi["height"]
+        duration = pi.get("duration", 0)
+        bitrate = pi.get("bitrate", 0)
+        size = pi.get("size", 0)
+        return cls(url, width, height, duration, bitrate, size)
+
+
+@dataclass
 class MediaInfo:
     format: str = None
     mp4_hd_url: str = None
     mp4_sd_url: str = None
-    duration: int = None
+    duration: int = 0
     prefetch_size: int = None
+    playback: Playback = None
 
     @staticmethod
     def parse(media_dict: dict) -> "MediaInfo":
@@ -68,7 +91,8 @@ class MediaInfo:
         mp4_sd_url = media_dict.get("mp4_sd_url")
         duration = media_dict["duration"]
         prefetch_size = media_dict["prefetch_size"]
-        return MediaInfo(format_, mp4_hd_url, mp4_sd_url, duration, prefetch_size)
+        playback = Playback.parse(p[0]) if (p := media_dict.get("playback_list", [])) else []
+        return MediaInfo(format_, mp4_hd_url, mp4_sd_url, duration, prefetch_size, playback)
 
 
 @dataclass
@@ -88,11 +112,29 @@ class PageInfo(Info):
 
     @property
     def media_url(self):
+        if self.media_info.playback:
+            return self.media_info.playback.url
         return self.media_info.mp4_hd_url or self.media_info.mp4_sd_url
 
     @property
     def thumb_url(self):
         return self.page_pic
+
+    @property
+    def height(self):
+        if self.media_info.playback:
+            return self.media_info.playback.height
+        return 0
+
+    @property
+    def width(self):
+        if self.media_info.playback:
+            return self.media_info.playback.width
+        return 0
+
+    @property
+    def duration(self):
+        return self.media_info.duration
 
 
 @dataclass
@@ -123,6 +165,7 @@ class PicInfo(Info):
             type=MediaType(pic_dict["type"]),
             thumbnail=Pic(**pic_dict["thumbnail"]),
             largest=Pic(**pic_dict["largest"]),
+            video=pic_dict.get("video_hd") or pic_dict.get("video"),
         )
 
     @property
@@ -132,6 +175,18 @@ class PicInfo(Info):
     @property
     def thumb_url(self):
         return self.thumbnail.url
+
+    @property
+    def height(self):
+        return self.largest.height
+
+    @property
+    def width(self):
+        return self.largest.width
+
+    @property
+    def duration(self):
+        return 0
 
 
 @dataclass
@@ -146,6 +201,18 @@ class MixMediaInfoItem(Info):
     @property
     def thumb_url(self):
         return self.data.thumb_url
+
+    @property
+    def height(self):
+        return self.data.height
+
+    @property
+    def width(self):
+        return self.data.width
+
+    @property
+    def duration(self):
+        return self.data.duration
 
 
 @dataclass
