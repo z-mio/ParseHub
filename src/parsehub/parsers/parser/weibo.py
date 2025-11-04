@@ -1,3 +1,5 @@
+import re
+
 from ...provider_api.weibo import MediaType, WeiboAPI
 from ...types import (
     Ani,
@@ -66,11 +68,19 @@ class WeiboParser(BaseParser):
             return ImageParseResult(desc=text, raw_url=url, photo=media)
         return MultimediaParseResult(desc=text, raw_url=url, media=media)
 
-    @staticmethod
-    def f_text(text: str) -> str:
+    def f_text(self, text: str) -> str:
         # text = re.sub(r'<a  href="https://video.weibo.com.*?>.*的微博视频.*</a>', "", text)
         # text = re.sub(r"<[^>]+>", " ", text)
-        return text.strip()
+        text = text.strip()
+        text = self.hashtag_handler(text)
+        return text
+
+    @staticmethod
+    def hashtag_handler(desc: str):
+        hashtags = re.findall(r"#[^#\[\]]+#", desc)
+        for hashtag in hashtags:
+            desc = desc.replace(hashtag, hashtag.removesuffix("#"))
+        return desc
 
 
 __all__ = ["WeiboParser"]
