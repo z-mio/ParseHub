@@ -40,11 +40,15 @@ class WeiboParser(BaseParser):
                     ),
                 )
 
-        for i in (
+        media_info = (
             ((rs := data.retweeted_status) and rs.pic_infos)
             or data.pic_infos
             or (data.mix_media_info and data.mix_media_info.items)
-        ):
+        )
+        if not media_info:
+            return MultimediaParseResult(desc=text, raw_url=url, media=[])
+
+        for i in media_info:
             match i.type:
                 case MediaType.VIDEO:
                     media.append(

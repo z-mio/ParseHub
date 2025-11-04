@@ -27,7 +27,7 @@ class WeiboAPI:
         cookies = {
             "SUB": "_2AkMR47Mlf8NxqwFRmfocxG_lbox2wg7EieKnv0L-JRMxHRl-yT9yqhFdtRB6OmOdyoia9pKPkqoHRRmSBA_WNPaHuybH",
         }
-        api = f"https://weibo.com/ajax/statuses/show?id={bid}"
+        api = f"https://weibo.com/ajax/statuses/show?id={bid}&isGetLongText=true"
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             response = await client.get(api, cookies=cookies, headers=headers)
             response.raise_for_status()
@@ -289,6 +289,7 @@ class WeiboContent:
 
     @staticmethod
     def parse(json_dict: dict) -> "WeiboContent":
+        print(json_dict)
         data = Data.parse(json_dict)
         return WeiboContent(data=data)
 
