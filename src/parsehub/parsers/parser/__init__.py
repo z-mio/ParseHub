@@ -4,6 +4,7 @@ from .coolapk import *
 from .douyin import *
 from .facebook import *
 from .instagram import *
+from .threads import *
 from .tieba import *
 from .twitter import *
 from .weibo import *
