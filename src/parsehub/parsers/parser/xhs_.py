@@ -81,7 +81,7 @@ class XhsParser(BaseParser):
         hashtags = re.findall(r"#[^#\[\]]+\[话题]#", desc)
         for hashtag in hashtags:
             desc = desc.replace(hashtag, hashtag.replace("[话题]#", ""))
-        return desc
+        return desc.strip()
 
 
 __all__ = ["XhsParser"]
