@@ -7,7 +7,7 @@ class ThreadsParser(BaseParser):
     __platform_id__ = "threads"
     __platform__ = "Threads"
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)?.+threads.com/@\w+/post/.*"
+    __match__ = r"^(http(s)?://)?.+threads.com/@[\w.]+/post/.*"
 
     async def parse(self, url: str) -> "MultimediaParseResult":
         url = await self.get_raw_url(url)
