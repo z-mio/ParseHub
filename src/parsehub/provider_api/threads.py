@@ -41,7 +41,7 @@ class ThreadsAPI:
 
     @staticmethod
     def get_username_by_url(url: str) -> str:
-        u = re.search(r"/(@\w+)/post/", url)
+        u = re.search(r"/(@[\w.]+)/post/", url)
         if not u:
             raise ValueError("从 URL 中获取用户名失败")
         return u[1]
