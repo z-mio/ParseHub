@@ -78,9 +78,9 @@ class XhsParser(BaseParser):
 
     @staticmethod
     def hashtag_handler(desc: str):
-        hashtags = re.findall(r"#[^#\[\]]+\[话题]#", desc)
+        hashtags = re.findall(r" ?#[^#\[\]]+\[话题]# ?", desc)
         for hashtag in hashtags:
-            desc = desc.replace(hashtag, hashtag.replace("[话题]#", ""))
+            desc = desc.replace(hashtag, f"{hashtag.strip().replace("[话题]#", "")} ")
         return desc.strip()
 
 
