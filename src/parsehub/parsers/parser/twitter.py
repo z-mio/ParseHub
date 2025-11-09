@@ -1,3 +1,5 @@
+from urllib.parse import urlparse, urlunparse
+
 from ...provider_api.twitter import (
     Twitter,
     TwitterAni,
@@ -20,6 +22,10 @@ class TwitterParser(BaseParser):
         url = await self.get_raw_url(url)
         tweet = await self._parse(url)
         return await self.media_parse(url, tweet)
+
+    async def get_raw_url(self, url: str) -> str:
+        url = await super().get_raw_url(url)
+        return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str):
         x = Twitter(self.cfg.proxy, cookie=None)
