@@ -25,7 +25,7 @@ class Twitter:
             "authorization": self.authorization,
             "content-type": "application/json",
             "user-agent": GlobalConfig.ua,
-            "x-guest-token": await self.get_guest_token(),
+            "x-guest-token": await self.get_guest_token(url),
             "x-twitter-active-user": "yes",
             "x-twitter-client-language": "zh-cn",
         }
@@ -67,10 +67,7 @@ class Twitter:
                 headers=headers,
                 cookies=cookie,
             )
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as he:
-            raise Exception(f"http_status_{he.response.status_code}") from he
+        response.raise_for_status()
         return self.parse(response.json())
 
     @staticmethod
@@ -125,13 +122,14 @@ class Twitter:
     def get_id_by_url(url: str):
         return re.search(r"status/(\d+)", url)[1]
 
-    async def get_guest_token(self):
-        headers = {
-            "Authorization": self.authorization,
-        }
+    async def get_guest_token(self, url: str):
         async with httpx.AsyncClient(proxy=self.proxy) as client:
-            response = await client.post("https://api.twitter.com/1.1/guest/activate.json", headers=headers)
-        return response.json()["guest_token"]
+            response = await client.post(url)
+            response.raise_for_status()
+        guest_token = re.search(r'cookie="gt=(\d+);', response.text)
+        if not guest_token:
+            raise Exception("error -5: 获取 guest_token 失败")
+        return guest_token[1]
 
     def check_cookie(self):
         if not self.cookie.get("ct0"):
