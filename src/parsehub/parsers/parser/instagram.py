@@ -36,7 +36,7 @@ class InstagramParser(BaseParser):
             dimensions: dict = post._field("dimensions")
         except KeyError:
             dimensions = {}
-        width, height = dimensions.get("width", 0), dimensions.get("height", 0)
+        width, height = dimensions.get("width", 0) or 0, dimensions.get("height", 0) or 0
 
         k = {"title": post.title, "desc": post.caption, "raw_url": url}
         match post.typename:

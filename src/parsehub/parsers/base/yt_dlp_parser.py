@@ -59,12 +59,11 @@ class YtParser(BaseParser):
             dl = dl["entries"][0]
             url = dl["webpage_url"]
         title = dl["title"]
-        duration = dl["duration"]
+        duration = dl.get("duration", 0) or 0
         thumbnail = dl["thumbnail"]
         description = dl["description"]
-        width = dl.get("width", 0)
-        height = dl.get("height", 0)
-
+        width = dl.get("width", 0) or 0
+        height = dl.get("height", 0) or 0
         return YtVideoInfo(
             raw_video_info=dl,
             title=title,
@@ -157,7 +156,6 @@ class YtVideoParseResult(VideoParseResult):
             raise DownloadError("未获取到下载完成的视频")
         video_path = v[0]
         subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles.parse(v[0])
-
         return DownloadResult(
             self,
             Video(
@@ -214,8 +212,8 @@ class YtVideoInfo:
     title: str
     description: str
     thumbnail: str
-    duration: int
     url: str
-    width: int
-    height: int
+    duration: int = 0
+    width: int = 0
+    height: int = 0
     paramss: dict = None
