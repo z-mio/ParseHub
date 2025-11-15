@@ -1,9 +1,9 @@
 import asyncio
 import re
 
-import requests
-from instaloader import BadResponseException, InstaloaderContext, Post
+from instaloader import BadResponseException
 
+from ...provider_api.instagram import MyInstaloaderContext, MyPost
 from ...types import (
     Image,
     ImageParseResult,
@@ -32,24 +32,43 @@ class InstagramParser(BaseParser):
 
         post = await self._parse(url, shortcode)
 
+        try:
+            dimensions: dict = post._field("dimensions")
+        except KeyError:
+            dimensions = {}
+        width, height = dimensions.get("width", 0), dimensions.get("height", 0)
+
         k = {"title": post.title, "desc": post.caption, "raw_url": url}
         match post.typename:
             case "GraphSidecar":
                 media = [
-                    Video(i.video_url, thumb_url=i.display_url) if i.is_video else Image(i.display_url)
+                    Video(i.video_url, thumb_url=i.display_url, width=i.width, height=i.height)
+                    if i.is_video
+                    else Image(i.display_url, width=i.width, height=i.height)
                     for i in post.get_sidecar_nodes()
                 ]
                 return MultimediaParseResult(media=media, **k)
             case "GraphImage":
-                return ImageParseResult(photo=[post.url], **k)
+                return ImageParseResult(photo=[Image(post.url, width=width, height=height)], **k)
             case "GraphVideo":
-                return VideoParseResult(video=Video(post.video_url, thumb_url=post.url), **k)
+                return VideoParseResult(
+                    video=Video(
+                        post.video_url,
+                        thumb_url=post.url,
+                        duration=int(post.video_duration),
+                        width=width,
+                        height=height,
+                    ),
+                    **k,
+                )
+            case _:
+                raise ParseError("不支持的类型")
 
-    async def _parse(self, url, shortcode, cookie=None):
+    async def _parse(self, url, shortcode, cookie=None) -> MyPost:
         try:
             post = await asyncio.wait_for(
                 asyncio.to_thread(
-                    Post.from_shortcode,
+                    MyPost.from_shortcode,
                     MyInstaloaderContext(self.cfg.proxy, cookie),
                     shortcode,
                 ),
@@ -80,34 +99,6 @@ class InstagramParser(BaseParser):
         url = url.removesuffix("/")
         shortcode = re.search(r"/(share|p|reel)/(.*)", url)
         return shortcode.group(2).split("/")[0] if shortcode else None
-
-
-class MyInstaloaderContext(InstaloaderContext):
-    """
-    支持自定义代理
-    """
-
-    def __init__(self, proxy: str | None = None, cookie: dict = None):
-        self.proxy = {"http": proxy, "https": proxy}
-        self.cookie = cookie
-        super().__init__()
-
-    def get_anonymous_session(self) -> requests.Session:
-        session = super().get_anonymous_session()
-        if self.proxy:
-            session.proxies = self.proxy
-            session.trust_env = False
-        return session
-
-    def get_json(self, *args, **kwargs):
-        session: requests.Session = kwargs.get("session")
-        if self.proxy:
-            session.proxies = self.proxy
-            session.trust_env = False
-        if self.cookie:
-            session.cookies.update(self.cookie)
-
-        return super().get_json(*args, **kwargs)
 
 
 __all__ = ["InstagramParser"]
