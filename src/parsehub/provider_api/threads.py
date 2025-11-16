@@ -95,7 +95,12 @@ class ThreadsPost:
     @staticmethod
     def _fetch_content(data: dict) -> str:
         payload = data["payload"]
-        meta = payload.get("result", {}).get("exports", {}).get("meta")
+        result = payload.get("result", {})
+        # 尝试从 redirect_result 获取（用户更改名称后的情况）
+        meta = result.get("redirect_result", {}).get("exports", {}).get("meta")
+        # 如果没有 redirect_result，则从正常路径获取
+        if not meta:
+            meta = result.get("exports", {}).get("meta")
         if not meta:
             raise Exception("获取内容失败")
         return meta["title"]
