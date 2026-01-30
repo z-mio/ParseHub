@@ -45,7 +45,9 @@ class XhsParser(BaseParser):
                         photos.append(Video(i.url, thumb_url=i.thumb_url, width=i.width, height=i.height))
                     else:
                         # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"
-                        ext = (await self.get_ext_by_url(i.url)) or "jpeg"
+                        ext = await self.get_ext_by_url(i.url)
+                        if ext not in ["png", "webp", "jpeg", "heic", "avif"]:
+                            ext = "jpeg"
                         photos.append(Image(i.url, ext, thumb_url=i.thumb_url, width=i.width, height=i.height))
 
                 return MultimediaParseResult(
@@ -55,9 +57,8 @@ class XhsParser(BaseParser):
             case _:
                 raise ParseError("不支持的类型")
 
-    @staticmethod
-    async def get_ext_by_url(url: str):
-        async with httpx.AsyncClient() as client:
+    async def get_ext_by_url(self, url: str):
+        async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
             try:
                 response = await client.head(url, follow_redirects=True)
             except Exception:
