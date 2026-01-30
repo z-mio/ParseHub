@@ -9,6 +9,6 @@ from .tieba import *
 from .twitter import *
 from .weibo import *
 from .weixin import *
-from .xhs_ import *
+from .xhs import *
 from .youtube import *
 from .zuiyou import *

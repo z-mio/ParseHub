@@ -1,6 +1,6 @@
 [project]
 name = "parsehub"
-version = "1.5.10"
+version = "1.5.11"
 description = "支持AI总结的社交媒体聚合解析器"
 readme = "README.md"
 requires-python = ">=3.12.0"
@@ -9,7 +9,6 @@ authors = [
 ]
 license = { text = "MIT" }
 dependencies = [
-    "aiocache>=0.12.3",
     "aiofiles>=23.2,<24.dev0",
     "beautifulsoup4>=4.12.3",
     "dynamicadaptor>=0.5.2",
@@ -20,22 +19,12 @@ dependencies = [
     "loguru>=0.6.0",
     "openai>=1.54.5",
     "opencv-python>=4.10.0.84",
-    "playwright>=1.48.0",
     "pydub>=0.25.1",
     "python-dotenv>=1.0.1",
     "tenacity>=8.5.0",
     "urlextract>=1.9.0",
     "yt-dlp[default]",
-    "textual>=1.0.0",
-    "pyperclip>=1.9.0",
     "lxml>=5.3.0",
-    "pyyaml>=6.0.2",
-    "aiosqlite>=0.20.0",
-    "click>=8.1.7",
-    "rookiepy>=0.5.6",
-    "fastapi>=0.112.1",
-    "uvicorn>=0.30.6",
-    "emoji>=2.14.0",
     "instaloader>=4.14",
     "pydantic>=1.10.19",
     "markdownify>=1.1.0",
@@ -44,9 +33,8 @@ dependencies = [
     "skia-python>=87.6",
     "httpx>=0.24.1",
     "pydantic-settings>=2.10.1",
-    "pydicom>=3.0.1",
-    "pillow>=11.3.0",
-    "pillow-heif>=1.1.1",
+    "ruff>=0.14.14",
+    "pillow>=12.1.0",
 ]
 [tool.hatch.build.targets.wheel]
 packages = ["src/parsehub"]

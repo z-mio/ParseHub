@@ -1,3 +1,0 @@
-[submodule "src/parsehub/deps/xhs"]
-	path = src/parsehub/deps/xhs
-	url = https://github.com/JoeanAmier/XHS-Downloader.git

@@ -3,7 +3,8 @@ from typing import Union
 
 import httpx
 
-from ...deps.xhs.source import XHS
+from ...provider_api.xhs import XHSAPI, MediaType, PostType
+from ...provider_api.xhs import Media as XHSMedia
 from ...types import (
     Image,
     ImageParseResult,
@@ -13,15 +14,6 @@ from ...types import (
     VideoParseResult,
 )
 from ..base import BaseParser
-
-
-class Log:
-    """用来隐藏日志"""
-
-    @staticmethod
-    def write(*args, **kwargs):
-        # print(args, kwargs)
-        ...
 
 
 class XhsParser(BaseParser):
@@ -34,31 +26,34 @@ class XhsParser(BaseParser):
 
     async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         url = await self.get_raw_url(url)
-        async with XHS(user_agent="", cookie="") as xhs:
-            x_result = await xhs.extract(url, False, log=Log)
-        if not x_result or not (result := x_result[0]):
-            raise ParseError("小红书解析失败")
+        xhs = XHSAPI(proxy=self.cfg.proxy)
+        result = await xhs.extract(url)
 
-        desc = self.hashtag_handler(result["作品描述"])
-        k = {"title": result["作品标题"], "desc": desc, "raw_url": url}
+        desc = self.hashtag_handler(result.desc)
+        k = {"title": result.title, "desc": desc, "raw_url": url}
+        match result.type:
+            case PostType.VIDEO:
+                v: XHSMedia = result.media[0]
+                return VideoParseResult(
+                    video=Video(path=v.url, thumb_url=v.thumb_url, duration=v.duration, height=v.height, width=v.width),
+                    **k,
+                )
+            case PostType.IMAGE:
+                photos = []
+                for i in result.media:
+                    if i.type == MediaType.LIVE_PHOTO:
+                        photos.append(Video(i.url, thumb_url=i.thumb_url, width=i.width, height=i.height))
+                    else:
+                        # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"
+                        ext = (await self.get_ext_by_url(i.url)) or "jpeg"
+                        photos.append(Image(i.url, ext, thumb_url=i.thumb_url, width=i.width, height=i.height))
 
-        if all(result["动图地址"]):
-            # livephoto
-            return MultimediaParseResult(media=[Video(i) for i in result["动图地址"]], **k)
-        elif result["作品类型"] == "视频":
-            return VideoParseResult(video=result["下载地址"][0], **k)
-        elif result["作品类型"] == "图文":
-            photos = []
-            for i in result["下载地址"]:
-                img_url = i if i.endswith("?") else i + "?"
-                ext = (await self.get_ext_by_url(img_url)) or "png"
-                photos.append(Image(img_url, ext))
-            return ImageParseResult(
-                photo=photos,
-                **k,
-            )
-        else:
-            raise ParseError("不支持的类型")
+                return MultimediaParseResult(
+                    media=photos,
+                    **k,
+                )
+            case _:
+                raise ParseError("不支持的类型")
 
     @staticmethod
     async def get_ext_by_url(url: str):
