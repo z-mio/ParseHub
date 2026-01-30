@@ -72,6 +72,8 @@ class BiliAPI:
             "https://api.bilibili.com/x/web-interface/view/detail",
             params={"bvid": bvid},
         )
+        if response.status_code == 412:
+            raise Exception('由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝。')
         return response.json()
 
     async def get_video_playurl(self, url, cid, b3, b4, is_high_quality=True) -> dict:
