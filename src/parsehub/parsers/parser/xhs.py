@@ -1,5 +1,6 @@
 import re
 from typing import Union
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -24,13 +25,27 @@ class XhsParser(BaseParser):
     __redirect_keywords__ = ["xhslink", "item"]
     __reserved_parameters__ = ["xsec_token"]
 
+    @staticmethod
+    async def clear_params(url: str) -> str:
+        """
+        清理 xsec_token 参数, 清理后只能用 app 访问该帖子
+        :param url:
+        :return:
+        """
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+        del query_params["xsec_token"]
+        new_query = "&".join([f"{k}={v[0]}" for k, v in query_params.items()])
+        return parsed_url._replace(query=new_query).geturl()
+
     async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         url = await self.get_raw_url(url)
+        raw_url = await self.clear_params(url)
         xhs = XHSAPI(proxy=self.cfg.proxy)
         result = await xhs.extract(url)
 
         desc = self.hashtag_handler(result.desc)
-        k = {"title": result.title, "desc": desc, "raw_url": url}
+        k = {"title": result.title, "desc": desc, "raw_url": raw_url}
         match result.type:
             case PostType.VIDEO:
                 v: XHSMedia = result.media[0]
