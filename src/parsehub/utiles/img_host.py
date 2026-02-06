@@ -4,10 +4,10 @@ from pathlib import Path
 
 import aiofiles
 import httpx
-from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from ..config.config import TEMP_DIR
+from ..log import logger
 
 
 class ImgHost:
