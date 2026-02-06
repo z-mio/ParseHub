@@ -4,8 +4,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from ...provider_api.xhs import XHSAPI, MediaType, PostType
-from ...provider_api.xhs import Media as XHSMedia
+from ...provider_api.xhs import XHSAPI, XHSMedia, XHSMediaType, XHSPostType
 from ...types import (
     Image,
     ImageParseResult,
@@ -47,16 +46,16 @@ class XhsParser(BaseParser):
         desc = self.hashtag_handler(result.desc)
         k = {"title": result.title, "desc": desc, "raw_url": raw_url}
         match result.type:
-            case PostType.VIDEO:
+            case XHSPostType.VIDEO:
                 v: XHSMedia = result.media[0]
                 return VideoParseResult(
                     video=Video(path=v.url, thumb_url=v.thumb_url, duration=v.duration, height=v.height, width=v.width),
                     **k,
                 )
-            case PostType.IMAGE:
+            case XHSPostType.IMAGE:
                 photos = []
                 for i in result.media:
-                    if i.type == MediaType.LIVE_PHOTO:
+                    if i.type == XHSMediaType.LIVE_PHOTO:
                         photos.append(Video(i.url, thumb_url=i.thumb_url, width=i.width, height=i.height))
                     else:
                         # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"

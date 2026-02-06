@@ -43,11 +43,11 @@ class XHSAPI:
 
         match type_:
             case "video":
-                return PostType.VIDEO
+                return XHSPostType.VIDEO
             case "normal":
-                return PostType.IMAGE
+                return XHSPostType.IMAGE
             case _:
-                return PostType.UNKNOWN
+                return XHSPostType.UNKNOWN
 
     @staticmethod
     def __select_stream(stream: dict):
@@ -70,8 +70,8 @@ class XHSAPI:
             stream = media["stream"]
             stream = self.__select_stream(stream)[0]
             media_list.append(
-                Media(
-                    MediaType.VIDEO,
+                XHSMedia(
+                    XHSMediaType.VIDEO,
                     url=stream["masterUrl"],
                     duration=stream["duration"],
                     height=stream["height"],
@@ -83,16 +83,16 @@ class XHSAPI:
             for i in il:
                 if i["livePhoto"]:
                     stream = self.__select_stream(i["stream"])[0]
-                    image = Media(
-                        MediaType.LIVE_PHOTO,
+                    image = XHSMedia(
+                        XHSMediaType.LIVE_PHOTO,
                         thumb_url=i["urlDefault"],
                         url=stream["masterUrl"],
                         width=i["width"],
                         height=i["height"],
                     )
                 else:
-                    image = Media(
-                        MediaType.IMAGE,
+                    image = XHSMedia(
+                        XHSMediaType.IMAGE,
                         url=i["urlDefault"],
                         thumb_url=i["urlPre"],
                         width=i["width"],
@@ -106,21 +106,21 @@ class XHSAPI:
         return self.__parse(await self.__extract_data(html))
 
 
-class MediaType(Enum):
+class XHSMediaType(Enum):
     IMAGE = "image"
     VIDEO = "video"
     LIVE_PHOTO = "livephoto"
 
 
-class PostType(Enum):
+class XHSPostType(Enum):
     IMAGE = "image"
     VIDEO = "video"
     UNKNOWN = "unknown"
 
 
 @dataclass
-class Media:
-    type: MediaType
+class XHSMedia:
+    type: XHSMediaType
     url: str
     thumb_url: str | None = None
     width: int = 0
@@ -130,10 +130,10 @@ class Media:
 
 @dataclass
 class XHSPost:
-    type: PostType
+    type: XHSPostType
     title: str
     desc: str
-    media: list[Media] = None
+    media: list[XHSMedia] = None
 
 
 if __name__ == "__main__":
