@@ -2,48 +2,51 @@ import asyncio
 import os
 import shutil
 import time
+from abc import ABC
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Literal, TypeVar
+from typing import Literal
 
+from bs4 import BeautifulSoup
 from langchain_core.messages import HumanMessage, SystemMessage
+from markdown import markdown as md_to_html
 
-from ..config.config import DownloadConfig, SummaryConfig
+from ..config import SummaryConfig
+from ..config.config import DownloadConfig
 from ..tools import LLM, Transcriptions
 from ..utiles.download_file import download_file
 from ..utiles.utile import image_proces, progress, video_to_png
-from . import DownloadError
-from .media import Image, Media, MediaT, Video
+from .error import DownloadError
+from .media import AnyMedia, Image, LivePhoto, Video
 from .subtitles import Subtitle, Subtitles
-from .summary_result import SummaryResult
-
-T = TypeVar("T", bound="ParseResult")
+from .summary import SummaryResult
 
 
-class ParseResult:
+class ParseResult(ABC):  # noqa: B024
     """解析结果基类"""
 
     def __init__(
         self,
         title: str,
-        media: list[MediaT] | MediaT,
-        desc: str = "",
+        media: list[AnyMedia] | AnyMedia,
+        content: str = "",
         raw_url: str = None,
     ):
         """
         :param title: 标题
         :param media: 媒体下载链接
-        :param desc: 正文
+        :param content: 正文
         :param raw_url: 原始帖子链接
         """
         self.title = (title or "").strip()
         self.media = media
-        self.desc = (desc or "").strip()
+        self.content = (content or "").strip()
         self.raw_url = raw_url
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}(title={self.title or "''"}, desc={self.desc or "''"}, raw_url={self.raw_url})"
+            f"{self.__class__.__name__}(title={self.title or "''"},"
+            f" content={self.content or "''"}, raw_url={self.raw_url})"
         )
 
     async def download(
@@ -96,7 +99,7 @@ class ParseResult:
             return DownloadResult(self, path_list, op)
         else:
             if not self.media.is_url:
-                return self.media
+                return DownloadResult(self, self.media)
 
             async def _callback(current, total, *args):
                 await callback(
@@ -152,47 +155,85 @@ class ParseResult:
 
 
 class VideoParseResult(ParseResult):
+    """单个视频"""
+
     def __init__(
         self,
         title: str = "",
         video: str | Video = None,
+        content: str = "",
         raw_url: str = None,
-        desc: str = "",
     ):
         video = Video(video) if isinstance(video, str) else video
         super().__init__(
             title=title,
             media=video,
-            desc=desc,
+            content=content,
             raw_url=raw_url,
         )
 
 
 class ImageParseResult(ParseResult):
+    """单图 / 多图 / 图集 / 实况照片"""
+
     def __init__(
         self,
         title: str = "",
-        photo: list[str | Image] = None,
-        desc: str = "",
+        photo: list[str | Image | LivePhoto] = None,
+        content: str = "",
         raw_url: str = None,
     ):
-        photo = [Image(p) if isinstance(p, str) else p for p in photo]
-        super().__init__(title=title, media=photo, desc=desc, raw_url=raw_url)
+        photo = [Image(p, thumb_url=p) if isinstance(p, str) else p for p in photo]
+        super().__init__(title=title, media=photo, content=content, raw_url=raw_url)
 
 
 class MultimediaParseResult(ParseResult):
+    """多视频 / 视频 + 图片 / GIF / 实况照片"""
+
     def __init__(
         self,
         title: str = "",
-        media: list[Media] = None,
-        desc: str = "",
+        media: list[AnyMedia] = None,
+        content: str = "",
         raw_url: str = None,
     ):
-        super().__init__(title=title, media=media, desc=desc, raw_url=raw_url)
+        super().__init__(title=title, media=media, content=content, raw_url=raw_url)
 
 
-class DownloadResult[T]:
-    def __init__(self, parse_result: T, media: list[MediaT] | MediaT, save_dir: str | Path = None):
+class RichTextParseResult(ParseResult):
+    """图文混排的文章"""
+
+    def __init__(
+        self,
+        title: str = "",
+        media: list[AnyMedia] = None,
+        markdown_content: str = "",
+        raw_url: str = None,
+    ):
+        """
+
+        :param title: 标题
+        :param media: 文章中的媒体
+        :param markdown_content: markdown 格式正文
+        :param raw_url: 原始 URL
+        """
+        self.markdown_content = markdown_content
+        super().__init__(title=title, media=media, content=self.plaintext_content, raw_url=raw_url)
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(title={self.title or "''"},"
+            f" markdown_content={self.markdown_content or "''"}, raw_url={self.raw_url})"
+        )
+
+    @property
+    def plaintext_content(self) -> str:
+        """从 markdown 转换为纯文本"""
+        return "".join(BeautifulSoup(md_to_html(self.markdown_content), "lxml").find_all(string=True)).strip()
+
+
+class DownloadResult:
+    def __init__(self, parse_result: ParseResult, media: AnyMedia | list[AnyMedia], save_dir: str | Path = None):
         """
         下载结果
         :param parse_result: 解析结果
@@ -273,7 +314,7 @@ class DownloadResult[T]:
             {
                 "type": "text",
                 "text": (f"标题: {self.pr.title}" if self.pr.title else "")
-                + (f"\n正文: {self.pr.desc}" if self.pr.desc else "")
+                + (f"\n正文: {self.pr.content}" if self.pr.content else "")
                 + (f"\n视频字幕: {subtitles}" if subtitles else ""),
             }
         ]
@@ -329,3 +370,6 @@ class DownloadResult[T]:
         else:
             if self.media.exists():
                 os.remove(self.media.path)
+
+
+AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult

@@ -41,7 +41,7 @@ class YtParser(BaseParser):
         video_info = await self._parse(url)
         _d = {
             "title": video_info.title,
-            "desc": video_info.description,
+            "content": video_info.description,
             "raw_url": url,
             "dl": video_info,
         }
@@ -110,13 +110,13 @@ class YtVideoParseResult(VideoParseResult):
         self,
         title=None,
         video=None,
-        desc=None,
+        content=None,
         raw_url=None,
         dl: "YtVideoInfo" = None,
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
-        super().__init__(title=title, video=video, desc=desc, raw_url=raw_url)
+        super().__init__(title=title, video=video, content=content, raw_url=raw_url)
 
     async def download(
         self,
@@ -198,10 +198,10 @@ class YtVideoParseResult(VideoParseResult):
 
 
 class YtImageParseResult(ImageParseResult):
-    def __init__(self, title="", photo=None, desc=None, raw_url=None, dl: "YtVideoInfo" = None):
+    def __init__(self, title="", photo=None, content=None, raw_url=None, dl: "YtVideoInfo" = None):
         """dl: yt-dlp解析结果"""
+        super().__init__(title=title, photo=photo, content=content, raw_url=raw_url)
         self.dl = dl
-        super().__init__(title=title, photo=photo, desc=desc, raw_url=raw_url)
 
 
 @dataclass

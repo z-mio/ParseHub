@@ -38,7 +38,7 @@ class InstagramParser(BaseParser):
             dimensions = {}
         width, height = dimensions.get("width", 0) or 0, dimensions.get("height", 0) or 0
 
-        k = {"title": post.title, "desc": post.caption, "raw_url": url}
+        k = {"title": post.title, "content": post.caption, "raw_url": url}
         match post.typename:
             case "GraphSidecar":
                 media = [

@@ -8,8 +8,6 @@ from enum import Enum
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-from bs4 import BeautifulSoup
-from markdown import markdown
 from markdownify import MarkdownConverter
 
 V4_EP = (
@@ -138,8 +136,7 @@ class XiaoHeiHeMedia:
 class XiaoHeiHePost:
     type: XiaoHeiHePostType
     title: str
-    markdown_content: str | None = None
-    text_content: str = None
+    content: str = None
     media: list[XiaoHeiHeMedia] = None
 
 
@@ -164,8 +161,7 @@ class XiaoHeiHeAPI:
             return XiaoHeiHePost(
                 type=post_type,
                 title=title,
-                text_content=text,
-                markdown_content=text,
+                content=text,
                 media=[XiaoHeiHeMedia(type=XiaoHeiHeMediaType.VIDEO, url=video_url, thumb_url=video_thumb)],
             )
         else:
@@ -173,30 +169,24 @@ class XiaoHeiHeAPI:
             text_list = json.loads(text)
             if text_list[0]["type"] == "html":
                 html = text_list[0]["text"]
-                markdown_content = MarkdownConverter(heading_style="ATX").convert(html)
-                text_content = "".join(BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True))
+                content = XHHConverter(heading_style="ATX").convert(html)
             else:
-                text_content = text_list[0]["text"]
-                markdown_content = text_content
+                content = text_list[0]["text"]
             post_type = XiaoHeiHePostType.IMAGE if use_concept_type else XiaoHeiHePostType.ARTICLE
             images = []
             for image in text_list[1:]:
                 if image["type"] == "img":
-                    media_type = (
-                        XiaoHeiHeMediaType.GIF if image.get("text", "").endswith(".gif") else XiaoHeiHeMediaType.IMAGE
-                    )
+                    media_type = XiaoHeiHeMediaType.GIF if ".gif" in image["url"] else XiaoHeiHeMediaType.IMAGE
                     images.append(
                         XiaoHeiHeMedia(
                             type=media_type,
                             url=image["url"],
                             thumb_url=image["url"],
-                            height=image["height"],
-                            width=image["width"],
+                            height=int(image["height"]),
+                            width=int(image["width"]),
                         )
                     )
-            return XiaoHeiHePost(
-                type=post_type, title=title, text_content=text_content, markdown_content=markdown_content, media=images
-            )
+            return XiaoHeiHePost(type=post_type, title=title, content=content, media=images)
 
     @staticmethod
     def get_link_id(url: str) -> str:
@@ -469,6 +459,18 @@ class XiaoHeiHeSign:
             t.extend(e[4:])
 
         return t
+
+
+class XHHConverter(MarkdownConverter):
+    def convert_img(self, el, text, parent_tags):
+        alt = el.attrs.get("alt", None) or ""
+        src = el.attrs.get("data-original", None) or ""
+        title = el.attrs.get("title", None) or ""
+        title_part = ' "{}"'.format(title.replace('"', r"\"")) if title else ""
+        if "_inline" in parent_tags and el.parent.name not in self.options["keep_inline_images_in"]:
+            return alt
+
+        return f"![{alt}]({src}{title_part})"
 
 
 if __name__ == "__main__":

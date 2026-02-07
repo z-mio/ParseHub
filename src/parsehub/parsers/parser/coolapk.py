@@ -1,9 +1,19 @@
 from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import Union
 
 from ...config import DownloadConfig
 from ...provider_api.coolapk import Coolapk
-from ...types import DownloadResult, ImageParseResult, ParseError
+from ...types import (
+    Ani,
+    DownloadResult,
+    Image,
+    ImageParseResult,
+    MultimediaParseResult,
+    ParseError,
+    ParseResult,
+    RichTextParseResult,
+)
 from ..base.base import BaseParser
 
 
@@ -15,26 +25,38 @@ class CoolapkParser(BaseParser):
     __reserved_parameters__ = ["shareKey", "s"]
     __redirect_keywords__ = ["coolapk1s"]
 
-    async def parse(self, url: str) -> "CoolapkImageParseResult":
+    async def parse(
+        self, url: str
+    ) -> Union["CoolapkImageParseResult", "CoolapkRichTextParseResult", "CoolapkMultimediaParseResult"]:
         url = await self.get_raw_url(url)
         try:
             coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
         except Exception as e:
             raise ParseError(e) from e
+        media = [Ani(i) if ".gif" in i else Image(i) for i in coolapk.imgs]
+        if coolapk.markdown_content:
+            return CoolapkRichTextParseResult(
+                title=coolapk.title,
+                media=media,
+                markdown_content=coolapk.markdown_content,
+                raw_url=url,
+            )
+        if any(isinstance(m, Ani) for m in media):
+            return CoolapkMultimediaParseResult(
+                title=coolapk.title,
+                media=media,
+                content=coolapk.text_content,
+                raw_url=url,
+            )
         return CoolapkImageParseResult(
             title=coolapk.title,
-            photo=coolapk.imgs,
-            desc=coolapk.text_content,
+            photo=media,
+            content=coolapk.text_content,
             raw_url=url,
-            coolapk=coolapk,
         )
 
 
-class CoolapkImageParseResult(ImageParseResult):
-    def __init__(self, title: str, photo: list[str], desc: str, raw_url: str, coolapk: "Coolapk"):
-        super().__init__(title, photo, desc, raw_url)
-        self.coolapk = coolapk
-
+class CoolapkParseResult(ParseResult):
     async def download(
         self,
         path: str | Path = None,
@@ -50,4 +72,13 @@ class CoolapkImageParseResult(ImageParseResult):
         return await super().download(path, callback, callback_args, config)
 
 
-__all__ = ["CoolapkParser", "CoolapkImageParseResult"]
+class CoolapkImageParseResult(ImageParseResult, CoolapkParseResult): ...
+
+
+class CoolapkMultimediaParseResult(MultimediaParseResult, CoolapkParseResult): ...
+
+
+class CoolapkRichTextParseResult(RichTextParseResult, CoolapkParseResult): ...
+
+
+__all__ = ["CoolapkParser", "CoolapkImageParseResult", "CoolapkMultimediaParseResult", "CoolapkRichTextParseResult"]

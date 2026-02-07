@@ -18,9 +18,9 @@ class TieBaParser(BaseParser):
             raise ParseError("贴吧解析失败") from e
 
         if tb.video_url:
-            return VideoParseResult(title=tb.title, video=tb.video_url, raw_url=url, desc=tb.content)
+            return VideoParseResult(title=tb.title, video=tb.video_url, raw_url=url, content=tb.content)
         else:
-            return ImageParseResult(title=tb.title, photo=tb.img_url, raw_url=url, desc=tb.content)
+            return ImageParseResult(title=tb.title, photo=tb.img_url, raw_url=url, content=tb.content)
 
 
 __all__ = ["TieBaParser"]

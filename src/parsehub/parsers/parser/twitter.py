@@ -59,7 +59,7 @@ class TwitterParser(BaseParser):
                 case TwitterAni():
                     path = Ani(m.url, ext="mp4")
             media.append(path)
-        return MultimediaParseResult(desc=tweet.full_text, media=media, raw_url=url)
+        return MultimediaParseResult(content=tweet.full_text, media=media, raw_url=url)
 
 
 __all__ = ["TwitterParser"]

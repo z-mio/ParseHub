@@ -21,7 +21,7 @@ class ThreadsParser(BaseParser):
                         media.append(Video(path=m.url, thumb_url=m.thumb_url, width=m.width, height=m.height))
                     case ThreadsMediaType.IMAGE:
                         media.append(Image(path=m.url, thumb_url=m.url, width=m.width, height=m.height))
-        return MultimediaParseResult(desc=post.content, media=media, raw_url=url)
+        return MultimediaParseResult(content=post.content, media=media, raw_url=url)
 
 
 __all__ = ["ThreadsParser"]

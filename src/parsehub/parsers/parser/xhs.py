@@ -8,6 +8,7 @@ from ...provider_api.xhs import XHSAPI, XHSMedia, XHSMediaType, XHSPostType
 from ...types import (
     Image,
     ImageParseResult,
+    LivePhoto,
     MultimediaParseResult,
     ParseError,
     Video,
@@ -44,7 +45,7 @@ class XhsParser(BaseParser):
         result = await xhs.extract(url)
 
         desc = self.hashtag_handler(result.desc)
-        k = {"title": result.title, "desc": desc, "raw_url": raw_url}
+        k = {"title": result.title, "content": desc, "raw_url": raw_url}
         match result.type:
             case XHSPostType.VIDEO:
                 v: XHSMedia = result.media[0]
@@ -53,10 +54,10 @@ class XhsParser(BaseParser):
                     **k,
                 )
             case XHSPostType.IMAGE:
-                photos = []
+                photos: list[Image | LivePhoto] = []
                 for i in result.media:
                     if i.type == XHSMediaType.LIVE_PHOTO:
-                        photos.append(Video(i.url, thumb_url=i.thumb_url, width=i.width, height=i.height))
+                        photos.append(LivePhoto(i.thumb_url, video_path=i.url, width=i.width, height=i.height))
                     else:
                         # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"
                         ext = await self.get_ext_by_url(i.url)
@@ -64,8 +65,8 @@ class XhsParser(BaseParser):
                             ext = "jpeg"
                         photos.append(Image(i.url, ext, thumb_url=i.thumb_url, width=i.width, height=i.height))
 
-                return MultimediaParseResult(
-                    media=photos,
+                return ImageParseResult(
+                    photo=photos,
                     **k,
                 )
             case _:

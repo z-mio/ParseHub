@@ -14,7 +14,7 @@ class ZuiYouParser(BaseParser):
         url = await self.get_raw_url(url)
         zy = await ZuiYou(self.cfg.proxy).parse(url)
         return MultimediaParseResult(
-            desc=zy.content,
+            content=zy.content,
             media=[
                 Video(path=i.url, thumb_url=i.thumb_url)
                 if i.type == MediaType.VIDEO

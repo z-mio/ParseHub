@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 
 from ...config.config import GlobalConfig, ParseConfig
-from ...types import ParseError, ParseResult
+from ...types import AnyParseResult, ParseError
 from ...utiles.utile import match_url
 
 
@@ -34,7 +34,7 @@ class BaseParser(ABC):
         return bool(re.match(self.__match__, url))
 
     @abstractmethod
-    async def parse(self, url: str) -> ParseResult:
+    async def parse(self, url: str) -> AnyParseResult:
         """解析"""
         raise NotImplementedError
 

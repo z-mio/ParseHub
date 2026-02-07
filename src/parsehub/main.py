@@ -1,6 +1,6 @@
 from .config import ParseConfig
 from .parsers.base.base import BaseParser
-from .types.parse_result import ParseResult
+from .types.result import AnyParseResult
 from .utiles.utile import get_all_subclasses
 
 
@@ -22,7 +22,7 @@ class ParseHub:
         all_subclasses = get_all_subclasses(BaseParser)
         return [subclass for subclass in all_subclasses if subclass.__match__]
 
-    async def parse(self, url: str) -> ParseResult:
+    async def parse(self, url: str) -> AnyParseResult:
         """解析平台分享链接
         :param url: 分享链接
         """

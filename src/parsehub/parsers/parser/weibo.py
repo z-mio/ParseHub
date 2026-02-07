@@ -5,6 +5,7 @@ from ...types import (
     Ani,
     Image,
     ImageParseResult,
+    LivePhoto,
     MultimediaParseResult,
     Video,
     VideoParseResult,
@@ -29,7 +30,7 @@ class WeiboParser(BaseParser):
         if not data.pic_infos and data.page_info:
             if data.page_info.object_type == MediaType.VIDEO:
                 return VideoParseResult(
-                    desc=text,
+                    content=text,
                     raw_url=url,
                     video=Video(
                         data.page_info.media_info.playback.url,
@@ -46,7 +47,7 @@ class WeiboParser(BaseParser):
             or (data.mix_media_info and data.mix_media_info.items)
         )
         if not media_info:
-            return MultimediaParseResult(desc=text, raw_url=url, media=[])
+            return MultimediaParseResult(content=text, raw_url=url, media=[])
 
         for i in media_info:
             match i.type:
@@ -56,10 +57,10 @@ class WeiboParser(BaseParser):
                     )
                 case MediaType.LIVE_PHOTO:
                     media.append(
-                        Video(
-                            i.media_url,
+                        LivePhoto(
+                            i.thumb_url,
                             ext="mov",
-                            thumb_url=i.thumb_url,
+                            video_path=i.media_url,
                             width=i.width,
                             height=i.height,
                         )
@@ -68,9 +69,9 @@ class WeiboParser(BaseParser):
                     media.append(Ani(i.media_url, thumb_url=i.thumb_url))
                 case _:
                     media.append(Image(i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
-        if all(isinstance(m, Image) for m in media):
-            return ImageParseResult(desc=text, raw_url=url, photo=media)
-        return MultimediaParseResult(desc=text, raw_url=url, media=media)
+        if all((isinstance(m, Image) or isinstance(m, LivePhoto)) for m in media):
+            return ImageParseResult(content=text, raw_url=url, photo=media)
+        return MultimediaParseResult(content=text, raw_url=url, media=media)
 
     def f_text(self, text: str) -> str:
         # text = re.sub(r'<a  href="https://video.weibo.com.*?>.*的微博视频.*</a>', "", text)

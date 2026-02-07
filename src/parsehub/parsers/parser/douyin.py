@@ -8,6 +8,7 @@ from ...config import GlobalConfig
 from ...types import (
     Image,
     ImageParseResult,
+    LivePhoto,
     MultimediaParseResult,
     ParseError,
     Video,
@@ -31,10 +32,8 @@ class DouyinParser(BaseParser):
         match data.type:
             case DYType.VIDEO:
                 return await self.video_parse(url, data)
-            case DYType.IMAGE:
+            case DYType.IMAGE | DYType.MULTIMEDIA:
                 return await self.image_parse(url, data)
-            case DYType.Multimedia:
-                return await self.multimedia_parse(url, data)
 
     @staticmethod
     async def parse_api(url) -> "DYResult":
@@ -67,19 +66,11 @@ class DouyinParser(BaseParser):
             photo=result.image_list,
         )
 
-    @staticmethod
-    async def multimedia_parse(url, result: "DYResult"):
-        return MultimediaParseResult(
-            raw_url=url,
-            title=result.desc,
-            media=result.multimedia,
-        )
-
 
 class DYType(Enum):
     VIDEO = "video"
     IMAGE = "image"
-    Multimedia = "multimedia"
+    MULTIMEDIA = "multimedia"  # 实况图片 + 图片
 
 
 @dataclass
@@ -121,25 +112,25 @@ class DYResult:
             }
 
         if images := data.get("images"):
-            if images[0].get("video"):
+            if any(i.get("video") for i in images):
                 multimedia = []
                 for image in images:
                     if video := image.get("video"):
                         vpi = v_p(video)
                         multimedia.append(
-                            Video(
-                                vpi["video_url"],
-                                thumb_url=vpi["thumb_url"],
-                                width=vpi["width"],
-                                height=vpi["height"],
-                                duration=vpi["duration"],
+                            LivePhoto(
+                                vpi["thumb_url"],
+                                video_path=vpi["video_url"],
+                                width=int(vpi["width"]),
+                                height=int(vpi["height"]),
+                                duration=int(vpi["duration"]),
                             )
                         )
                     else:
                         multimedia.append(Image(image["url_list"][-1]))
 
                 return DYResult(
-                    type=DYType.Multimedia,
+                    type=DYType.MULTIMEDIA,
                     desc=desc,
                     multimedia=multimedia,
                     platform=platform,

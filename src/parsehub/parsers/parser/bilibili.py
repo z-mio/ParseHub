@@ -13,8 +13,8 @@ from dynrender_skia.Core import DynRender
 from ...config.config import DownloadConfig, GlobalConfig
 from ...provider_api.bilibili import BiliAPI
 from ...types import DownloadResult, ParseError, UploadError, Video
-from ...types.parse_result import ImageParseResult, VideoParseResult
-from ...types.summary_result import SummaryResult
+from ...types.result import ImageParseResult, VideoParseResult
+from ...types.summary import SummaryResult
 from ...utiles.img_host import ImgHost
 from ...utiles.utile import cookie_ellipsis, timestamp_to_time
 from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
@@ -135,7 +135,7 @@ class BiliParse(YtParser):
         return BiliVideoParseResult(
             title=data["View"]["title"],
             raw_url=url,
-            desc=f"P{p}: {part}" if part else "",
+            content=f"P{p}: {part}" if part else "",
             video=Video(
                 video_url,
                 thumb_url=data["View"]["pic"],

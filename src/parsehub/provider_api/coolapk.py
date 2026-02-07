@@ -20,7 +20,7 @@ class Coolapk:
         async with httpx.AsyncClient(headers={"User-Agent": GlobalConfig.ua}, proxy=proxy) as client:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "lxml")
-
+        # 酷安网页版不加载实况照片
         title_element = soup.find(class_="message-title")
         if title_element and (title := title_element.text.strip()):
             content = soup.find(class_="feed-article-message")

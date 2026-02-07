@@ -1,10 +1,7 @@
 import os
 from dataclasses import dataclass
-from typing import TypeVar
 
 from .subtitles import Subtitles
-
-MediaT = TypeVar("MediaT", bound="Media")
 
 
 @dataclass
@@ -84,4 +81,26 @@ class Ani(Media):
     thumb_url: str = None
 
 
-__all__ = ["Media", "Video", "Image", "Ani", "MediaT"]
+@dataclass
+class LivePhoto(Media):
+    """Live Photo
+
+    path: 图片本地路径或URL
+    video_path: 视频本地路径或URL
+    ext: 默认扩展名（图片）
+    thumb_url: 缩略图URL
+    """
+
+    path: str = None
+    ext: str = "jpg"
+    thumb_url: str = path
+    width: int = 0
+    height: int = 0
+    video_path: str = None
+    video_ext: str = "mp4"
+    duration: int = 3
+
+
+AnyMedia = Image | Video | Ani | LivePhoto
+
+__all__ = ["Media", "Video", "Image", "Ani", "LivePhoto", "AnyMedia"]
