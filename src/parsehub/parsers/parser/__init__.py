@@ -10,5 +10,6 @@ from .twitter import *
 from .weibo import *
 from .weixin import *
 from .xhs import *
+from .xiaoheihe import *
 from .youtube import *
 from .zuiyou import *

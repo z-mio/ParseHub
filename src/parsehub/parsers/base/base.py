@@ -27,10 +27,11 @@ class BaseParser(ABC):
             parse_config = ParseConfig()
         self.cfg = parse_config
 
-    def match(self, url: str) -> bool:
+    @classmethod
+    def match(cls, text: str) -> bool:
         """判断是否匹配该解析器"""
-        url = match_url(url)
-        return bool(re.match(self.__match__, url))
+        url = match_url(text)
+        return bool(re.match(cls.__match__, url))
 
     @abstractmethod
     async def parse(self, url: str) -> AnyParseResult:

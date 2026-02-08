@@ -58,8 +58,9 @@ class BiliParse(YtParser):
         else:
             return False
 
-    def match(self, url: str) -> bool:
-        if self._is_bvid(url):
+    @classmethod
+    def match(cls, url: str) -> bool:
+        if cls._is_bvid(url):
             return True
         else:
             return super().match(url)

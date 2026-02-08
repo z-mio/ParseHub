@@ -13,7 +13,7 @@ class ParseHub:
     def select_parser(self, url: str) -> type[BaseParser] | None:
         """选择解析器"""
         for parser in self.parsers:
-            if parser().match(url):
+            if parser.match(url):
                 return parser
         return None
 
@@ -42,10 +42,6 @@ class ParseHub:
             return await parser(parse_config=self.config).get_raw_url(url)
         raise ValueError("不支持的平台")
 
-    def list_parsers(self) -> list[type[BaseParser]]:
-        """获取支持的解析器列表"""
-        return self.parsers
-
     def get_supported_platforms(self) -> list[str]:
         """获取支持的平台列表"""
-        return [f"{parser.__platform__}: {'|'.join(parser.__supported_type__)}" for parser in self.parsers]
+        return [f"{parser.__platform__.display_name}: {'|'.join(parser.__supported_type__)}" for parser in self.parsers]
