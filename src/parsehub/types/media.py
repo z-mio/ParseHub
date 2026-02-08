@@ -62,9 +62,13 @@ class Image(Media):
 
     path: str = None
     ext: str = "jpg"
-    thumb_url: str = path
+    thumb_url: str = None
     width: int = 0
     height: int = 0
+
+    def __post_init__(self):
+        if self.thumb_url is None:
+            self.thumb_url = self.path
 
 
 @dataclass
@@ -93,12 +97,16 @@ class LivePhoto(Media):
 
     path: str = None
     ext: str = "jpg"
-    thumb_url: str = path
+    thumb_url: str = None
     width: int = 0
     height: int = 0
     video_path: str = None
     video_ext: str = "mp4"
     duration: int = 3
+
+    def __post_init__(self):
+        if self.thumb_url is None:
+            self.thumb_url = self.path
 
 
 AnyMedia = Image | Video | Ani | LivePhoto

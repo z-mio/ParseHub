@@ -72,66 +72,69 @@ class ParseResult(ABC):  # noqa: B024
         status: 进度或其他状态信息
         """
         save_dir = Path(path) if path else config.save_dir
-        if isinstance(self.media, list):
-            path_list = []
-            op = save_dir.joinpath(f"{time.time_ns()}")
-            for i, media in enumerate(self.media):
-                if not media.is_url:
-                    path_list.append(media)
-                    continue
+        media_list = self.media if isinstance(self.media, list) else [self.media]
+        is_single = not isinstance(self.media, list)
+
+        result_list = []
+        op = save_dir.joinpath(f"{time.time_ns()}")
+
+        for i, media in enumerate(media_list):
+            if media.exists():
+                result_list.append(media)
+                continue
+
+            dl_progress = None
+            dl_progress_args = ()
+            if callback and is_single:
+
+                async def _byte_callback(current, total, *args):
+                    await callback(current, total, progress(current, total, "百分比"), *args)
+
+                dl_progress = _byte_callback
+                dl_progress_args = callback_args
+
+            try:
+                f = await download_file(
+                    media.path,
+                    f"{op}/{i}.{media.ext}",
+                    proxies=config.proxy,
+                    headers=config.headers,
+                    progress=dl_progress,
+                    progress_args=dl_progress_args,
+                )
+            except Exception as e:
+                shutil.rmtree(op, ignore_errors=True)
+                raise DownloadError(f"下载失败: {e}") from e
+
+            n_m = media.__class__(**vars(media))
+            n_m.path = f
+
+            # LivePhoto 额外下载视频部分
+            if isinstance(media, LivePhoto) and media.video_path:
                 try:
-                    f = await download_file(
-                        media.path,
-                        f"{op}/{i}.{media.ext}",
+                    vf = await download_file(
+                        media.video_path,
+                        f"{op}/{i}_video.{media.video_ext}",
                         proxies=config.proxy,
                         headers=config.headers,
                     )
                 except Exception as e:
-                    shutil.rmtree(op)
-                    raise DownloadError(f"下载失败: {e}") from e
-                n_m = media.__class__(**vars(media))
-                n_m.path = f
-                path_list.append(n_m)
+                    shutil.rmtree(op, ignore_errors=True)
+                    raise DownloadError(f"LivePhoto视频下载失败: {e}") from e
+                n_m.video_path = vf
 
-                if callback:
-                    await callback(
-                        len(path_list),
-                        len(self.media),
-                        progress(len(path_list), len(self.media), "数量"),
-                        *callback_args,
-                    )
-            return DownloadResult(self, path_list, op)
-        else:
-            if not self.media.is_url:
-                return DownloadResult(self, self.media)
+            result_list.append(n_m)
 
-            async def _callback(current, total, *args):
+            if callback and not is_single:
                 await callback(
-                    current,
-                    total,
-                    progress(current, total, "百分比"),
-                    *args,
+                    len(result_list),
+                    len(media_list),
+                    progress(len(result_list), len(media_list), "数量"),
+                    *callback_args,
                 )
 
-            try:
-                r = await download_file(
-                    self.media.path,
-                    save_dir / f"{time.time_ns()}.{self.media.ext}",
-                    headers=config.headers,
-                    proxies=config.proxy,
-                    progress=_callback if callback else None,
-                    progress_args=callback_args,
-                )
-            except Exception as e:
-                raise DownloadError(f"下载失败: {e}") from e
-
-            # 小于10KB为下载失败
-            if not os.stat(r).st_size > 10 * 1024:
-                os.remove(r)
-                raise DownloadError("下载失败")
-            n_m = self.media.__class__(**vars(self.media))
-            n_m.path = r
-            return DownloadResult(self, n_m)
+        result_media = result_list[0] if is_single else result_list
+        return DownloadResult(self, result_media, op)
 
     async def summary(
         self,
