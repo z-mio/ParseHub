@@ -98,7 +98,7 @@ async def image_proces(img: str | Path):
 def to_netscape_cookie(cookie: dict, domain: str) -> str | None:
     """将字典格式 cookie 转为 Netscape 格式字符串
     :param cookie: 字典格式 cookie
-    :param domain: cookie 所属域名, 例如 ".youtube.com"
+    :param domain: cookie 所属域名, 例如 "youtube.com"
     """
     if not cookie:
         return None

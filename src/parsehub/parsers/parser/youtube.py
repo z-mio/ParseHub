@@ -2,8 +2,8 @@ import io
 from typing import Any
 
 from ...types.platform import Platform
-from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
 from ...utiles.utile import to_netscape_cookie
+from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
 
 
 class YtbParse(YtParser):
