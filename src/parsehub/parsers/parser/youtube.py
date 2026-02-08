@@ -10,7 +10,6 @@ class YtbParse(YtParser):
     __reserved_parameters__ = ["v", "list", "index"]
 
     async def parse(self, url: str) -> YtVideoParseResult | YtImageParseResult:
-        url = await self.get_raw_url(url)
         return await super().parse(url)
 
     @property

@@ -19,7 +19,6 @@ class TwitterParser(BaseParser):
     __match__ = r"^(http(s)?://)?.+(twitter|x).com/.*/status/\d+"
 
     async def parse(self, url: str) -> "MultimediaParseResult":
-        url = await self.get_raw_url(url)
         tweet = await self._parse(url)
         return await self.media_parse(url, tweet)
 

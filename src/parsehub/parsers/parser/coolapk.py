@@ -28,7 +28,6 @@ class CoolapkParser(BaseParser):
     async def parse(
         self, url: str
     ) -> Union["CoolapkImageParseResult", "CoolapkRichTextParseResult", "CoolapkMultimediaParseResult"]:
-        url = await self.get_raw_url(url)
         try:
             coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
         except Exception as e:

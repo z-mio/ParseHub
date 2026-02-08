@@ -11,7 +11,6 @@ class ZuiYouParser(BaseParser):
     __reserved_parameters__ = ["pid"]
 
     async def parse(self, url: str) -> MultimediaParseResult:
-        url = await self.get_raw_url(url)
         zy = await ZuiYou(self.cfg.proxy).parse(url)
         return MultimediaParseResult(
             content=zy.content,

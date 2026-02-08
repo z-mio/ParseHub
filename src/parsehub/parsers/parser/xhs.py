@@ -39,7 +39,6 @@ class XhsParser(BaseParser):
         return parsed_url._replace(query=new_query).geturl()
 
     async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        url = await self.get_raw_url(url)
         raw_url = await self.clear_params(url)
         xhs = XHSAPI(proxy=self.cfg.proxy)
         result = await xhs.extract(url)

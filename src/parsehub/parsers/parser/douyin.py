@@ -26,7 +26,6 @@ class DouyinParser(BaseParser):
     __reserved_parameters__ = ["modal_id"]
 
     async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        url = await self.get_raw_url(url)
         data = await self.parse_api(url)
 
         match data.type:

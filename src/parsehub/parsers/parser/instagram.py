@@ -24,8 +24,6 @@ class InstagramParser(BaseParser):
     __redirect_keywords__ = ["share"]
 
     async def parse(self, url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
-        url = await self.get_raw_url(url)
-
         shortcode = self.get_short_code(url)
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")

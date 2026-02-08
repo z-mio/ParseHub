@@ -15,7 +15,6 @@ class KuaiShouParser(BaseParser):
     __redirect_keywords__ = ["v.kuaishou", "/f/"]
 
     async def parse(self, url: str) -> VideoParseResult:
-        url = await self.get_raw_url(url)
         ks = KuaiShouAPI(self.cfg.cookie)
         try:
             result = await ks.get_video_info(url)

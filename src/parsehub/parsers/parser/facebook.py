@@ -8,7 +8,6 @@ class FacebookParse(YtParser):
     __match__ = r"^(http(s)?://)?.+facebook.com/(watch\?v|share/[v,r]|.+/videos/|reel/).*"
 
     async def parse(self, url: str) -> YtVideoParseResult:
-        url = await self.get_raw_url(url)
         return await super().parse(url)
 
 

@@ -36,7 +36,6 @@ class BiliParse(YtParser):
         "BiliVideoParseResult",
         "BiliImageParseResult",
     ]:
-        url = await self.get_raw_url(url)
         if ourl := await self.is_opus(url):
             photo = await self.gen_dynamic_img(ourl)
             return BiliImageParseResult(

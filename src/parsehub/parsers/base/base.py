@@ -34,7 +34,9 @@ class BaseParser(ABC):
 
     @abstractmethod
     async def parse(self, url: str) -> AnyParseResult:
-        """解析"""
+        """解析
+        :param url: raw_url
+        """
         raise NotImplementedError
 
     async def get_raw_url(self, url: str) -> str:

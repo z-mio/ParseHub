@@ -10,7 +10,6 @@ class WXParser(BaseParser):
     __match__ = r"^(http(s)?://)mp.weixin.qq.com/s/.*"
 
     async def parse(self, url: str) -> "WXRichTextParseResult":
-        url = await self.get_raw_url(url)
         wx = await WX.parse(url, self.cfg.proxy)
         return WXRichTextParseResult(
             title=wx.title,
