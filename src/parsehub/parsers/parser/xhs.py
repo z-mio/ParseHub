@@ -18,7 +18,7 @@ from ...types.platform import Platform
 from ..base import BaseParser
 
 
-class XhsParser(BaseParser):
+class XHSParser(BaseParser):
     __platform__ = Platform.XHS
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(xiaohongshu|xhslink).com/.+"
@@ -94,4 +94,4 @@ class XhsParser(BaseParser):
         return desc.strip()
 
 
-__all__ = ["XhsParser"]
+__all__ = ["XHSParser"]
