@@ -10,12 +10,12 @@ from ...types import (
     Video,
     VideoParseResult,
 )
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class WeiboParser(BaseParser):
-    __platform_id__ = "weibo"
-    __platform__ = "微博"
+    __platform__ = Platform.WEIBO
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)(m\.|)weibo.(com|cn)/(?!(u/)).+"
 

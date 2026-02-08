@@ -2,12 +2,12 @@ from typing import Union
 
 from ...provider_api.pipix import Pipix
 from ...types import ImageParseResult, ParseError, Video, VideoParseResult
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class PipixParser(BaseParser):
-    __platform_id__ = "pipix"
-    __platform__ = "皮皮虾"
+    __platform__ = Platform.PIPIX
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?h5.pipix.com/(s|ppx/item)/.+"
     __redirect_keywords__ = ["/s/"]

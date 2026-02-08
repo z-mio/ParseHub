@@ -6,14 +6,13 @@ import httpx
 
 from ...config.config import GlobalConfig, ParseConfig
 from ...types import AnyParseResult, ParseError
+from ...types.platform import Platform
 from ...utiles.utile import match_url
 
 
 class BaseParser(ABC):
-    __platform_id__: str = None
-    """平台ID"""
-    __platform__: str = None
-    """平台名称"""
+    __platform__: Platform = None
+    """平台"""
     __supported_type__: list[str] = []
     """支持的类型, 例如: 图文, 视频, 动态"""
     __match__: str = None

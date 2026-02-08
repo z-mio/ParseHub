@@ -1,5 +1,6 @@
 from .error import DownloadError, ParseError, SummaryError, UploadError
 from .media import Ani, AnyMedia, Image, LivePhoto, Media, Video
+from .platform import Platform
 from .result import (
     AnyParseResult,
     DownloadResult,
@@ -33,4 +34,5 @@ __all__ = [
     "RichTextParseResult",
     "AnyMedia",
     "AnyParseResult",
+    "Platform",
 ]

@@ -14,12 +14,12 @@ from ...types import (
     Video,
     VideoParseResult,
 )
+from ...types.platform import Platform
 from ..base import BaseParser
 
 
 class XhsParser(BaseParser):
-    __platform_id__ = "xhs"
-    __platform__ = "小红书"
+    __platform__ = Platform.XHS
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(xiaohongshu|xhslink).com/.+"
     __redirect_keywords__ = ["xhslink", "item"]

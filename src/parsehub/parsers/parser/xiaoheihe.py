@@ -10,11 +10,11 @@ from ...types import (
     Video,
     VideoParseResult,
 )
+from ...types.platform import Platform
 
 
 class XiaoHeiHeParser(BaseParser):
-    __platform_id__ = "xiaoheihe"
-    __platform__ = "小黑盒"
+    __platform__ = Platform.XIAOHEIHE
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+xiaoheihe.cn/(v3|app)/bbs/(app|link).+"
     __redirect_keywords__ = ["api.xiaoheihe"]

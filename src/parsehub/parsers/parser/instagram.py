@@ -12,13 +12,13 @@ from ...types import (
     Video,
     VideoParseResult,
 )
+from ...types.platform import Platform
 from ...utiles.utile import cookie_ellipsis
 from ..base.base import BaseParser
 
 
 class InstagramParser(BaseParser):
-    __platform_id__ = "instagram"
-    __platform__ = "Instagram"
+    __platform__ = Platform.INSTAGRAM
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reel|share|.*/p|.*/reel)/.*"
     __redirect_keywords__ = ["share"]

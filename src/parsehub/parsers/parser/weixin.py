@@ -1,11 +1,11 @@
 from ...provider_api.weixin import WX
 from ...types import RichTextParseResult
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class WXParser(BaseParser):
-    __platform_id__ = "weixin"
-    __platform__ = "微信公众号"
+    __platform__ = Platform.WEIXIN
     __supported_type__ = ["图文"]
     __match__ = r"^(http(s)?://)mp.weixin.qq.com/s/.*"
 

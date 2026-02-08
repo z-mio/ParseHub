@@ -1,9 +1,9 @@
+from ...types.platform import Platform
 from ..base.yt_dlp_parser import YtParser, YtVideoParseResult
 
 
 class FacebookParse(YtParser):
-    __platform_id__ = "facebook"
-    __platform__ = "Facebook"
+    __platform__ = Platform.FACEBOOK
     __supported_type__ = ["视频"]
     __match__ = r"^(http(s)?://)?.+facebook.com/(watch\?v|share/[v,r]|.+/videos/|reel/).*"
 

@@ -2,12 +2,12 @@ from typing import Union
 
 from ...provider_api.tieba import TieBa
 from ...types import ImageParseResult, ParseError, VideoParseResult
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class TieBaParser(BaseParser):
-    __platform_id__ = "tieba"
-    __platform__ = "贴吧"
+    __platform__ = Platform.TIEBA
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+tieba.baidu.com/p/\d+"
 

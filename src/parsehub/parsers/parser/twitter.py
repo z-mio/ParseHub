@@ -8,13 +8,13 @@ from ...provider_api.twitter import (
     TwitterVideo,
 )
 from ...types import Ani, Image, MultimediaParseResult, ParseError, Video
+from ...types.platform import Platform
 from ...utiles.utile import cookie_ellipsis
 from ..base.base import BaseParser
 
 
 class TwitterParser(BaseParser):
-    __platform_id__ = "twitter"
-    __platform__ = "Twitter"
+    __platform__ = Platform.TWITTER
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(twitter|x).com/.*/status/\d+"
 

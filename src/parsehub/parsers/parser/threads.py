@@ -1,11 +1,11 @@
 from ...provider_api.threads import ThreadsAPI, ThreadsMediaType
 from ...types import Image, MultimediaParseResult, Video
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class ThreadsParser(BaseParser):
-    __platform_id__ = "threads"
-    __platform__ = "Threads"
+    __platform__ = Platform.THREADS
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+threads.com/@[\w.]+/post/.*"
 

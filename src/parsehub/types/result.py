@@ -18,6 +18,7 @@ from ..utiles.download_file import download_file
 from ..utiles.utile import image_proces, progress, video_to_png
 from .error import DownloadError
 from .media import AnyMedia, Image, LivePhoto, Video
+from .platform import Platform
 from .subtitles import Subtitle, Subtitles
 from .summary import SummaryResult
 
@@ -31,21 +32,24 @@ class ParseResult(ABC):  # noqa: B024
         media: list[AnyMedia] | AnyMedia,
         content: str = "",
         raw_url: str = None,
+        platform: Platform = None,
     ):
         """
         :param title: 标题
         :param media: 媒体下载链接
         :param content: 正文
         :param raw_url: 原始帖子链接
+        :param platform: 平台
         """
         self.title = (title or "").strip()
         self.media = media
         self.content = (content or "").strip()
         self.raw_url = raw_url
+        self.platform = platform
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}(title={self.title or "''"},"
+            f"{self.__class__.__name__}(platform={self.platform}, title={self.title or "''"},"
             f" content={self.content or "''"}, raw_url={self.raw_url})"
         )
 

@@ -1,9 +1,9 @@
+from ...types.platform import Platform
 from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
 
 
 class YtbParse(YtParser):
-    __platform_id__ = "youtube"
-    __platform__ = "Youtube"
+    __platform__ = Platform.YOUTUBE
     __supported_type__ = ["视频", "音乐"]
     __match__ = r"^(http(s)?://).*youtu(be|.be)?(\.com)?/(?!(live|post))(?!@).+"
     __redirect_keywords__ = ["m.youtube.com"]

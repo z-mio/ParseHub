@@ -1,11 +1,11 @@
 from ...provider_api.zuiyou import MediaType, ZuiYou
 from ...types import Image, MultimediaParseResult, Video
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class ZuiYouParser(BaseParser):
-    __platform_id__ = "zuiyou"
-    __platform__ = "最右"
+    __platform__ = Platform.ZUIYOU
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)share.xiaochuankeji.cn/hybrid/share/post\?pid=\d+"
     __reserved_parameters__ = ["pid"]

@@ -4,12 +4,12 @@ from ...types import (
     Video,
     VideoParseResult,
 )
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class KuaiShouParser(BaseParser):
-    __platform_id__ = "kuaishou"
-    __platform__ = "快手"
+    __platform__ = Platform.KUAISHOU
     __supported_type__ = ["视频"]
     __match__ = r"^(http(s)?://)?(www|v)\.kuaishou.com/.+"
     __redirect_keywords__ = ["v.kuaishou", "/f/"]

@@ -13,6 +13,7 @@ from dynrender_skia.Core import DynRender
 from ...config.config import DownloadConfig, GlobalConfig
 from ...provider_api.bilibili import BiliAPI
 from ...types import DownloadResult, ParseError, UploadError, Video
+from ...types.platform import Platform
 from ...types.result import ImageParseResult, VideoParseResult
 from ...types.summary import SummaryResult
 from ...utiles.img_host import ImgHost
@@ -21,8 +22,7 @@ from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResul
 
 
 class BiliParse(YtParser):
-    __platform_id__ = "bilibili"
-    __platform__ = "Bilibili"
+    __platform__ = Platform.BILIBILI
     __supported_type__ = ["视频", "动态"]
     __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|\b\d{18,19}\b)|b23.tv|bili2233.cn).*"
     __reserved_parameters__ = ["p"]

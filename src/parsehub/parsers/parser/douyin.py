@@ -14,12 +14,12 @@ from ...types import (
     Video,
     VideoParseResult,
 )
+from ...types.platform import Platform
 from ..base.base import BaseParser
 
 
 class DouyinParser(BaseParser):
-    __platform_id__ = "douyin"
-    __platform__ = "抖音|TikTok"
+    __platform__ = Platform.DOUYIN
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+douyin.com/(?!(share)).+|^(http(s)?://)?.+tiktok.com/.+"
     __redirect_keywords__ = ["v.douyin", "vt.tiktok"]
