@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import importlib
-import inspect
 import io
 import pkgutil
 import re
@@ -15,20 +14,6 @@ from PIL import Image
 from urlextract import URLExtract
 
 from .. import parsers
-
-
-def re_match(text: str, pattern: str) -> bool:
-    return bool(re.match(pattern, text))
-
-
-def is_method_overridden(method_name, base_class, derived_class):
-    base_method = getattr(base_class, method_name, None)
-    derived_method = getattr(derived_class, method_name, None)
-
-    if base_method is None or derived_method is None:
-        return False
-
-    return base_method != derived_method and inspect.isfunction(base_method) and inspect.isfunction(derived_method)
 
 
 def get_all_subclasses(cls):
@@ -108,3 +93,18 @@ async def image_proces(img: str | Path):
     if ext in [".png", ".jpeg", ".gif", ".webp", ".jpg"]:
         return await img2base64(img)
     return base64.b64encode((await asyncio.to_thread(img2webp, img)).read()).decode("utf-8")
+
+
+def to_netscape_cookie(cookie: dict, domain: str) -> str | None:
+    """将字典格式 cookie 转为 Netscape 格式字符串
+    :param cookie: 字典格式 cookie
+    :param domain: cookie 所属域名, 例如 ".youtube.com"
+    """
+    if not cookie:
+        return None
+    if not domain.startswith("."):
+        domain = f".{domain}"
+    lines = ["# Netscape HTTP Cookie File"]
+    for name, value in cookie.items():
+        lines.append(f"{domain}\tTRUE\t/\tFALSE\t0\t{name}\t{value}")
+    return "\n".join(lines) + "\n"

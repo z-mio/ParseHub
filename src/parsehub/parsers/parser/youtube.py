@@ -1,5 +1,9 @@
+import io
+from typing import Any
+
 from ...types.platform import Platform
 from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
+from ...utiles.utile import to_netscape_cookie
 
 
 class YtbParse(YtParser):
@@ -14,12 +18,14 @@ class YtbParse(YtParser):
 
     @property
     def params(self):
-        sub = {
+        sub: dict[str, Any] = {
             "writesubtitles": True,  # 下载字幕
             "writeautomaticsub": True,  # 下载自动生成的字幕
             "subtitlesformat": "ttml",  # 字幕格式
             # "subtitleslangs": ["en", "ja", "zh-CN"],  # 字幕语言
         }
+        if self.cfg.cookie:
+            sub["cookiefile"] = io.StringIO(to_netscape_cookie(self.cfg.cookie, "youtube.com"))
         p = sub | super().params
         return p
 
