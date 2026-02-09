@@ -126,8 +126,8 @@ class YtVideoParseResult(VideoParseResult):
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         """下载视频"""
-        if not self.media.is_url:
-            return self.media
+        if self.media.exists():
+            return DownloadResult(self, self.media, Path(self.media.path).parent)
 
         # 创建保存目录
         dir_ = (config.save_dir if path is None else Path(path)).joinpath(f"{time.time_ns()}")
