@@ -31,7 +31,7 @@ class DouyinParser(BaseParser):
         match data.type:
             case DYType.VIDEO:
                 return await self.video_parse(url, data)
-            case DYType.IMAGE | DYType.MULTIMEDIA:
+            case DYType.IMAGE:
                 return await self.image_parse(url, data)
 
     @staticmethod
@@ -68,8 +68,7 @@ class DouyinParser(BaseParser):
 
 class DYType(Enum):
     VIDEO = "video"
-    IMAGE = "image"
-    MULTIMEDIA = "multimedia"  # 实况图片 + 图片
+    IMAGE = "image"  # 实况图片 + 图片
 
 
 @dataclass
@@ -78,8 +77,7 @@ class DYResult:
     platform: str
     video: Video = None
     desc: str = ""
-    image_list: list[Image] = None
-    multimedia: list[Video | Image] = None
+    image_list: list[Image | LivePhoto] = None
 
     @staticmethod
     def parse(url: str, json_dict: dict):
@@ -112,26 +110,26 @@ class DYResult:
 
         if images := data.get("images"):
             if any(i.get("video") for i in images):
-                multimedia = []
+                image_list = []
                 for image in images:
                     if video := image.get("video"):
                         vpi = v_p(video)
-                        multimedia.append(
+                        image_list.append(
                             LivePhoto(
                                 vpi["thumb_url"],
                                 video_path=vpi["video_url"],
                                 width=int(vpi["width"]),
                                 height=int(vpi["height"]),
-                                duration=int(vpi["duration"]),
+                                duration=int(vpi["duration"]) or 3,
                             )
                         )
                     else:
-                        multimedia.append(Image(image["url_list"][-1]))
+                        image_list.append(Image(image["url_list"][-1]))
 
                 return DYResult(
-                    type=DYType.MULTIMEDIA,
+                    type=DYType.IMAGE,
                     desc=desc,
-                    multimedia=multimedia,
+                    image_list=image_list,
                     platform=platform,
                 )
             else:
