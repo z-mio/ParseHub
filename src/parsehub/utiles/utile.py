@@ -6,6 +6,7 @@ import pkgutil
 import re
 from pathlib import Path
 from typing import Literal
+from urllib.parse import parse_qs, urlparse
 
 import aiofiles
 import cv2
@@ -108,3 +109,20 @@ def to_netscape_cookie(cookie: dict, domain: str) -> str | None:
     for name, value in cookie.items():
         lines.append(f"{domain}\tTRUE\t/\tFALSE\t0\t{name}\t{value}")
     return "\n".join(lines) + "\n"
+
+
+def clear_params(url: str, param: str | list[str]) -> str:
+    """
+    删除链接指定参数
+    :param url: 链接
+    :param param: 参数
+    :return:
+    """
+    params = param if isinstance(param, list) else [param]
+    parsed_url = urlparse(url)
+    query_params = parse_qs(parsed_url.query)
+    for i in params.copy():
+        if i in query_params:
+            del query_params[i]
+    new_query = "&".join([f"{k}={v[0]}" for k, v in query_params.items()])
+    return parsed_url._replace(query=new_query).geturl()

@@ -15,6 +15,7 @@ from ...types import (
     RichTextParseResult,
 )
 from ...types.platform import Platform
+from ...utiles.utile import clear_params
 from ..base.base import BaseParser
 
 
@@ -28,6 +29,7 @@ class CoolapkParser(BaseParser):
     async def parse(
         self, url: str
     ) -> Union["CoolapkImageParseResult", "CoolapkRichTextParseResult", "CoolapkMultimediaParseResult"]:
+        raw_url = clear_params(url, ["s", "shareKey"])
         try:
             coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
         except Exception as e:
@@ -38,20 +40,20 @@ class CoolapkParser(BaseParser):
                 title=coolapk.title,
                 media=media,
                 markdown_content=coolapk.markdown_content,
-                raw_url=url,
+                raw_url=raw_url,
             )
         if any(isinstance(m, Ani) for m in media):
             return CoolapkMultimediaParseResult(
                 title=coolapk.title,
                 media=media,
                 content=coolapk.text_content,
-                raw_url=url,
+                raw_url=raw_url,
             )
         return CoolapkImageParseResult(
             title=coolapk.title,
             photo=media,
             content=coolapk.text_content,
-            raw_url=url,
+            raw_url=raw_url,
         )
 
 

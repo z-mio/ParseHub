@@ -1,6 +1,5 @@
 import re
 from typing import Union
-from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -15,6 +14,7 @@ from ...types import (
     VideoParseResult,
 )
 from ...types.platform import Platform
+from ...utiles.utile import clear_params
 from ..base import BaseParser
 
 
@@ -25,21 +25,8 @@ class XHSParser(BaseParser):
     __redirect_keywords__ = ["xhslink", "item"]
     __reserved_parameters__ = ["xsec_token"]
 
-    @staticmethod
-    async def clear_params(url: str) -> str:
-        """
-        清理 xsec_token 参数, 清理后只能用 app 访问该帖子
-        :param url:
-        :return:
-        """
-        parsed_url = urlparse(url)
-        query_params = parse_qs(parsed_url.query)
-        del query_params["xsec_token"]
-        new_query = "&".join([f"{k}={v[0]}" for k, v in query_params.items()])
-        return parsed_url._replace(query=new_query).geturl()
-
     async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        raw_url = await self.clear_params(url)
+        raw_url = clear_params(url, "xsec_token")
         xhs = XHSAPI(proxy=self.cfg.proxy)
         result = await xhs.extract(url)
 
