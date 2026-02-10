@@ -22,9 +22,8 @@ from ..base.base import BaseParser
 class CoolapkParser(BaseParser):
     __platform__ = Platform.COOLAPK
     __supported_type__ = ["图文"]
-    __match__ = r"^(http(s)?://)www.(coolapk|coolapk1s).com/(feed|picture)/.*"
+    __match__ = r"^(http(s)?://)www.coolapk.com/(feed|picture)/.*"
     __reserved_parameters__ = ["shareKey", "s"]
-    __redirect_keywords__ = ["coolapk1s"]
 
     async def parse(
         self, url: str
@@ -67,7 +66,8 @@ class CoolapkParseResult(ParseResult):
     ) -> DownloadResult:
         headers = config.headers or {}
         headers["Accept"] = (
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,"
+            "*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
         )
         config.headers = headers
         return await super().download(path, callback, callback_args, config)
