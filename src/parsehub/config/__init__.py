@@ -1,3 +1,3 @@
-from .config import DownloadConfig, GlobalConfig, ParseConfig
+from .config import GlobalConfig, ParseConfig
 
-__all__ = ["DownloadConfig", "GlobalConfig", "ParseConfig"]
+__all__ = ["GlobalConfig", "ParseConfig"]

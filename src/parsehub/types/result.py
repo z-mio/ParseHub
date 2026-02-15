@@ -7,7 +7,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from markdown import markdown as md_to_html
 
-from ..config import DownloadConfig, GlobalConfig
+from ..config import GlobalConfig
 from ..errors import DownloadError
 from ..utils.downloader import download
 from ..utils.util import progress
@@ -46,25 +46,17 @@ class ParseResult(ABC):  # noqa: B024
             f" content={self.content or "''"}, raw_url={self.raw_url})"
         )
 
-    async def download(
+    async def _download(
         self,
-        path: str | Path = None,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
-        callback_args: tuple = (),
-        config: DownloadConfig = DownloadConfig(),
+        *,
+        save_dir: str | Path,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
+        callback_args: tuple,
+        proxy: str | None = None,
+        headers: dict = None,
     ) -> "DownloadResult":
-        """
-        :param path: 保存路径
-        :param callback: 下载进度回调函数
-        :param callback_args: 下载进度回调函数参数
-        :param config: 下载配置
-        :return: DownloadResult
+        save_dir = Path(save_dir) if save_dir else GlobalConfig.default_save_dir
 
-        .. note::
-        下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
-        status: 进度或其他状态信息
-        """
-        save_dir = Path(path) if path else GlobalConfig.default_save_dir
         media_list = self.media if isinstance(self.media, list) else [self.media]
         is_single = not isinstance(self.media, list)
 
@@ -86,8 +78,8 @@ class ParseResult(ABC):  # noqa: B024
                 f = await download(
                     media.url,
                     f"{output_dir}/{i}.{media.ext}",
-                    headers=config.headers,
-                    proxies=config.proxy,
+                    headers=headers,
+                    proxies=proxy,
                     progress=dl_progress,
                     progress_args=dl_progress_args,
                 )
@@ -111,8 +103,8 @@ class ParseResult(ABC):  # noqa: B024
                     vf = await download(
                         media.video_url,
                         f"{output_dir}/{i}_video.{media.video_ext}",
-                        headers=config.headers,
-                        proxies=config.proxy,
+                        headers=headers,
+                        proxies=proxy,
                     )
                 except Exception as e:
                     shutil.rmtree(output_dir, ignore_errors=True)
@@ -131,6 +123,26 @@ class ParseResult(ABC):  # noqa: B024
 
         result_media = result_list[0] if is_single else result_list
         return DownloadResult(result_media, output_dir)
+
+    async def download(
+        self,
+        path: str | Path = None,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
+        callback_args: tuple = (),
+        proxy: str | None = None,
+    ) -> "DownloadResult":
+        """
+        :param path: 保存路径
+        :param callback: 下载进度回调函数
+        :param callback_args: 下载进度回调函数参数
+        :param proxy: 代理
+        :return: DownloadResult
+
+        .. note::
+        下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
+        status: 进度或其他状态信息
+        """
+        return await self._download(save_dir=path, callback=callback, callback_args=callback_args, proxy=proxy)
 
 
 class VideoParseResult(ParseResult):

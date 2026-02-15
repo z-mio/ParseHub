@@ -2,7 +2,6 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Union
 
-from ...config import DownloadConfig
 from ...provider_api.coolapk import Coolapk
 from ...types import (
     AniRef,
@@ -62,15 +61,17 @@ class CoolapkParseResult(ParseResult):
         path: str | Path = None,
         callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
         callback_args: tuple = (),
-        config: DownloadConfig = DownloadConfig(),
+        proxy: str | None = None,
     ) -> DownloadResult:
-        headers = config.headers or {}
-        headers["Accept"] = (
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,"
-            "*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+        headers = {
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,"
+                "*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+            )
+        }
+        return await super()._download(
+            save_dir=path, headers=headers, callback=callback, callback_args=callback_args, proxy=proxy
         )
-        config.headers = headers
-        return await super().download(path, callback, callback_args, config)
 
 
 class CoolapkImageParseResult(ImageParseResult, CoolapkParseResult): ...

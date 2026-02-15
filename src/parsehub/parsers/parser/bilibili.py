@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from ...config.config import DownloadConfig, GlobalConfig
+from ...config.config import GlobalConfig
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
 from ...types import DownloadResult, ImageRef, LivePhotoRef, ParseError, VideoRef
 from ...types.platform import Platform
@@ -22,7 +22,7 @@ class BiliParse(YtParser):
     __reserved_parameters__ = ["p"]
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
-    async def parse(self, url: str) -> Union["BiliYtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
+    async def parse(self, url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
         if ourl := await self.is_opus(url):
             dynamic = await self.get_dynamic_info(ourl)
             photos = []
@@ -130,20 +130,17 @@ class BiliParse(YtParser):
             ),
         )
 
-    async def ytp_parse(self, url) -> Union["BiliYtVideoParseResult"]:
+    async def ytp_parse(self, url) -> Union["YtVideoParseResult"]:
         result = await super().parse(url)
         _d = {
             "title": result.title,
             "raw_url": result.raw_url,
             "dl": result.dl,
         }
-        if isinstance(result, YtVideoParseResult):
-            return BiliYtVideoParseResult(
-                **_d,
-                video=result.media,
-            )
-        else:
-            raise ValueError(f"Unsupported result type: {type(result)}")
+        return YtVideoParseResult(
+            **_d,
+            video=result.media,
+        )
 
     @staticmethod
     def change_source(url: str):
@@ -160,28 +157,15 @@ class BiliVideoParseResult(VideoParseResult):
         path: str | Path = None,
         callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
         callback_args: tuple = (),
-        config: DownloadConfig = DownloadConfig(),
+        proxy: str | None = None,
     ) -> "DownloadResult":
-        headers = config.headers or {}
-        headers["referer"] = "https://www.bilibili.com"
-        headers["User-Agent"] = GlobalConfig.ua
-        config.headers = headers
-        return await super().download(path, callback, callback_args, config)
-
-
-class BiliYtVideoParseResult(YtVideoParseResult):
-    async def download(
-        self,
-        path: str | Path = None,
-        callback: Callable = None,
-        callback_args: tuple = (),
-        config: DownloadConfig = DownloadConfig(),
-    ) -> DownloadResult:
-        return await super().download(path, callback, callback_args, config)
+        headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
+        return await super()._download(
+            save_dir=path, headers=headers, callback=callback, callback_args=callback_args, proxy=proxy
+        )
 
 
 __all__ = [
     "BiliParse",
-    "BiliYtVideoParseResult",
     "BiliVideoParseResult",
 ]

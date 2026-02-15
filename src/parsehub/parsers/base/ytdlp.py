@@ -8,7 +8,7 @@ from typing import Union
 
 from yt_dlp import YoutubeDL
 
-from ...config.config import DownloadConfig, GlobalConfig
+from ...config.config import GlobalConfig
 from ...types import (
     DownloadError,
     DownloadResult,
@@ -122,7 +122,7 @@ class YtVideoParseResult(VideoParseResult):
         path: str | Path = None,
         callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
         callback_args: tuple = (),
-        config: DownloadConfig = DownloadConfig(),
+        proxy: str | None = None,
     ) -> DownloadResult:
         """下载视频"""
         output_dir = (GlobalConfig.default_save_dir if path is None else Path(path)).joinpath(f"{time.time_ns()}")
@@ -130,8 +130,8 @@ class YtVideoParseResult(VideoParseResult):
 
         # 输出模板
         paramss = self.dl.paramss.copy()
-        if config.proxy:
-            paramss["proxy"] = config.proxy
+        if proxy:
+            paramss["proxy"] = proxy
 
         paramss["outtmpl"] = f"{output_dir.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
@@ -144,7 +144,7 @@ class YtVideoParseResult(VideoParseResult):
         if callback:
             await callback(0, 0, text, *callback_args)
 
-        await self._download(paramss)
+        await self.__download(paramss)
 
         v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
         if not v:
@@ -160,7 +160,7 @@ class YtVideoParseResult(VideoParseResult):
             output_dir,
         )
 
-    async def _download(self, paramss: dict, count: int = 0) -> None:
+    async def __download(self, paramss: dict, count: int = 0) -> None:
         if count > 2:
             raise DownloadError("下载失败")
 
@@ -182,7 +182,7 @@ class YtVideoParseResult(VideoParseResult):
                 )
             ):
                 paramss.pop("writeautomaticsub")
-                await self._download(paramss, count + 1)
+                await self.__download(paramss, count + 1)
 
         except Exception as e:
             raise DownloadError(f"下载失败: {str(e)}") from e

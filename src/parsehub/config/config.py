@@ -24,11 +24,6 @@ class _GlobalConfig(BaseModel):
 GlobalConfig = _GlobalConfig()
 
 
-class DownloadConfig(BaseModel):
-    headers: dict | None = None
-    proxy: str | None = None
-
-
 class ParseConfig(BaseModel):
     proxy: str | None = None
     cookie: dict | None = None
