@@ -1,5 +1,5 @@
-from ...provider_api.threads import ThreadsAPI, ThreadsMediaType
-from ...types import Image, MultimediaParseResult, Video
+from ...provider_api.threads import ThreadsAPI, ThreadsMedia, ThreadsMediaType
+from ...types import ImageRef, MultimediaParseResult, VideoRef
 from ...types.platform import Platform
 from ..base.base import BaseParser
 
@@ -13,13 +13,13 @@ class ThreadsParser(BaseParser):
         post = await ThreadsAPI(proxy=self.cfg.proxy).parse(url)
         media = []
         if post.media:
-            pm = post.media if isinstance(post.media, list) else [post.media]
+            pm: list[ThreadsMedia] = post.media if isinstance(post.media, list) else [post.media]
             for m in pm:
                 match m.type:
                     case ThreadsMediaType.VIDEO:
-                        media.append(Video(path=m.url, thumb_url=m.thumb_url, width=m.width, height=m.height))
+                        media.append(VideoRef(url=m.url, thumb_url=m.thumb_url, width=m.width, height=m.height))
                     case ThreadsMediaType.IMAGE:
-                        media.append(Image(path=m.url, thumb_url=m.url, width=m.width, height=m.height))
+                        media.append(ImageRef(url=m.url, thumb_url=m.url, width=m.width, height=m.height))
         return MultimediaParseResult(content=post.content, media=media, raw_url=url)
 
 

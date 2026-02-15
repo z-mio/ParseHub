@@ -1,8 +1,8 @@
 from ...provider_api.kuaishou import KuaiShouAPI
 from ...types import (
     ParseError,
-    Video,
     VideoParseResult,
+    VideoRef,
 )
 from ...types.platform import Platform
 from ..base.base import BaseParser
@@ -23,8 +23,8 @@ class KuaiShouParser(BaseParser):
         else:
             return VideoParseResult(
                 title=result.title,
-                video=Video(
-                    path=result.video_url,
+                video=VideoRef(
+                    url=result.video_url,
                     thumb_url=result.thumb_url,
                     duration=result.duration,
                     height=result.height,

@@ -6,13 +6,13 @@ import httpx
 
 from ...config import GlobalConfig
 from ...types import (
-    Image,
     ImageParseResult,
-    LivePhoto,
+    ImageRef,
+    LivePhotoRef,
     MultimediaParseResult,
     ParseError,
-    Video,
     VideoParseResult,
+    VideoRef,
 )
 from ...types.platform import Platform
 from ..base.base import BaseParser
@@ -75,9 +75,9 @@ class DYType(Enum):
 class DYResult:
     type: DYType
     platform: str
-    video: Video = None
+    video: VideoRef = None
     desc: str = ""
-    image_list: list[Image | LivePhoto] = None
+    image_list: list[ImageRef | LivePhotoRef] = None
 
     @staticmethod
     def parse(url: str, json_dict: dict):
@@ -115,16 +115,16 @@ class DYResult:
                     if video := image.get("video"):
                         vpi = v_p(video)
                         image_list.append(
-                            LivePhoto(
-                                vpi["thumb_url"],
-                                video_path=vpi["video_url"],
+                            LivePhotoRef(
+                                url=vpi["thumb_url"],
+                                video_url=vpi["video_url"],
                                 width=int(vpi["width"]),
                                 height=int(vpi["height"]),
                                 duration=int(vpi["duration"]) or 3,
                             )
                         )
                     else:
-                        image_list.append(Image(image["url_list"][-1]))
+                        image_list.append(ImageRef(url=image["url_list"][-1]))
 
                 return DYResult(
                     type=DYType.IMAGE,
@@ -133,7 +133,7 @@ class DYResult:
                     platform=platform,
                 )
             else:
-                image_list = [Image(image["url_list"][-1]) for image in images]
+                image_list = [ImageRef(url=image["url_list"][-1]) for image in images]
                 return DYResult(
                     type=DYType.IMAGE,
                     image_list=image_list,
@@ -142,7 +142,7 @@ class DYResult:
                 )
         elif image_post_info := data.get("image_post_info"):
             images = image_post_info.get("images")
-            image_list = [Image(image["display_image"]["url_list"][-1]) for image in images]
+            image_list = [ImageRef(url=image["display_image"]["url_list"][-1]) for image in images]
             return DYResult(
                 type=DYType.IMAGE,
                 image_list=image_list,
@@ -153,8 +153,8 @@ class DYResult:
             vpi = v_p(data.get("video"))
             return DYResult(
                 type=DYType.VIDEO,
-                video=Video(
-                    vpi["video_url"],
+                video=VideoRef(
+                    url=vpi["video_url"],
                     thumb_url=vpi["thumb_url"],
                     width=vpi["width"],
                     height=vpi["height"],

@@ -2,13 +2,13 @@ import re
 
 from ...provider_api.weibo import MediaType, WeiboAPI
 from ...types import (
-    Ani,
-    Image,
+    AniRef,
     ImageParseResult,
-    LivePhoto,
+    ImageRef,
+    LivePhotoRef,
     MultimediaParseResult,
-    Video,
     VideoParseResult,
+    VideoRef,
 )
 from ...types.platform import Platform
 from ..base.base import BaseParser
@@ -30,8 +30,8 @@ class WeiboParser(BaseParser):
                 return VideoParseResult(
                     content=text,
                     raw_url=url,
-                    video=Video(
-                        data.page_info.media_info.playback.url,
+                    video=VideoRef(
+                        url=data.page_info.media_info.playback.url,
                         thumb_url=data.page_info.page_pic,
                         width=data.page_info.media_info.playback.width,
                         height=data.page_info.media_info.playback.height,
@@ -51,23 +51,25 @@ class WeiboParser(BaseParser):
             match i.type:
                 case MediaType.VIDEO:
                     media.append(
-                        Video(i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height, duration=i.duration)
+                        VideoRef(
+                            url=i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height, duration=i.duration
+                        )
                     )
                 case MediaType.LIVE_PHOTO:
                     media.append(
-                        LivePhoto(
-                            i.thumb_url,
+                        LivePhotoRef(
+                            url=i.thumb_url,
                             ext="mov",
-                            video_path=i.media_url,
+                            video_url=i.media_url,
                             width=i.width,
                             height=i.height,
                         )
                     )
                 case MediaType.GIF:
-                    media.append(Ani(i.media_url, thumb_url=i.thumb_url))
+                    media.append(AniRef(url=i.media_url, thumb_url=i.thumb_url))
                 case _:
-                    media.append(Image(i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
-        if all((isinstance(m, Image) or isinstance(m, LivePhoto)) for m in media):
+                    media.append(ImageRef(url=i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
+        if all((isinstance(m, ImageRef) or isinstance(m, LivePhotoRef)) for m in media):
             return ImageParseResult(content=text, raw_url=url, photo=media)
         return MultimediaParseResult(content=text, raw_url=url, media=media)
 

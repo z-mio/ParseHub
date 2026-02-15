@@ -7,7 +7,7 @@ import httpx
 from ...config.config import GlobalConfig, ParseConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
-from ...utiles.utile import match_url
+from ...utils.util import match_url
 
 
 class BaseParser(ABC):

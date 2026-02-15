@@ -5,20 +5,14 @@ from typing import Union
 from urllib.parse import parse_qs, urlparse
 
 import httpx
-import skia
-from aiofiles.tempfile import TemporaryDirectory
-from dynamicadaptor.DynamicConversion import formate_message
-from dynrender_skia.Core import DynRender
 
 from ...config.config import DownloadConfig, GlobalConfig
-from ...provider_api.bilibili import BiliAPI
-from ...types import DownloadResult, ParseError, UploadError, Video
+from ...provider_api.bilibili import BiliAPI, BiliDynamic
+from ...types import DownloadResult, ImageRef, LivePhotoRef, ParseError, VideoRef
 from ...types.platform import Platform
 from ...types.result import ImageParseResult, VideoParseResult
-from ...types.summary import SummaryResult
-from ...utiles.img_host import ImgHost
-from ...utiles.utile import cookie_ellipsis, timestamp_to_time
-from ..base.yt_dlp_parser import YtImageParseResult, YtParser, YtVideoParseResult
+from ...utils.util import cookie_ellipsis
+from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
 class BiliParse(YtParser):
@@ -28,18 +22,20 @@ class BiliParse(YtParser):
     __reserved_parameters__ = ["p"]
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
-    async def parse(
-        self, url: str
-    ) -> Union[
-        "BiliYtVideoParseResult",
-        "BiliImageParseResult",
-        "BiliVideoParseResult",
-        "BiliImageParseResult",
-    ]:
+    async def parse(self, url: str) -> Union["BiliYtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
         if ourl := await self.is_opus(url):
-            photo = await self.gen_dynamic_img(ourl)
-            return BiliImageParseResult(
-                photo=[photo],
+            dynamic = await self.get_dynamic_info(ourl)
+            photos = []
+            if dynamic.images:
+                for i in dynamic.images:
+                    if i.live_url:
+                        photos.append(LivePhotoRef(url=i.url, video_url=i.live_url, width=i.width, height=i.height))
+                    else:
+                        photos.append(ImageRef(url=i.url, width=i.width, height=i.height))
+            return ImageParseResult(
+                title=dynamic.title,
+                content=dynamic.content,
+                photo=photos,
                 raw_url=ourl,
             )
         else:
@@ -82,27 +78,16 @@ class BiliParse(YtParser):
         except AttributeError:
             ...
 
-    async def gen_dynamic_img(self, url: str) -> str:
+    async def get_dynamic_info(self, url: str) -> BiliDynamic:
         async with BiliAPI(proxy=self.cfg.proxy) as bili:
             try:
                 dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
             except Exception as e:
                 if "风控" in str(e):
                     raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cfg.cookie)}") from e
+        return dynamic_info
 
-        message_formate = await formate_message("web", dynamic_info["item"])
-        img = await DynRender().run(message_formate)
-        img = skia.Image.fromarray(array=img, colorType=skia.ColorType.kRGBA_8888_ColorType)
-        async with TemporaryDirectory() as temp_dir:
-            f = Path(temp_dir) / "temp.png"
-            img.save(str(f))
-            try:
-                async with ImgHost() as ih:
-                    return await ih.zioooo(f)
-            except Exception as e:
-                raise UploadError("动态上传失败") from e
-
-    async def bili_api_parse(self, url) -> Union["BiliVideoParseResult", "BiliImageParseResult"]:
+    async def bili_api_parse(self, url) -> Union["BiliVideoParseResult", "ImageParseResult"]:
         async with BiliAPI(proxy=self.cfg.proxy) as bili:
             video_info = await bili.get_video_info(url)
 
@@ -136,8 +121,8 @@ class BiliParse(YtParser):
             title=data["View"]["title"],
             raw_url=url,
             content=f"P{p}: {part}" if part else "",
-            video=Video(
-                video_url,
+            video=VideoRef(
+                url=video_url,
                 thumb_url=data["View"]["pic"],
                 duration=duration,
                 width=dimension.get("width", 0),
@@ -145,7 +130,7 @@ class BiliParse(YtParser):
             ),
         )
 
-    async def ytp_parse(self, url) -> Union["BiliYtVideoParseResult", "BiliYtImageParseResult"]:
+    async def ytp_parse(self, url) -> Union["BiliYtVideoParseResult"]:
         result = await super().parse(url)
         _d = {
             "title": result.title,
@@ -157,11 +142,8 @@ class BiliParse(YtParser):
                 **_d,
                 video=result.media,
             )
-        elif isinstance(result, YtImageParseResult):
-            return BiliYtImageParseResult(
-                **_d,
-                photo=result.media,
-            )
+        else:
+            raise ValueError(f"Unsupported result type: {type(result)}")
 
     @staticmethod
     def change_source(url: str):
@@ -170,31 +152,6 @@ class BiliParse(YtParser):
             "upos-sz-upcdnbda2.bilivideo.com",
             url,
         )
-
-
-class BiliDownloadResult(DownloadResult):
-    async def summary(self, *args, **kwargs) -> SummaryResult:
-        return await super().summary()
-        # b站的AI总结现在需要登录, 暂时不再使用
-        bvid = self.pr.dl.raw_video_info["webpage_url_basename"]
-        r = await BiliAPI().ai_summary(bvid)
-
-        if not r.data or r.data.code == -1:
-            return await super().summary()
-
-        model_result = r.data.model_result
-        text = [f"**{model_result.summary}**\n"]
-
-        if not model_result.outline:
-            return await super().summary()
-
-        for i in model_result.outline:
-            c = "\n".join([f"__{timestamp_to_time(cc.timestamp)}__ {cc.content}" for cc in i.part_outline])
-            t = f"\n● **{i.title}**\n{c}"
-            text.append(t)
-
-        content = "\n".join(text)
-        return SummaryResult(content)
 
 
 class BiliVideoParseResult(VideoParseResult):
@@ -209,11 +166,7 @@ class BiliVideoParseResult(VideoParseResult):
         headers["referer"] = "https://www.bilibili.com"
         headers["User-Agent"] = GlobalConfig.ua
         config.headers = headers
-        r = await super().download(path, callback, callback_args, config)
-        return BiliDownloadResult(r.pr, r.media, r.save_dir)
-
-
-class BiliImageParseResult(ImageParseResult): ...
+        return await super().download(path, callback, callback_args, config)
 
 
 class BiliYtVideoParseResult(YtVideoParseResult):
@@ -224,18 +177,11 @@ class BiliYtVideoParseResult(YtVideoParseResult):
         callback_args: tuple = (),
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
-        r = await super().download(path, callback, callback_args, config)
-        return BiliDownloadResult(r.pr, r.media, r.save_dir)
-
-
-class BiliYtImageParseResult(YtImageParseResult): ...
+        return await super().download(path, callback, callback_args, config)
 
 
 __all__ = [
     "BiliParse",
-    "BiliDownloadResult",
     "BiliYtVideoParseResult",
-    "BiliYtImageParseResult",
     "BiliVideoParseResult",
-    "BiliImageParseResult",
 ]

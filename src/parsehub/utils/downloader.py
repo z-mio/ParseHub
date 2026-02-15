@@ -9,7 +9,7 @@ import aiofiles
 import httpx
 
 
-async def download_file(
+async def download(
     url: str,
     save_path: str | Path = None,
     *,

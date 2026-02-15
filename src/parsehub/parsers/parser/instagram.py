@@ -5,15 +5,15 @@ from instaloader import BadResponseException
 
 from ...provider_api.instagram import MyInstaloaderContext, MyPost
 from ...types import (
-    Image,
     ImageParseResult,
+    ImageRef,
     MultimediaParseResult,
     ParseError,
-    Video,
     VideoParseResult,
+    VideoRef,
 )
 from ...types.platform import Platform
-from ...utiles.utile import cookie_ellipsis
+from ...utils.util import cookie_ellipsis
 from ..base.base import BaseParser
 
 
@@ -40,18 +40,18 @@ class InstagramParser(BaseParser):
         match post.typename:
             case "GraphSidecar":
                 media = [
-                    Video(i.video_url, thumb_url=i.display_url, width=i.width, height=i.height)
+                    VideoRef(url=i.video_url, thumb_url=i.display_url, width=i.width, height=i.height)
                     if i.is_video
-                    else Image(i.display_url, width=i.width, height=i.height)
+                    else ImageRef(url=i.display_url, width=i.width, height=i.height)
                     for i in post.get_sidecar_nodes()
                 ]
                 return MultimediaParseResult(media=media, **k)
             case "GraphImage":
-                return ImageParseResult(photo=[Image(post.url, width=width, height=height)], **k)
+                return ImageParseResult(photo=[ImageRef(url=post.url, width=width, height=height)], **k)
             case "GraphVideo":
                 return VideoParseResult(
-                    video=Video(
-                        post.video_url,
+                    video=VideoRef(
+                        url=post.video_url,
                         thumb_url=post.url,
                         duration=int(post.video_duration),
                         width=width,

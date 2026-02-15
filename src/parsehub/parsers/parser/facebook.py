@@ -1,5 +1,5 @@
 from ...types.platform import Platform
-from ..base.yt_dlp_parser import YtParser, YtVideoParseResult
+from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
 class FacebookParse(YtParser):

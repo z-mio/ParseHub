@@ -2,7 +2,9 @@ import asyncio
 import re
 import time
 import urllib.parse
+from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
 from functools import reduce
 from hashlib import md5
 from typing import Any
@@ -10,7 +12,7 @@ from typing import Any
 import httpx
 
 USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
 )
 XOR_CODE = 23442827791579
 MASK_CODE = 2251799813685247
@@ -37,7 +39,7 @@ class BiliAPI:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.aclose()
 
-    async def get_dynamic_info(self, url: str, cookie: dict = None) -> dict:
+    async def get_dynamic_info(self, url: str, cookie: dict = None) -> "BiliDynamic":
         """获取动态信息"""
         dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)
         params = {
@@ -61,9 +63,11 @@ class BiliAPI:
             match mj.get("code"):
                 case -352:
                     raise Exception("获取动态信息失败: -352 风控限制")
+                case 4101152:
+                    raise Exception("动态不可见")
                 case _:
                     raise Exception(f"获取动态信息失败: {mj}")
-        return data
+        return BiliDynamic.parse(data)
 
     async def get_video_info(self, url: str):
         """获取视频详细信息"""
@@ -178,6 +182,186 @@ class BiliAPI:
         m_av = re.search(r"(?i)\bav(\d+)\b", url)
         if m_av:
             return self.av2bv(f"av{m_av.group(1)}")
+        return None
+
+
+class DynamicType(Enum):
+    """动态类型"""
+
+    DYNAMIC_TYPE_FORWARD = "DYNAMIC_TYPE_FORWARD"  # 动态转发
+    DYNAMIC_TYPE_DRAW = "DYNAMIC_TYPE_DRAW"  # 带图动态
+    DYNAMIC_TYPE_AV = "DYNAMIC_TYPE_AV"  # 投稿视频
+    DYNAMIC_TYPE_PGC_UNION = "DYNAMIC_TYPE_PGC_UNION"  # 剧集 (番剧、电影、纪录片)
+    DYNAMIC_TYPE_WORD = "DYNAMIC_TYPE_WORD"  # 纯文字动态
+    DYNAMIC_TYPE_ARTICLE = "DYNAMIC_TYPE_ARTICLE"  # 投稿专栏
+    DYNAMIC_TYPE_MUSIC = "DYNAMIC_TYPE_MUSIC"  # 音乐
+    DYNAMIC_TYPE_COMMON_SQUARE = "DYNAMIC_TYPE_COMMON_SQUARE"  # 装扮 / 剧集点评 / 普通分享
+    DYNAMIC_TYPE_LIVE = "DYNAMIC_TYPE_LIVE"  # 直播间分享
+    DYNAMIC_TYPE_MEDIALIST = "DYNAMIC_TYPE_MEDIALIST"  # 收藏夹
+    DYNAMIC_TYPE_COURSES_SEASON = "DYNAMIC_TYPE_COURSES_SEASON"  # 课程
+    DYNAMIC_TYPE_UGC_SEASON = "DYNAMIC_TYPE_UGC_SEASON"  # 合集更新
+    UNKNOWN = "UNKNOWN"
+
+    @classmethod
+    def _missing_(cls, value):
+        return cls.UNKNOWN
+
+
+class MajorType(Enum):
+    """动态主体类型"""
+
+    MAJOR_TYPE_OPUS = "MAJOR_TYPE_OPUS"  # 图文动态
+    MAJOR_TYPE_ARCHIVE = "MAJOR_TYPE_ARCHIVE"  # 视频
+    MAJOR_TYPE_PGC = "MAJOR_TYPE_PGC"  # 剧集更新
+    MAJOR_TYPE_MUSIC = "MAJOR_TYPE_MUSIC"  # 音频更新
+    MAJOR_TYPE_COMMON = "MAJOR_TYPE_COMMON"  # 一般类型
+    MAJOR_TYPE_LIVE = "MAJOR_TYPE_LIVE"  # 直播间分享
+    MAJOR_TYPE_MEDIALIST = "MAJOR_TYPE_MEDIALIST"  # 收藏夹
+    MAJOR_TYPE_COURSES = "MAJOR_TYPE_COURSES"  # 课程
+    MAJOR_TYPE_UGC_SEASON = "MAJOR_TYPE_UGC_SEASON"  # 合集更新
+    MAJOR_TYPE_UPOWER_COMMON = "MAJOR_TYPE_UPOWER_COMMON"  # 充电相关
+    UNKNOWN = "UNKNOWN"
+
+    @classmethod
+    def _missing_(cls, value):
+        return cls.UNKNOWN
+
+
+@dataclass(kw_only=True)
+class BiliImage:
+    url: str
+    width: int = 0
+    height: int = 0
+    live_url: str | None = None
+
+
+@dataclass(kw_only=True)
+class BiliDynamic:
+    title: str | None = None
+    content: str | None = None
+    images: list[BiliImage] | None = None
+
+    @classmethod
+    def parse(cls, data: dict):
+        module_dynamic: dict = data["item"]["modules"]["module_dynamic"]
+        major: dict | None = module_dynamic.get("major", None)
+        if not major:
+            return cls._parse_forward(module_dynamic)
+        else:
+            return cls._parse_major(module_dynamic, major)
+
+    @classmethod
+    def _parse_major(cls, module_dynamic: dict, major: dict):
+        major_type = major["type"]
+        major_parsers: dict[MajorType, Callable[[dict, dict], BiliDynamic]] = {
+            MajorType.MAJOR_TYPE_MEDIALIST: cls._parse_medialist,
+            MajorType.MAJOR_TYPE_UPOWER_COMMON: cls._parse_upower_common,
+            MajorType.MAJOR_TYPE_COMMON: cls._parse_common,
+            MajorType.MAJOR_TYPE_OPUS: cls._parse_opus,
+            MajorType.MAJOR_TYPE_ARCHIVE: cls._parse_av,
+            MajorType.MAJOR_TYPE_PGC: cls._parse_pgc_union,
+            MajorType.MAJOR_TYPE_LIVE: cls._parse_live,
+            MajorType.MAJOR_TYPE_COURSES: cls._parse_courses,
+            MajorType.MAJOR_TYPE_UGC_SEASON: cls._parse_ugc_season,
+            MajorType.MAJOR_TYPE_MUSIC: cls._parse_music,
+        }
+        major_parser = major_parsers.get(MajorType(major_type), None)
+        if not major_parser:
+            raise ValueError(f"Unknown major type: {major_type}")
+        return major_parser(module_dynamic, major)
+
+    @classmethod
+    def _parse_pgc_union(cls, _, major: dict):
+        pgc = major["pgc"]
+        return cls(title=pgc["title"], images=[BiliImage(url=pgc["cover"])])
+
+    @classmethod
+    def _parse_forward(cls, module_dynamic: dict):
+        return cls(content=cls._get_desc_text(module_dynamic))
+
+    @classmethod
+    def _parse_av(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        archive = major["archive"]
+        return cls(title=archive["title"], content=archive["desc"], images=cls._get_major_cover(archive))
+
+    @classmethod
+    def _parse_music(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        music = major["music"]
+        return cls(title=music["title"], images=cls._get_major_cover(music))
+
+    @classmethod
+    def _parse_opus(cls, _, major: dict):
+        opus = major["opus"]
+        images = None
+        if pics := opus["pics"]:
+            images = [
+                BiliImage(url=p["url"], live_url=p["live_url"], width=p["width"], height=p["height"]) for p in pics
+            ]
+        return cls(title=opus["title"], content=opus["summary"]["text"], images=images)
+
+    @classmethod
+    def _parse_common(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        common = major["common"]
+        return cls(title=common["title"], content=common["desc"], images=cls._get_major_cover(common))
+
+    @classmethod
+    def _parse_live(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        live = major["live"]
+        content = f"{live['desc_first']} · {live['desc_second']}" if live["desc_second"] else live["desc_first"]
+        return cls(title=live["title"], content=content, images=cls._get_major_cover(live))
+
+    @classmethod
+    def _parse_medialist(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        medialist = major["medialist"]
+        return cls(title=medialist["title"], content=medialist["sub_title"], images=cls._get_major_cover(medialist))
+
+    @classmethod
+    def _parse_courses(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        courses = major["courses"]
+        content = f"{courses['sub_title']}\n\n{courses['desc']}" if courses["sub_title"] else courses["desc"]
+        return cls(title=courses["title"], content=content, images=cls._get_major_cover(courses))
+
+    @classmethod
+    def _parse_ugc_season(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        ugc_season = major["ugc_season"]
+        return cls(title=ugc_season["title"], content=ugc_season["desc"], images=cls._get_major_cover(ugc_season))
+
+    @classmethod
+    def _parse_upower_common(cls, module_dynamic: dict, major: dict):
+        if content := cls._get_desc_text(module_dynamic):
+            return cls(content=content)
+        upower_common = major["upower_common"]
+        title = (
+            f"{upower_common['title_prefix']}: {upower_common['title']}"
+            if upower_common["title_prefix"]
+            else upower_common["title"]
+        )
+        return cls(title=title)
+
+    @staticmethod
+    def _get_desc_text(module_dynamic: dict) -> str | None:
+        if desc := module_dynamic["desc"]:
+            return desc["text"].strip()
+        return None
+
+    @staticmethod
+    def _get_major_cover(major_content: dict) -> BiliImage | None:
+        if major_content["cover"]:
+            return BiliImage(url=major_content["cover"])
         return None
 
 
@@ -374,5 +558,5 @@ class BiliWbiSigner:
 
 
 if __name__ == "__main__":
-    r = asyncio.run(BiliAPI().get_video_info("BV1Z4421U7LM"))
+    r = asyncio.run(BiliAPI().get_dynamic_info("https://t.bilibili.com/1169207844562534435"))
     print(r)

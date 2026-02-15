@@ -1,26 +1,19 @@
-import asyncio
-import os
 import shutil
 import time
 from abc import ABC
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Literal
 
 from bs4 import BeautifulSoup
-from langchain_core.messages import HumanMessage, SystemMessage
 from markdown import markdown as md_to_html
 
-from ..config import SummaryConfig
-from ..config.config import DownloadConfig
-from ..tools import LLM, Transcriptions
-from ..utiles.download_file import download_file
-from ..utiles.utile import image_proces, progress, video_to_png
-from .error import DownloadError
-from .media import AnyMedia, Image, LivePhoto, Video
+from ..config import DownloadConfig, GlobalConfig
+from ..errors import DownloadError
+from ..utils.downloader import download
+from ..utils.util import progress
+from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
+from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef
 from .platform import Platform
-from .subtitles import Subtitle, Subtitles
-from .summary import SummaryResult
 
 
 class ParseResult(ABC):  # noqa: B024
@@ -29,7 +22,7 @@ class ParseResult(ABC):  # noqa: B024
     def __init__(
         self,
         title: str,
-        media: list[AnyMedia] | AnyMedia,
+        media: list[AnyMediaRef] | AnyMediaRef,
         content: str = "",
         raw_url: str = None,
         platform: Platform = None,
@@ -71,18 +64,14 @@ class ParseResult(ABC):  # noqa: B024
         下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
         status: 进度或其他状态信息
         """
-        save_dir = Path(path) if path else config.save_dir
+        save_dir = Path(path) if path else GlobalConfig.default_save_dir
         media_list = self.media if isinstance(self.media, list) else [self.media]
         is_single = not isinstance(self.media, list)
 
-        result_list = []
-        op = save_dir.joinpath(f"{time.time_ns()}")
+        result_list: list[AnyMediaFile] = []
+        output_dir = save_dir.joinpath(f"{time.time_ns()}")
 
         for i, media in enumerate(media_list):
-            if media.exists():
-                result_list.append(media)
-                continue
-
             dl_progress = None
             dl_progress_args = ()
             if callback and is_single:
@@ -94,36 +83,43 @@ class ParseResult(ABC):  # noqa: B024
                 dl_progress_args = callback_args
 
             try:
-                f = await download_file(
-                    media.path,
-                    f"{op}/{i}.{media.ext}",
-                    proxies=config.proxy,
+                f = await download(
+                    media.url,
+                    f"{output_dir}/{i}.{media.ext}",
                     headers=config.headers,
+                    proxies=config.proxy,
                     progress=dl_progress,
                     progress_args=dl_progress_args,
                 )
             except Exception as e:
-                shutil.rmtree(op, ignore_errors=True)
+                shutil.rmtree(output_dir, ignore_errors=True)
                 raise DownloadError(f"下载失败: {e}") from e
 
-            n_m = media.__class__(**vars(media))
-            n_m.path = f
+            match media:
+                case ImageRef():
+                    mf = ImageFile(path=f, width=media.width, height=media.height)
+                case VideoRef():
+                    mf = VideoFile(path=f, width=media.width, height=media.height, duration=media.duration)
+                case AniRef():
+                    mf = AniFile(path=f, width=media.width, height=media.height, duration=media.duration)
+                case LivePhotoRef():
+                    mf = LivePhotoFile(path=f, width=media.width, height=media.height, duration=media.duration)
 
             # LivePhoto 额外下载视频部分
-            if isinstance(media, LivePhoto) and media.video_path:
+            if isinstance(media, LivePhotoRef) and media.video_url:
                 try:
-                    vf = await download_file(
-                        media.video_path,
-                        f"{op}/{i}_video.{media.video_ext}",
-                        proxies=config.proxy,
+                    vf = await download(
+                        media.video_url,
+                        f"{output_dir}/{i}_video.{media.video_ext}",
                         headers=config.headers,
+                        proxies=config.proxy,
                     )
                 except Exception as e:
-                    shutil.rmtree(op, ignore_errors=True)
+                    shutil.rmtree(output_dir, ignore_errors=True)
                     raise DownloadError(f"LivePhoto视频下载失败: {e}") from e
-                n_m.video_path = vf
+                mf.video_path = vf
 
-            result_list.append(n_m)
+            result_list.append(mf)
 
             if callback and not is_single:
                 await callback(
@@ -134,31 +130,7 @@ class ParseResult(ABC):  # noqa: B024
                 )
 
         result_media = result_list[0] if is_single else result_list
-        return DownloadResult(self, result_media, op)
-
-    async def summary(
-        self,
-        api_key: str = None,
-        base_url: str = None,
-        model: str = None,
-        provider: Literal["openai"] = None,
-        transcriptions_provider: str = None,
-        prompt: str = None,
-        download_config: DownloadConfig = DownloadConfig(),
-    ) -> "SummaryResult":
-        """总结解析结果
-        :param api_key: API密钥
-        :param base_url: API地址
-        :param model: 语言模型
-        :param provider: 语言模型提供商
-        :param transcriptions_provider: 语音转文本提供商
-        :param prompt: 提示词
-        :param download_config: 下载配置
-        """
-        dr = await self.download(config=download_config)
-        sr = await dr.summary(api_key, base_url, model, provider, prompt, transcriptions_provider)
-        dr.delete()
-        return sr
+        return DownloadResult(result_media, output_dir)
 
 
 class VideoParseResult(ParseResult):
@@ -167,11 +139,11 @@ class VideoParseResult(ParseResult):
     def __init__(
         self,
         title: str = "",
-        video: str | Video = None,
+        video: str | VideoRef = None,
         content: str = "",
         raw_url: str = None,
     ):
-        video = Video(video) if isinstance(video, str) else video
+        video = VideoRef(url=video) if isinstance(video, str) else video
         super().__init__(
             title=title,
             media=video,
@@ -186,11 +158,11 @@ class ImageParseResult(ParseResult):
     def __init__(
         self,
         title: str = "",
-        photo: list[str | Image | LivePhoto] = None,
+        photo: list[str | ImageRef | LivePhotoRef] = None,
         content: str = "",
         raw_url: str = None,
     ):
-        photo = [Image(p, thumb_url=p) if isinstance(p, str) else p for p in photo]
+        photo = [ImageRef(url=p) if isinstance(p, str) else p for p in photo]
         super().__init__(title=title, media=photo, content=content, raw_url=raw_url)
 
 
@@ -200,7 +172,7 @@ class MultimediaParseResult(ParseResult):
     def __init__(
         self,
         title: str = "",
-        media: list[AnyMedia] = None,
+        media: list[AnyMediaRef] = None,
         content: str = "",
         raw_url: str = None,
     ):
@@ -213,7 +185,7 @@ class RichTextParseResult(ParseResult):
     def __init__(
         self,
         title: str = "",
-        media: list[AnyMedia] = None,
+        media: list[AnyMediaRef] = None,
         markdown_content: str = "",
         raw_url: str = None,
     ):
@@ -240,143 +212,14 @@ class RichTextParseResult(ParseResult):
 
 
 class DownloadResult:
-    def __init__(self, parse_result: ParseResult, media: AnyMedia | list[AnyMedia], save_dir: str | Path = None):
+    def __init__(self, media: AnyMediaFile | list[AnyMediaFile], output_dir: str | Path):
         """
         下载结果
-        :param parse_result: 解析结果
         :param media: 本地媒体路径
-        :param save_dir: 保存目录
+        :param output_dir: 输出目录
         """
-        self.pr = parse_result
-        """解析结果"""
         self.media = media
-        self.save_dir = Path(save_dir).resolve() if save_dir else None
-
-    def exists(self) -> bool:
-        """是否存在本地文件"""
-        if isinstance(self.media, list):
-            return all(m.exists() for m in self.media)
-        else:
-            return self.media.exists()
-
-    async def summary(
-        self,
-        api_key: str = None,
-        base_url: str = None,
-        model: str = None,
-        provider: Literal["openai"] = None,
-        prompt: str = None,
-        transcriptions_provider: Literal["openai", "fast_whisper", "azure"] = None,
-        transcriptions_api_key: str = None,
-        transcriptions_base_url: str = None,
-    ) -> "SummaryResult":
-        """总结解析结果
-        :param api_key: API密钥
-        :param base_url: API地址
-        :param model: 语言模型
-        :param provider: 语言模型提供商
-        :param prompt: 提示词
-        :param transcriptions_provider: 语音转文本提供商
-        :param transcriptions_api_key: 语音转文本API密钥
-        :param transcriptions_base_url: 语音转文本API地址
-        """
-        sc = SummaryConfig()
-        api_key = api_key or sc.api_key
-        base_url = base_url or sc.base_url
-        model = model or sc.model
-        provider = provider or sc.provider
-        prompt = prompt or sc.prompt
-        transcriptions_provider = transcriptions_provider or sc.transcriptions_provider
-        transcriptions_api_key = transcriptions_api_key or sc.transcriptions_api_key
-        transcriptions_base_url = transcriptions_base_url or sc.transcriptions_base_url
-
-        if not api_key or not base_url:
-            raise ValueError("AI总结未配置")
-        if not transcriptions_api_key or not transcriptions_base_url:
-            raise ValueError("语音转文本未配置")
-
-        media = self.media if isinstance(self.media, list) else [self.media]
-        subtitles = ""
-        tasks = []
-        for i in media:
-            if isinstance(i, Video):
-                subtitles = await self._video_to_subtitles(
-                    i,
-                    transcriptions_api_key,
-                    transcriptions_base_url,
-                    transcriptions_provider,
-                )
-                if not subtitles:
-                    img = await asyncio.to_thread(video_to_png, i.path)
-                    tasks.append(image_proces(img))
-            elif isinstance(i, Image):
-                tasks.append(image_proces(i.path))
-            else:
-                ...
-
-        result: list[str] = [
-            i for i in await asyncio.gather(*tasks, return_exceptions=True) if not isinstance(i, BaseException)
-        ]
-        content = [
-            {
-                "type": "text",
-                "text": (f"标题: {self.pr.title}" if self.pr.title else "")
-                + (f"\n正文: {self.pr.content}" if self.pr.content else "")
-                + (f"\n视频字幕: {subtitles}" if subtitles else ""),
-            }
-        ]
-        imgs = [
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{i}"},
-            }
-            for i in result
-        ]
-
-        template = [
-            SystemMessage(prompt),
-            HumanMessage(content=content + imgs),
-            HumanMessage(content=[{"type": "text", "text": "请对以上内容进行总结！"}]),
-        ]
-
-        llm = LLM(
-            provider,
-            api_key,
-            base_url,
-            model,
-        )
-        model = llm.provider
-        answer = await model.ainvoke(template)
-        return SummaryResult(answer.content)
-
-    @staticmethod
-    async def _video_to_subtitles(
-        media_: Video,
-        api_key: str,
-        base_url: str,
-        transcriptions_provider: Literal["openai", "fast_whisper", "azure"],
-    ) -> str:
-        if not media_.subtitles:
-            tr = await Transcriptions(api_key=api_key, base_url=base_url).transcription(
-                media_.path, transcriptions_provider=transcriptions_provider
-            )
-            media_.subtitles = Subtitles([Subtitle(begin=str(c.begin), end=str(c.end), text=c.text) for c in tr.chucks])
-        return media_.subtitles.to_str() if media_.subtitles.subtitles[5:] else ""
-
-    def delete(self):
-        """删除文件"""
-        if self.save_dir:
-            if self.save_dir.exists():
-                return shutil.rmtree(self.save_dir)
-            return None
-
-        if isinstance(self.media, list):
-            p = [i.path for i in self.media if i.exists()]
-            if p:
-                shutil.rmtree(os.path.dirname(p[0]))
-        else:
-            if self.media.exists():
-                os.remove(self.media.path)
+        self.output_dir = Path(output_dir).resolve()
 
 
 AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult

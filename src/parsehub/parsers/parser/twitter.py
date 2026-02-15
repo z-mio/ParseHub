@@ -7,9 +7,9 @@ from ...provider_api.twitter import (
     TwitterTweet,
     TwitterVideo,
 )
-from ...types import Ani, Image, MultimediaParseResult, ParseError, Video
+from ...types import AniRef, ImageRef, MultimediaParseResult, ParseError, VideoRef
 from ...types.platform import Platform
-from ...utiles.utile import cookie_ellipsis
+from ...utils.util import cookie_ellipsis
 from ..base.base import BaseParser
 
 
@@ -52,11 +52,11 @@ class TwitterParser(BaseParser):
         for m in tweet.media:
             match m:
                 case TwitterPhoto():
-                    path = Image(m.url)
+                    path = ImageRef(url=m.url)
                 case TwitterVideo():
-                    path = Video(m.url, height=m.height, width=m.width)
+                    path = VideoRef(url=m.url, height=m.height, width=m.width)
                 case TwitterAni():
-                    path = Ani(m.url, ext="mp4")
+                    path = AniRef(url=m.url, ext="mp4")
             media.append(path)
         return MultimediaParseResult(content=tweet.full_text, media=media, raw_url=url)
 

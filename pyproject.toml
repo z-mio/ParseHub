@@ -9,15 +9,9 @@ authors = [
 ]
 license = { text = "MIT" }
 dependencies = [
-    "aiofiles>=23.2,<24.dev0",
+    "aiofiles>=23.2",
     "beautifulsoup4>=4.12.3",
-    "dynamicadaptor>=0.5.2",
-    "dynrender-skia>=0.2.5",
-    "langchain>=0.2.5",
-    "langchain-core>=0.2.8",
-    "langchain-openai>=0.1.14",
     "loguru>=0.6.0",
-    "openai>=1.54.5",
     "opencv-python>=4.10.0.84",
     "pydub>=0.25.1",
     "python-dotenv>=1.0.1",
@@ -30,12 +24,16 @@ dependencies = [
     "markdownify>=1.1.0",
     "markdown>=3.7",
     "requests",
-    "skia-python>=87.6",
     "httpx>=0.24.1",
     "pydantic-settings>=2.10.1",
-    "ruff>=0.14.14",
     "pillow>=12.1.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/parsehub"]
 

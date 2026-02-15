@@ -1,7 +1,10 @@
+import importlib
+import pkgutil
+
+from . import parsers
 from .config import ParseConfig
 from .parsers.base.base import BaseParser
 from .types.result import AnyParseResult
-from .utiles.utile import get_all_subclasses
 
 
 class ParseHub:
@@ -19,8 +22,17 @@ class ParseHub:
 
     @staticmethod
     def __load_parser() -> list[type[BaseParser]]:
+        def get_all_subclasses(cls):
+            for _, module_name, _ in pkgutil.walk_packages(parsers.__path__, f"{parsers.__name__}."):
+                importlib.import_module(module_name)
+
+            subclasses = set(cls.__subclasses__())
+            for subclass in cls.__subclasses__():
+                subclasses.update(get_all_subclasses(subclass))
+            return subclasses
+
         all_subclasses = get_all_subclasses(BaseParser)
-        return [subclass for subclass in all_subclasses if subclass.__match__]
+        return [s for s in all_subclasses if s.__match__]
 
     async def parse(self, url: str) -> AnyParseResult:
         """解析平台分享链接

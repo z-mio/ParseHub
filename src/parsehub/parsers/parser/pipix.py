@@ -1,7 +1,7 @@
 from typing import Union
 
 from ...provider_api.pipix import Pipix
-from ...types import ImageParseResult, ParseError, Video, VideoParseResult
+from ...types import ImageParseResult, ParseError, VideoParseResult, VideoRef
 from ...types.platform import Platform
 from ..base.base import BaseParser
 
@@ -21,8 +21,8 @@ class PipixParser(BaseParser):
         if ppx.video_url:
             return VideoParseResult(
                 title=ppx.content,
-                video=Video(
-                    ppx.video_url,
+                video=VideoRef(
+                    url=ppx.video_url,
                     thumb_url=ppx.video_thumb,
                     duration=ppx.video_duration,
                     height=ppx.video_height,

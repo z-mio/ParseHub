@@ -5,17 +5,17 @@ from typing import Union
 from ...config import DownloadConfig
 from ...provider_api.coolapk import Coolapk
 from ...types import (
-    Ani,
+    AniRef,
     DownloadResult,
-    Image,
     ImageParseResult,
+    ImageRef,
     MultimediaParseResult,
     ParseError,
     ParseResult,
     RichTextParseResult,
 )
 from ...types.platform import Platform
-from ...utiles.utile import clear_params
+from ...utils.util import clear_params
 from ..base.base import BaseParser
 
 
@@ -33,7 +33,7 @@ class CoolapkParser(BaseParser):
             coolapk = await Coolapk.parse(url, proxy=self.cfg.proxy)
         except Exception as e:
             raise ParseError(e) from e
-        media = [Ani(i) if ".gif" in i else Image(i) for i in coolapk.imgs]
+        media = [AniRef(url=i) if ".gif" in i else ImageRef(url=i) for i in coolapk.imgs]
         if coolapk.markdown_content:
             return CoolapkRichTextParseResult(
                 title=coolapk.title,
@@ -41,7 +41,7 @@ class CoolapkParser(BaseParser):
                 markdown_content=coolapk.markdown_content,
                 raw_url=raw_url,
             )
-        if any(isinstance(m, Ani) for m in media):
+        if any(isinstance(m, AniRef) for m in media):
             return CoolapkMultimediaParseResult(
                 title=coolapk.title,
                 media=media,

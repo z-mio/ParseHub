@@ -5,16 +5,16 @@ import httpx
 
 from ...provider_api.xhs import XHSAPI, XHSMedia, XHSMediaType, XHSPostType
 from ...types import (
-    Image,
     ImageParseResult,
-    LivePhoto,
+    ImageRef,
+    LivePhotoRef,
     MultimediaParseResult,
     ParseError,
-    Video,
     VideoParseResult,
+    VideoRef,
 )
 from ...types.platform import Platform
-from ...utiles.utile import clear_params
+from ...utils.util import clear_params
 from ..base import BaseParser
 
 
@@ -36,20 +36,24 @@ class XHSParser(BaseParser):
             case XHSPostType.VIDEO:
                 v: XHSMedia = result.media[0]
                 return VideoParseResult(
-                    video=Video(path=v.url, thumb_url=v.thumb_url, duration=v.duration, height=v.height, width=v.width),
+                    video=VideoRef(
+                        url=v.url, thumb_url=v.thumb_url, duration=v.duration, height=v.height, width=v.width
+                    ),
                     **k,
                 )
             case XHSPostType.IMAGE:
-                photos: list[Image | LivePhoto] = []
+                photos: list[ImageRef | LivePhotoRef] = []
                 for i in result.media:
                     if i.type == XHSMediaType.LIVE_PHOTO:
-                        photos.append(LivePhoto(i.thumb_url, video_path=i.url, width=i.width, height=i.height))
+                        photos.append(LivePhotoRef(url=i.thumb_url, video_url=i.url, width=i.width, height=i.height))
                     else:
                         # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"
                         ext = await self.get_ext_by_url(i.url)
                         if ext not in ["png", "webp", "jpeg", "heic", "avif"]:
                             ext = "jpeg"
-                        photos.append(Image(i.url, ext, thumb_url=i.thumb_url, width=i.width, height=i.height))
+                        photos.append(
+                            ImageRef(url=i.url, ext=ext, thumb_url=i.thumb_url, width=i.width, height=i.height)
+                        )
 
                 return ImageParseResult(
                     photo=photos,

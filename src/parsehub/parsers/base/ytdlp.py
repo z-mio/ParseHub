@@ -14,8 +14,7 @@ from ...types import (
     DownloadResult,
     ImageParseResult,
     ParseError,
-    Subtitles,
-    Video,
+    VideoFile,
     VideoParseResult,
 )
 from .base import BaseParser
@@ -126,19 +125,15 @@ class YtVideoParseResult(VideoParseResult):
         config: DownloadConfig = DownloadConfig(),
     ) -> DownloadResult:
         """下载视频"""
-        if self.media.exists():
-            return DownloadResult(self, self.media, Path(self.media.path).parent)
-
-        # 创建保存目录
-        dir_ = (config.save_dir if path is None else Path(path)).joinpath(f"{time.time_ns()}")
-        dir_.mkdir(parents=True, exist_ok=True)
+        output_dir = (GlobalConfig.default_save_dir if path is None else Path(path)).joinpath(f"{time.time_ns()}")
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         # 输出模板
         paramss = self.dl.paramss.copy()
         if config.proxy:
             paramss["proxy"] = config.proxy
 
-        paramss["outtmpl"] = f"{dir_.joinpath('ytdlp_%(id)s')}.%(ext)s"
+        paramss["outtmpl"] = f"{output_dir.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         text = "下载合并中...请耐心等待..."
         if GlobalConfig.duration_limit and self.dl.duration > GlobalConfig.duration_limit:
@@ -151,22 +146,18 @@ class YtVideoParseResult(VideoParseResult):
 
         await self._download(paramss)
 
-        v = list(dir_.glob("*.mp4")) or list(dir_.glob("*.mkv")) or list(dir_.glob("*.webm"))
+        v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
         if not v:
             raise DownloadError("未获取到下载完成的视频")
         video_path = v[0]
-        subtitles = (v := list(dir_.glob("*.ttml"))) and Subtitles.parse(v[0])
         return DownloadResult(
-            self,
-            Video(
+            VideoFile(
                 path=str(video_path),
-                subtitles=subtitles,
-                thumb_url=self.dl.thumbnail,
                 height=self.dl.height,
                 width=self.dl.width,
                 duration=self.dl.duration,
             ),
-            dir_,
+            output_dir,
         )
 
     async def _download(self, paramss: dict, count: int = 0) -> None:
@@ -176,7 +167,7 @@ class YtVideoParseResult(VideoParseResult):
         loop = asyncio.get_running_loop()
         try:
             await asyncio.wait_for(
-                loop.run_in_executor(EXC, download_video, paramss, [self.media.path]),
+                loop.run_in_executor(EXC, download_video, paramss, [self.media.url]),
                 timeout=300,
             )
         except TimeoutError as e:
