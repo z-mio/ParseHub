@@ -2,10 +2,7 @@ import json
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, HttpUrl, field_validator
-
-load_dotenv()
 
 
 class _GlobalConfig(BaseModel):
