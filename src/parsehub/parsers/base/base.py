@@ -1,9 +1,12 @@
+import importlib
+import pkgutil
 import re
 from abc import ABC, abstractmethod
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 
+from ... import parsers
 from ...config.config import GlobalConfig, ParseConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
@@ -11,21 +14,42 @@ from ...utils.util import match_url
 
 
 class BaseParser(ABC):
+    _registry: list[type["BaseParser"]] = []
+    _registry_initialized: bool = False
+
     __platform__: Platform = None
     """平台"""
     __supported_type__: list[str] = []
     """支持的类型, 例如: 图文, 视频, 动态"""
     __match__: str = None
-    """链接匹配规则"""
+    """匹配规则"""
     __reserved_parameters__: list[str] = []
     """要保留的参数, 例如翻页. 默认清除全部参数"""
     __redirect_keywords__: list[str] = []
     """如果链接包含其中之一, 则遵循重定向规则"""
 
-    def __init__(self, parse_config: ParseConfig = None):
-        if parse_config is None:
-            parse_config = ParseConfig()
-        self.cfg = parse_config
+    def __init__(self, config: ParseConfig = None):
+        if config is None:
+            config = ParseConfig()
+        self.cfg = config
+
+    def __init_subclass__(cls, /, register=True, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if register:
+            if not cls.__platform__:
+                raise ValueError(
+                    f"解析器未指定平台: {cls}, 如果不是平台请使用 register=False, "
+                    f"例: class {cls.__name__}({BaseParser.__name__}, register=False): ..."
+                )
+            cls._registry.append(cls)
+
+    @classmethod
+    def get_registry(cls) -> list[type["BaseParser"]]:
+        if not cls._registry_initialized:
+            for _, name, _ in pkgutil.walk_packages(parsers.__path__, f"{parsers.__name__}."):
+                importlib.import_module(name)
+            cls._registry_initialized = True
+        return cls._registry.copy()
 
     @classmethod
     def match(cls, text: str) -> bool:

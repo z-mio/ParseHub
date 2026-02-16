@@ -1,12 +1,13 @@
-import importlib
-import pkgutil
+from pathlib import Path
 
 from loguru import logger
 
-from . import parsers
 from .config.config import ParseConfig
+from .errors import ParseError, UnknownPlatform
 from .parsers.base import BaseParser
-from .types.result import AnyParseResult
+from .types import Platform
+from .types.callback import ProgressCallback
+from .types.result import AnyParseResult, DownloadResult
 
 logger.disable(__name__)
 
@@ -15,50 +16,74 @@ class ParseHub:
     def __init__(self, config: ParseConfig = None):
         """初始化解析器"""
         self.config = config
-        self.parsers: list[type[BaseParser]] = self.__load_parser()
+        self.parsers: list[type[BaseParser]] = BaseParser.get_registry()
 
-    def select_parser(self, url: str) -> type[BaseParser] | None:
+    async def parse(self, url: str) -> AnyParseResult:
+        """解析
+        :param url: 分享文案 / 分享链接
+        """
+        parser = self.get_parser(url)
+        p = parser(config=self.config)
+        return await p.parse(url)
+
+    async def download(
+        self,
+        url: str,
+        path: str | Path = None,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
+        proxy: str | None = None,
+    ) -> DownloadResult:
+        """下载
+        :param url: 分享文案 / 分享链接
+        :param path: 保存路径
+        :param callback: 下载进度回调函数
+        :param callback_args: 下载进度回调函数参数
+        :param proxy: 代理
+        :return: DownloadResult
+
+        Note:
+            下载进度回调函数签名::
+
+                async def callback(current: int, total: int, unit: Literal['bytes', 'count'], *args) -> None
+
+            - current: 当前进度值
+            - total: 总进度值
+            - unit: 进度单位
+                - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
+                - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
+        """
+        result = await self.parse(url)
+        return await result.download(path, callback, callback_args, proxy)
+
+    async def get_raw_url(self, url: str) -> str:
+        """获取原始链接"""
+        parser = self.get_parser(url)
+        try:
+            return await parser(config=self.config).get_raw_url(url)
+        except Exception as e:
+            raise ParseError from e
+
+    def _select_parser(self, url: str) -> type[BaseParser] | None:
         """选择解析器"""
         for parser in self.parsers:
             if parser.match(url):
                 return parser
         return None
 
-    @staticmethod
-    def __load_parser() -> list[type[BaseParser]]:
-        def get_all_subclasses(cls):
-            for _, module_name, _ in pkgutil.walk_packages(parsers.__path__, f"{parsers.__name__}."):
-                importlib.import_module(module_name)
+    def get_parser(self, url) -> type[BaseParser]:
+        """获取解析器"""
+        if parser := self._select_parser(url):
+            return parser
+        raise UnknownPlatform(url)
 
-            subclasses = set(cls.__subclasses__())
-            for subclass in cls.__subclasses__():
-                subclasses.update(get_all_subclasses(subclass))
-            return subclasses
+    def get_platform(self, url) -> Platform:
+        """获取平台"""
+        if parser := self._select_parser(url):
+            return parser.__platform__
+        raise UnknownPlatform(url)
 
-        all_subclasses = get_all_subclasses(BaseParser)
-        return [s for s in all_subclasses if s.__match__]
-
-    async def parse(self, url: str) -> AnyParseResult:
-        """解析平台分享链接
-        :param url: 分享链接
-        """
-        parser = self.select_parser(url)
-        if not parser:
-            raise ValueError("不支持的平台")
-
-        p = parser(parse_config=self.config)
-        url = await p.get_raw_url(url)
-        result = await p.parse(url)
-        result.platform = parser.__platform__
-        return result
-
-    async def get_raw_url(self, url: str) -> str:
-        """获取原始链接"""
-        if parser := self.select_parser(url):
-            return await parser(parse_config=self.config).get_raw_url(url)
-        raise ValueError("不支持的平台")
-
-    def list_parsers(self) -> list[dict]:
+    def get_platforms(self) -> list[dict]:
         """获取所有解析器的信息
 
         Returns:
