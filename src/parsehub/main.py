@@ -54,6 +54,20 @@ class ParseHub:
             return await parser(parse_config=self.config).get_raw_url(url)
         raise ValueError("不支持的平台")
 
-    def get_supported_platforms(self) -> list[str]:
-        """获取支持的平台列表"""
-        return [f"{parser.__platform__.display_name}: {'|'.join(parser.__supported_type__)}" for parser in self.parsers]
+    def list_parsers(self) -> list[dict]:
+        """获取所有解析器的信息
+
+        Returns:
+            包含解析器信息的字典列表，每个字典包含:
+            - platform: 平台id, 例: xhs
+            - display_name: 平台名, 例: 小红书
+            - supported_types: 支持的类型列表, 例: ['视频', '图文']
+        """
+        return [
+            {
+                "id": parser.__platform__.id,
+                "name": parser.__platform__.display_name,
+                "supported_types": parser.__supported_type__,
+            }
+            for parser in self.parsers
+        ]
