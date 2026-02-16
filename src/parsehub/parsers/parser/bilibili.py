@@ -18,7 +18,7 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ...utils.util import cookie_ellipsis
+from ...utils.utils import cookie_ellipsis
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
 

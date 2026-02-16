@@ -5,7 +5,7 @@ from instaloader import BadResponseException
 
 from ...provider_api.instagram import MyInstaloaderContext, MyPost
 from ...types import ImageParseResult, ImageRef, MultimediaParseResult, ParseError, Platform, VideoParseResult, VideoRef
-from ...utils.util import cookie_ellipsis
+from ...utils.utils import cookie_ellipsis
 from ..base.base import BaseParser
 
 

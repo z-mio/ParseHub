@@ -14,7 +14,7 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ...utils.util import clear_params
+from ...utils.utils import clear_params
 from ..base import BaseParser
 
 

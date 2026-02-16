@@ -10,7 +10,7 @@ from ... import parsers
 from ...config.config import GlobalConfig, ParseConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
-from ...utils.util import match_url
+from ...utils.utils import match_url
 
 
 class BaseParser(ABC):

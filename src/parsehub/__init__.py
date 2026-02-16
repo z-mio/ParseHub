@@ -8,6 +8,7 @@ from .parsers.base import BaseParser
 from .types import Platform
 from .types.callback import ProgressCallback
 from .types.result import AnyParseResult, DownloadResult
+from .utils.utils import get_event_loop
 
 logger.disable(__name__)
 

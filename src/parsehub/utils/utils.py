@@ -1,12 +1,10 @@
 import asyncio
 import re
-from typing import Literal
 from urllib.parse import parse_qs, urlparse
 
 from urlextract import URLExtract
 
 
-def progress(current, total, type_=Literal["数量", "百分比"]):
 def get_event_loop():
     try:
         event_loop = asyncio.get_event_loop()

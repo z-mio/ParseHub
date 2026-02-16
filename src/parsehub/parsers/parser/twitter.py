@@ -8,7 +8,7 @@ from ...provider_api.twitter import (
     TwitterVideo,
 )
 from ...types import AniRef, ImageRef, MultimediaParseResult, ParseError, Platform, VideoRef
-from ...utils.util import cookie_ellipsis
+from ...utils.utils import cookie_ellipsis
 from ..base.base import BaseParser
 
 
