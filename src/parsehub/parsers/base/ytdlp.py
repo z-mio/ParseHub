@@ -145,7 +145,7 @@ class YtVideoParseResult(VideoParseResult):
 
         v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
         if not v:
-            raise DownloadError("未获取到下载完成的视频")
+            raise DownloadError("下载失败 -1")
         video_path = v[0]
         return DownloadResult(
             VideoFile(
@@ -159,7 +159,7 @@ class YtVideoParseResult(VideoParseResult):
 
     async def __download(self, paramss: dict, count: int = 0) -> None:
         if count > 2:
-            raise DownloadError("下载失败")
+            raise DownloadError("下载失败 -2")
 
         loop = asyncio.get_running_loop()
         try:

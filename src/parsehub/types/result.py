@@ -9,7 +9,7 @@ from markdown import markdown as md_to_html
 from slugify import slugify
 
 from ..config import GlobalConfig
-from ..errors import DownloadError
+from ..errors import DeleteError, DownloadError
 from ..utils.downloader import download
 from ..utils.util import progress
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
@@ -115,7 +115,7 @@ class ParseResult(ABC):  # noqa: B024
                     )
                 except Exception as e:
                     shutil.rmtree(output_dir, ignore_errors=True)
-                    raise DownloadError(f"LivePhoto视频下载失败: {e}") from e
+                    raise DownloadError(f"LivePhoto 视频下载失败: {e}") from e
                 mf.video_path = vf
 
             result_list.append(mf)
@@ -248,6 +248,12 @@ class DownloadResult:
         """
         self.media = media
         self.output_dir = Path(output_dir).resolve()
+
+    def delete(self):
+        try:
+            shutil.rmtree(self.output_dir)
+        except Exception as e:
+            raise DeleteError(f"目录删除失败: {self.output_dir}") from e
 
 
 AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult
