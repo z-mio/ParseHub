@@ -1,10 +1,5 @@
 from ...provider_api.kuaishou import KuaiShouAPI
-from ...types import (
-    ParseError,
-    VideoParseResult,
-    VideoRef,
-)
-from ...types.platform import Platform
+from ...types import ParseError, Platform, VideoParseResult, VideoRef
 from ..base.base import BaseParser
 
 

@@ -6,11 +6,11 @@ from ...types import (
     ImageParseResult,
     ImageRef,
     MultimediaParseResult,
+    Platform,
     RichTextParseResult,
     VideoParseResult,
     VideoRef,
 )
-from ...types.platform import Platform
 
 
 class XiaoHeiHeParser(BaseParser):

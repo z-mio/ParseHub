@@ -1,6 +1,5 @@
 from ...provider_api.weixin import WX
-from ...types import RichTextParseResult
-from ...types.platform import Platform
+from ...types import Platform, RichTextParseResult
 from ..base.base import BaseParser
 
 

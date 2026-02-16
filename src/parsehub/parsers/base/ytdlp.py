@@ -1,5 +1,4 @@
 import asyncio
-from collections.abc import Awaitable, Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +12,7 @@ from ...types import (
     DownloadResult,
     ImageParseResult,
     ParseError,
+    ProgressCallback,
     VideoFile,
     VideoParseResult,
 )
@@ -120,8 +120,8 @@ class YtVideoParseResult(VideoParseResult):
         self,
         *,
         output_dir: str | Path,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
-        callback_args: tuple,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
         proxy: str | None = None,
         headers: dict = None,
     ) -> "DownloadResult":
@@ -139,13 +139,17 @@ class YtVideoParseResult(VideoParseResult):
             paramss["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:
-            await callback(0, 0, text, *callback_args)
+            await callback(0, 1, "count", *callback_args)
 
         await self.__download(paramss)
 
         v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
         if not v:
             raise DownloadError("下载失败 -1")
+
+        if callback:
+            await callback(1, 1, "count", *callback_args)
+
         video_path = v[0]
         return DownloadResult(
             VideoFile(

@@ -7,10 +7,10 @@ from ...types import (
     ImageRef,
     LivePhotoRef,
     MultimediaParseResult,
+    Platform,
     VideoParseResult,
     VideoRef,
 )
-from ...types.platform import Platform
 from ..base.base import BaseParser
 
 

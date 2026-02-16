@@ -1,8 +1,7 @@
 from typing import Union
 
 from ...provider_api.tieba import TieBa
-from ...types import ImageParseResult, ParseError, VideoParseResult
-from ...types.platform import Platform
+from ...types import ImageParseResult, ParseError, Platform, VideoParseResult
 from ..base.base import BaseParser
 
 

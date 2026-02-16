@@ -1,5 +1,4 @@
 import re
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Union
 from urllib.parse import parse_qs, urlparse
@@ -8,9 +7,17 @@ import httpx
 
 from ...config.config import GlobalConfig
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
-from ...types import DownloadResult, ImageRef, LivePhotoRef, ParseError, VideoRef
-from ...types.platform import Platform
-from ...types.result import ImageParseResult, VideoParseResult
+from ...types import (
+    DownloadResult,
+    ImageParseResult,
+    ImageRef,
+    LivePhotoRef,
+    ParseError,
+    Platform,
+    ProgressCallback,
+    VideoParseResult,
+    VideoRef,
+)
 from ...utils.util import cookie_ellipsis
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
@@ -166,8 +173,8 @@ class BiliVideoParseResult(VideoParseResult):
         self,
         *,
         output_dir: str | Path,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
-        callback_args: tuple,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
         proxy: str | None = None,
         headers: dict = None,
     ) -> "DownloadResult":

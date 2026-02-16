@@ -11,10 +11,10 @@ from ...types import (
     LivePhotoRef,
     MultimediaParseResult,
     ParseError,
+    Platform,
     VideoParseResult,
     VideoRef,
 )
-from ...types.platform import Platform
 from ..base.base import BaseParser
 
 

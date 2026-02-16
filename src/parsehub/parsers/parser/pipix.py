@@ -1,8 +1,7 @@
 from typing import Union
 
 from ...provider_api.pipix import Pipix
-from ...types import ImageParseResult, ParseError, VideoParseResult, VideoRef
-from ...types.platform import Platform
+from ...types import ImageParseResult, ParseError, Platform, VideoParseResult, VideoRef
 from ..base.base import BaseParser
 
 

@@ -1,7 +1,6 @@
 import shutil
 import time
 from abc import ABC
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -11,7 +10,7 @@ from slugify import slugify
 from ..config import GlobalConfig
 from ..errors import DeleteError, DownloadError
 from ..utils.downloader import download
-from ..utils.util import progress
+from .callback import ProgressCallback
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef
 from .platform import Platform
@@ -51,15 +50,15 @@ class ParseResult(ABC):  # noqa: B024
         self,
         *,
         output_dir: str | Path,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
-        callback_args: tuple,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
         proxy: str | None = None,
         headers: dict = None,
     ) -> "DownloadResult":
         """
         执行下载
         :param output_dir: 输出的子目录
-        :param callback: 进度回调函数
+        :param callback: 下载进度回调函数
         :param callback_args: 回调函数的参数
         :param proxy: 代理
         :param headers: 请求头
@@ -76,7 +75,7 @@ class ParseResult(ABC):  # noqa: B024
             if callback and is_single:
 
                 async def _byte_callback(current, total, *args):
-                    await callback(current, total, progress(current, total, "百分比"), *args)
+                    await callback(current, total, "bytes", *args)
 
                 dl_progress = _byte_callback
                 dl_progress_args = callback_args
@@ -124,7 +123,7 @@ class ParseResult(ABC):  # noqa: B024
                 await callback(
                     len(result_list),
                     len(media_list),
-                    progress(len(result_list), len(media_list), "数量"),
+                    "count",
                     *callback_args,
                 )
 
@@ -134,7 +133,7 @@ class ParseResult(ABC):  # noqa: B024
     async def download(
         self,
         path: str | Path = None,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
+        callback: ProgressCallback = None,
         callback_args: tuple = (),
         proxy: str | None = None,
     ) -> "DownloadResult":
@@ -145,9 +144,16 @@ class ParseResult(ABC):  # noqa: B024
         :param proxy: 代理
         :return: DownloadResult
 
-        .. note::
-        下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
-        status: 进度或其他状态信息
+        Note:
+            下载进度回调函数签名::
+
+                async def callback(current: int, total: int, unit: Literal['bytes', 'count'], *args) -> None
+
+            - current: 当前进度值
+            - total: 总进度值
+            - unit: 进度单位
+                - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
+                - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
         save_dir = Path(path) if path else GlobalConfig.default_save_dir
         r = slugify(

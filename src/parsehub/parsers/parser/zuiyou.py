@@ -1,6 +1,5 @@
 from ...provider_api.zuiyou import MediaType, ZuiYou
-from ...types import ImageRef, MultimediaParseResult, VideoRef
-from ...types.platform import Platform
+from ...types import ImageRef, MultimediaParseResult, Platform, VideoRef
 from ..base.base import BaseParser
 
 

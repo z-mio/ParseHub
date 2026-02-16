@@ -10,10 +10,10 @@ from ...types import (
     LivePhotoRef,
     MultimediaParseResult,
     ParseError,
+    Platform,
     VideoParseResult,
     VideoRef,
 )
-from ...types.platform import Platform
 from ...utils.util import clear_params
 from ..base import BaseParser
 

@@ -1,4 +1,3 @@
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Union
 
@@ -11,9 +10,10 @@ from ...types import (
     MultimediaParseResult,
     ParseError,
     ParseResult,
+    Platform,
+    ProgressCallback,
     RichTextParseResult,
 )
-from ...types.platform import Platform
 from ...utils.util import clear_params
 from ..base.base import BaseParser
 
@@ -60,8 +60,8 @@ class CoolapkParseResult(ParseResult):
         self,
         *,
         output_dir: str | Path,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
-        callback_args: tuple,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
         proxy: str | None = None,
         headers: dict = None,
     ) -> "DownloadResult":
