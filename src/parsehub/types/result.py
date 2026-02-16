@@ -154,6 +154,10 @@ class ParseResult(ABC):  # noqa: B024
             self.title or self.content or str(time.time_ns()), allow_unicode=True, max_length=20, lowercase=False
         )
         output_dir = save_dir.joinpath(r)
+        counter = 2
+        while output_dir.exists():
+            output_dir = save_dir.joinpath(f"{r}_{counter}")
+            counter += 1
         output_dir.mkdir(parents=True, exist_ok=True)
 
         return await self._do_download(
