@@ -12,7 +12,7 @@ class MediaRef:
         height: 高度
     """
 
-    url: str = None
+    url: str
     ext: str = None
     thumb_url: str = None
     width: int = 0
