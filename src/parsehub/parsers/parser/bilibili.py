@@ -23,7 +23,7 @@ class BiliParse(YtParser):
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
     async def parse(self, url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
-        if ourl := await self.is_opus(url):
+        if ourl := await self.is_dynamic(url):
             dynamic = await self.get_dynamic_info(ourl)
             content = self.hashtag_handler(dynamic.content)
             photos = []
@@ -69,7 +69,7 @@ class BiliParse(YtParser):
         else:
             return await super().get_raw_url(url)
 
-    async def is_opus(self, url) -> str | None:
+    async def is_dynamic(self, url) -> str | None:
         """是动态"""
         async with httpx.AsyncClient(proxy=self.cfg.proxy) as cli:
             url = str((await cli.get(url, follow_redirects=True, timeout=30)).url)
@@ -152,7 +152,7 @@ class BiliParse(YtParser):
         )
 
     @staticmethod
-    def hashtag_handler(desc: str | None):
+    def hashtag_handler(desc: str | None) -> str | None:
         if not desc:
             return None
         hashtags = re.findall(r" ?#[^#]+# ?", desc)
@@ -163,13 +163,13 @@ class BiliParse(YtParser):
 
 class BiliVideoParseResult(VideoParseResult):
     async def _do_download(
-        self,
-        *,
-        output_dir: str | Path,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
-        callback_args: tuple,
-        proxy: str | None = None,
-        headers: dict = None,
+            self,
+            *,
+            output_dir: str | Path,
+            callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
+            callback_args: tuple,
+            proxy: str | None = None,
+            headers: dict = None,
     ) -> "DownloadResult":
         headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
         return await super()._do_download(
