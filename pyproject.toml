@@ -27,6 +27,7 @@ dependencies = [
     "httpx>=0.24.1",
     "pydantic-settings>=2.10.1",
     "pillow>=12.1.0",
+    "python-slugify[unidecode]>=8.0.4",
 ]
 
 [dependency-groups]

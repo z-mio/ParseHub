@@ -6,6 +6,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 from markdown import markdown as md_to_html
+from slugify import slugify
 
 from ..config import GlobalConfig
 from ..errors import DownloadError
@@ -46,22 +47,28 @@ class ParseResult(ABC):  # noqa: B024
             f" content={self.content or "''"}, raw_url={self.raw_url})"
         )
 
-    async def _download(
+    async def _do_download(
         self,
         *,
-        save_dir: str | Path,
+        output_dir: str | Path,
         callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
         callback_args: tuple,
         proxy: str | None = None,
         headers: dict = None,
     ) -> "DownloadResult":
-        save_dir = Path(save_dir) if save_dir else GlobalConfig.default_save_dir
-
+        """
+        执行下载
+        :param output_dir: 输出的子目录
+        :param callback: 进度回调函数
+        :param callback_args: 回调函数的参数
+        :param proxy: 代理
+        :param headers: 请求头
+        :return: DownloadResult
+        """
         media_list = self.media if isinstance(self.media, list) else [self.media]
         is_single = not isinstance(self.media, list)
 
         result_list: list[AnyMediaFile] = []
-        output_dir = save_dir.joinpath(f"{time.time_ns()}")
 
         for i, media in enumerate(media_list):
             dl_progress = None
@@ -142,7 +149,16 @@ class ParseResult(ABC):  # noqa: B024
         下载进度回调函数签名: async def callback(current: int, total: int, status: str|None, *args) -> None:
         status: 进度或其他状态信息
         """
-        return await self._download(save_dir=path, callback=callback, callback_args=callback_args, proxy=proxy)
+        save_dir = Path(path) if path else GlobalConfig.default_save_dir
+        r = slugify(
+            self.title or self.content or str(time.time_ns()), allow_unicode=True, max_length=20, lowercase=False
+        )
+        output_dir = save_dir.joinpath(r)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        return await self._do_download(
+            output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy
+        )
 
 
 class VideoParseResult(ParseResult):

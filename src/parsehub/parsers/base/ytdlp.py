@@ -1,5 +1,4 @@
 import asyncio
-import time
 from collections.abc import Awaitable, Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
@@ -117,17 +116,15 @@ class YtVideoParseResult(VideoParseResult):
         self.dl = dl
         super().__init__(title=title, video=video, content=content, raw_url=raw_url)
 
-    async def download(
+    async def _do_download(
         self,
-        path: str | Path = None,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
-        callback_args: tuple = (),
+        *,
+        output_dir: str | Path,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
+        callback_args: tuple,
         proxy: str | None = None,
-    ) -> DownloadResult:
-        """下载视频"""
-        output_dir = (GlobalConfig.default_save_dir if path is None else Path(path)).joinpath(f"{time.time_ns()}")
-        output_dir.mkdir(parents=True, exist_ok=True)
-
+        headers: dict = None,
+    ) -> "DownloadResult":
         # 输出模板
         paramss = self.dl.paramss.copy()
         if proxy:

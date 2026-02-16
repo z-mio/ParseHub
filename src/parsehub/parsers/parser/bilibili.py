@@ -152,16 +152,18 @@ class BiliParse(YtParser):
 
 
 class BiliVideoParseResult(VideoParseResult):
-    async def download(
+    async def _do_download(
         self,
-        path: str | Path = None,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
-        callback_args: tuple = (),
+        *,
+        output_dir: str | Path,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
+        callback_args: tuple,
         proxy: str | None = None,
+        headers: dict = None,
     ) -> "DownloadResult":
         headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
-        return await super()._download(
-            save_dir=path, headers=headers, callback=callback, callback_args=callback_args, proxy=proxy
+        return await super()._do_download(
+            output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy, headers=headers
         )
 
 

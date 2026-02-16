@@ -56,21 +56,23 @@ class CoolapkParser(BaseParser):
 
 
 class CoolapkParseResult(ParseResult):
-    async def download(
+    async def _do_download(
         self,
-        path: str | Path = None,
-        callback: Callable[[int, int, str | None, tuple], Awaitable[None]] = None,
-        callback_args: tuple = (),
+        *,
+        output_dir: str | Path,
+        callback: Callable[[int, int, str | None, tuple], Awaitable[None]],
+        callback_args: tuple,
         proxy: str | None = None,
-    ) -> DownloadResult:
+        headers: dict = None,
+    ) -> "DownloadResult":
         headers = {
             "Accept": (
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,"
                 "*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
             )
         }
-        return await super()._download(
-            save_dir=path, headers=headers, callback=callback, callback_args=callback_args, proxy=proxy
+        return await super()._do_download(
+            output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy, headers=headers
         )
 
 
