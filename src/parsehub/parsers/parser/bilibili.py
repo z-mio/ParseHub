@@ -25,6 +25,7 @@ class BiliParse(YtParser):
     async def parse(self, url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
         if ourl := await self.is_opus(url):
             dynamic = await self.get_dynamic_info(ourl)
+            content = self.hashtag_handler(dynamic.content)
             photos = []
             if dynamic.images:
                 for i in dynamic.images:
@@ -34,7 +35,7 @@ class BiliParse(YtParser):
                         photos.append(ImageRef(url=i.url, width=i.width, height=i.height))
             return ImageParseResult(
                 title=dynamic.title,
-                content=dynamic.content,
+                content=content,
                 photo=photos,
                 raw_url=ourl,
             )
@@ -149,6 +150,15 @@ class BiliParse(YtParser):
             "upos-sz-upcdnbda2.bilivideo.com",
             url,
         )
+
+    @staticmethod
+    def hashtag_handler(desc: str | None):
+        if not desc:
+            return None
+        hashtags = re.findall(r" ?#[^#]+# ?", desc)
+        for hashtag in hashtags:
+            desc = desc.replace(hashtag, f" {hashtag.strip().removesuffix('#')} ")
+        return desc.strip()
 
 
 class BiliVideoParseResult(VideoParseResult):
