@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Literal
 from urllib.parse import parse_qs, urlparse
@@ -6,16 +7,13 @@ from urlextract import URLExtract
 
 
 def progress(current, total, type_=Literal["数量", "百分比"]):
-    return f"{current * 100 / total:.0f}%" if type_ == "百分比" else f"{current}/{total}"
-
-
-def timestamp_to_time(timestamp):
-    hours = int(timestamp / 3600)
-    minutes = int((timestamp % 3600) / 60)
-    seconds = int(timestamp % 60)
-    if f"{hours:02d}" == "00":
-        return f"{minutes:02d}:{seconds:02d}"
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+def get_event_loop():
+    try:
+        event_loop = asyncio.get_event_loop()
+    except RuntimeError:
+        event_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(event_loop)
+    return event_loop
 
 
 def match_url(text: str) -> str:

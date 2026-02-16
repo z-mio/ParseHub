@@ -56,6 +56,33 @@ class ParseHub:
         result = await self.parse(url)
         return await result.download(path, callback, callback_args, proxy)
 
+    def parse_sync(self, url: str) -> AnyParseResult:
+        """
+        同步解析
+        :param url: 分享文案 / 分享链接
+        :return: AnyParseResult
+        """
+        return get_event_loop().run_until_complete(self.parse(url))
+
+    def download_sync(
+        self,
+        url: str,
+        path: str | Path = None,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
+        proxy: str | None = None,
+    ) -> DownloadResult:
+        """
+        同步下载
+        :param url: 分享文案 / 分享链接
+        :param path: 下载路径
+        :param callback: 进度回调函数
+        :param callback_args: 进度回调函数参数
+        :param proxy: 代理
+        :return: DownloadResult
+        """
+        return get_event_loop().run_until_complete(self.download(url, path, callback, callback_args, proxy))
+
     async def get_raw_url(self, url: str) -> str:
         """获取原始链接"""
         parser = self.get_parser(url)
