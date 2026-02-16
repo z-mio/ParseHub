@@ -19,10 +19,10 @@ class XiaoHeiHeParser(BaseParser):
     __match__ = r"^(http(s)?://)?.+xiaoheihe.cn/(v3|app)/bbs/(app|link).+"
     __redirect_keywords__ = ["api.xiaoheihe"]
 
-    async def parse(self, url: str) -> AnyParseResult:
-        xhh: XiaoHeiHePost = await XiaoHeiHeAPI(proxy=self.cfg.proxy).parse(url)
+    async def _do_parse(self, raw_url: str) -> AnyParseResult:
+        xhh: XiaoHeiHePost = await XiaoHeiHeAPI(proxy=self.cfg.proxy).parse(raw_url)
         media = self.__parse_media(xhh)
-        v = {"title": xhh.title, "content": xhh.content, "raw_url": url}
+        v = {"title": xhh.title, "content": xhh.content, "raw_url": raw_url}
         match xhh.type:
             case XiaoHeiHePostType.VIDEO:
                 return VideoParseResult(video=media, **v)
@@ -31,7 +31,7 @@ class XiaoHeiHeParser(BaseParser):
                     return ImageParseResult(photo=media, **v)
                 return MultimediaParseResult(media=media, **v)
             case XiaoHeiHePostType.ARTICLE:
-                return RichTextParseResult(title=xhh.title, media=media, markdown_content=xhh.content, raw_url=url)
+                return RichTextParseResult(title=xhh.title, media=media, markdown_content=xhh.content, raw_url=raw_url)
 
     @staticmethod
     def __parse_media(xhh: XiaoHeiHePost):

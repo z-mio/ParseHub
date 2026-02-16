@@ -10,8 +10,8 @@ class ZuiYouParser(BaseParser):
     __match__ = r"^(http(s)?://)share.xiaochuankeji.cn/hybrid/share/post\?pid=\d+"
     __reserved_parameters__ = ["pid"]
 
-    async def parse(self, url: str) -> MultimediaParseResult:
-        zy = await ZuiYou(self.cfg.proxy).parse(url)
+    async def _do_parse(self, raw_url: str) -> MultimediaParseResult:
+        zy = await ZuiYou(self.cfg.proxy).parse(raw_url)
         return MultimediaParseResult(
             content=zy.content,
             media=[
@@ -20,7 +20,7 @@ class ZuiYouParser(BaseParser):
                 else ImageRef(url=i.url, thumb_url=i.thumb_url)
                 for i in zy.media
             ],
-            raw_url=url,
+            raw_url=raw_url,
         )
 
 

@@ -25,10 +25,10 @@ class XHSParser(BaseParser):
     __redirect_keywords__ = ["xhslink", "item"]
     __reserved_parameters__ = ["xsec_token"]
 
-    async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        raw_url = clear_params(url, "xsec_token")
+    async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
+        raw_url = clear_params(raw_url, "xsec_token")
         xhs = XHSAPI(proxy=self.cfg.proxy)
-        result = await xhs.extract(url)
+        result = await xhs.extract(raw_url)
 
         desc = self.hashtag_handler(result.desc)
         k = {"title": result.title, "content": desc, "raw_url": raw_url}

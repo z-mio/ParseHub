@@ -25,14 +25,14 @@ class DouyinParser(BaseParser):
     __redirect_keywords__ = ["v.douyin", "vt.tiktok", "iesdouyin"]
     __reserved_parameters__ = ["modal_id"]
 
-    async def parse(self, url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        data = await self.parse_api(url)
+    async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
+        data = await self.parse_api(raw_url)
 
         match data.type:
             case DYType.VIDEO:
-                return await self.video_parse(url, data)
+                return await self.video_parse(raw_url, data)
             case DYType.IMAGE:
-                return await self.image_parse(url, data)
+                return await self.image_parse(raw_url, data)
 
     @staticmethod
     async def parse_api(url) -> "DYResult":

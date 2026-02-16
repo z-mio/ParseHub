@@ -12,8 +12,8 @@ class YtbParse(YtParser):
     __redirect_keywords__ = ["m.youtube.com"]
     __reserved_parameters__ = ["v", "list", "index"]
 
-    async def parse(self, url: str) -> YtVideoParseResult | YtImageParseResult:
-        return await super().parse(url)
+    async def _do_parse(self, raw_url: str) -> YtVideoParseResult | YtImageParseResult:
+        return await super()._do_parse(raw_url)
 
     @property
     def params(self):

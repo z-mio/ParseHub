@@ -31,16 +31,16 @@ def download_video(yto_params: dict, urls: list[str]) -> None:
         raise RuntimeError(error_msg) from None
 
 
-class YtParser(BaseParser):
+class YtParser(BaseParser, register=False):
     """yt-dlp解析器"""
 
-    async def parse(self, url: str) -> Union["YtVideoParseResult", "YtImageParseResult"]:
-        url = await self.get_raw_url(url)
-        video_info = await self._parse(url)
+    async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult", "YtImageParseResult"]:
+        raw_url = await self.get_raw_url(raw_url)
+        video_info = await self._parse(raw_url)
         _d = {
             "title": video_info.title,
             "content": video_info.description,
-            "raw_url": url,
+            "raw_url": raw_url,
             "dl": video_info,
         }
         return YtVideoParseResult(video=video_info.url, **_d)

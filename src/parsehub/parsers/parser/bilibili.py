@@ -22,8 +22,8 @@ class BiliParse(YtParser):
     __reserved_parameters__ = ["p"]
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
-    async def parse(self, url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
-        if ourl := await self.is_dynamic(url):
+    async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
+        if ourl := await self.is_dynamic(raw_url):
             dynamic = await self.get_dynamic_info(ourl)
             content = self.hashtag_handler(dynamic.content)
             photos = []
@@ -41,10 +41,10 @@ class BiliParse(YtParser):
             )
         else:
             try:
-                return await self.bili_api_parse(url)
+                return await self.bili_api_parse(raw_url)
             except Exception:
                 try:
-                    return await self.ytp_parse(url)
+                    return await self.ytp_parse(raw_url)
                 except Exception as e:
                     raise ParseError("Bilibili解析失败") from e
 
@@ -132,7 +132,7 @@ class BiliParse(YtParser):
         )
 
     async def ytp_parse(self, url) -> Union["YtVideoParseResult"]:
-        result = await super().parse(url)
+        result = await super()._do_parse(url)
         _d = {
             "title": result.title,
             "raw_url": result.raw_url,

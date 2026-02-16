@@ -9,8 +9,8 @@ class ThreadsParser(BaseParser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+threads.com/@[\w.]+/post/.*"
 
-    async def parse(self, url: str) -> "MultimediaParseResult":
-        post = await ThreadsAPI(proxy=self.cfg.proxy).parse(url)
+    async def _do_parse(self, raw_url: str) -> "MultimediaParseResult":
+        post = await ThreadsAPI(proxy=self.cfg.proxy).parse(raw_url)
         media = []
         if post.media:
             pm: list[ThreadsMedia] = post.media if isinstance(post.media, list) else [post.media]
@@ -20,7 +20,7 @@ class ThreadsParser(BaseParser):
                         media.append(VideoRef(url=m.url, thumb_url=m.thumb_url, width=m.width, height=m.height))
                     case ThreadsMediaType.IMAGE:
                         media.append(ImageRef(url=m.url, thumb_url=m.url, width=m.width, height=m.height))
-        return MultimediaParseResult(content=post.content, media=media, raw_url=url)
+        return MultimediaParseResult(content=post.content, media=media, raw_url=raw_url)
 
 
 __all__ = ["ThreadsParser"]

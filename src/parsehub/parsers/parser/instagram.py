@@ -23,12 +23,12 @@ class InstagramParser(BaseParser):
     __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reel|share|.*/p|.*/reel)/.*"
     __redirect_keywords__ = ["share"]
 
-    async def parse(self, url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
-        shortcode = self.get_short_code(url)
+    async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
+        shortcode = self.get_short_code(raw_url)
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
 
-        post = await self._parse(url, shortcode)
+        post = await self._parse(raw_url, shortcode)
 
         try:
             dimensions: dict = post._field("dimensions")
@@ -36,7 +36,7 @@ class InstagramParser(BaseParser):
             dimensions = {}
         width, height = dimensions.get("width", 0) or 0, dimensions.get("height", 0) or 0
 
-        k = {"title": post.title, "content": post.caption, "raw_url": url}
+        k = {"title": post.title, "content": post.caption, "raw_url": raw_url}
         match post.typename:
             case "GraphSidecar":
                 media = [

@@ -12,9 +12,9 @@ class PipixParser(BaseParser):
     __match__ = r"^(http(s)?://)?h5.pipix.com/(s|ppx/item)/.+"
     __redirect_keywords__ = ["/s/"]
 
-    async def parse(self, url: str) -> Union["ImageParseResult", "VideoParseResult"]:
+    async def _do_parse(self, raw_url: str) -> Union["ImageParseResult", "VideoParseResult"]:
         try:
-            ppx = await Pipix(self.cfg.proxy).parse(url)
+            ppx = await Pipix(self.cfg.proxy).parse(raw_url)
         except Exception as e:
             raise ParseError("皮皮虾解析失败") from e
 
@@ -28,10 +28,10 @@ class PipixParser(BaseParser):
                     height=ppx.video_height,
                     width=ppx.video_width,
                 ),
-                raw_url=url,
+                raw_url=raw_url,
             )
         else:
-            return ImageParseResult(title=ppx.content, photo=ppx.img_url, raw_url=url)
+            return ImageParseResult(title=ppx.content, photo=ppx.img_url, raw_url=raw_url)
 
 
 __all__ = ["PipixParser"]

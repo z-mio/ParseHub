@@ -33,10 +33,20 @@ class BaseParser(ABC):
         url = match_url(text)
         return bool(re.match(cls.__match__, url))
 
-    @abstractmethod
     async def parse(self, url: str) -> AnyParseResult:
         """解析
-        :param url: raw_url
+        :param url: 分享文案 / 分享链接
+        :return: 解析结果
+        """
+        raw_url = await self.get_raw_url(url)
+        result = await self._do_parse(raw_url)
+        result.platform = self.__platform__
+        return result
+
+    @abstractmethod
+    async def _do_parse(self, raw_url: str) -> AnyParseResult:
+        """解析
+        :param raw_url: 重定向后的没有跟踪参数的原始链接
         """
         raise NotImplementedError
 

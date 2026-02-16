@@ -14,10 +14,10 @@ class KuaiShouParser(BaseParser):
     __match__ = r"^(http(s)?://)?(www|v)\.kuaishou.com/.+"
     __redirect_keywords__ = ["v.kuaishou", "/f/"]
 
-    async def parse(self, url: str) -> VideoParseResult:
+    async def _do_parse(self, raw_url: str) -> VideoParseResult:
         ks = KuaiShouAPI(self.cfg.cookie)
         try:
-            result = await ks.get_video_info(url)
+            result = await ks.get_video_info(raw_url)
         except Exception as e:
             raise ParseError(f"快手解析失败: {e}") from e
         else:
@@ -30,7 +30,7 @@ class KuaiShouParser(BaseParser):
                     height=result.height,
                     width=result.width,
                 ),
-                raw_url=url,
+                raw_url=raw_url,
             )
 
 
