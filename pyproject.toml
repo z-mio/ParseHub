@@ -56,7 +56,6 @@ exclude = [
     "test",
     "src/parsehub/deps/xhs"
 ]
-
 [tool.ruff.lint]
 select = [
     "E", # pycodestyle 错误检查
@@ -71,4 +70,3 @@ ignore = [
     "B008", # 不在参数默认值中执行函数调用
     "C901", # 函数复杂度过高
 ]
-

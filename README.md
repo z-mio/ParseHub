@@ -47,7 +47,7 @@ from parsehub import ParseHub
 async def main():
     ph = ParseHub()
     # parse() 会自动识别链接所属平台，返回对应的解析结果。支持短链、分享文本等多种输入格式。
-    result = await ph.parse("https://x.com/elonmusk/status/1234567890")
+    result = await ph._do_parse("https://x.com/elonmusk/status/1234567890")
 
     print(result.title)  # 标题
     print(result.content)  # 正文
@@ -62,7 +62,7 @@ asyncio.run(main())
 ### 下载媒体
 
 ```python
-result = await ph.parse("https://www.bilibili.com/video/BV1xx411c7mD")
+result = await ph._do_parse("https://www.bilibili.com/video/BV1xx411c7mD")
 
 download_result = await result.download()
 
