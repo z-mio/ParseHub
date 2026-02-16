@@ -59,4 +59,4 @@ class ParseConfig(BaseModel):
                 result[k.strip()] = val.strip()
             return result or None
 
-        raise ValueError("cookie 必须是字符串、字典或 None")
+        raise ValueError("cookie 必须是字符串、字典、JSON 或 None")

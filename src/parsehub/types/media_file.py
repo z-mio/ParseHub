@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.parsehub.utils.media_info import MediaInfoReader
+from ..utils.media_info import MediaInfoReader
 
 
 @dataclass(kw_only=True)
