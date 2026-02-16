@@ -35,15 +35,16 @@ class ParseResult(ABC):  # noqa: B024
         :param platform: 平台
         """
         self.title = (title or "").strip()
-        self.media = media
         self.content = (content or "").strip()
+        self.media = media
         self.raw_url = raw_url
         self.platform = platform
 
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(platform={self.platform}, title={self.title or "''"},"
-            f" content={self.content or "''"}, raw_url={self.raw_url})"
+            f" content={self.content or "''"}, media={f'[{len(self.media)}]' if self.media else None}, "
+            f"raw_url={self.raw_url})"
         )
 
     async def _do_download(
