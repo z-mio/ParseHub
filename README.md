@@ -129,7 +129,7 @@ ParseConfig(cookie={"key1": "value1", "key2": "value2"})
 ### 全局配置
 
 ```python
-from parsehub.config.config import GlobalConfig
+from parsehub.config import GlobalConfig
 
 # 自定义默认下载目录
 GlobalConfig.default_save_dir = "./my_downloads"
