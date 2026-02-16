@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from typing import Union
 
 import httpx
+from loguru import logger
 
 from ..config import GlobalConfig
-from ..log import logger
 from ..types import ParseError
 
 

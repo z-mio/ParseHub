@@ -1,13 +1,22 @@
 [project]
 name = "parsehub"
 version = "1.5.14"
-description = "支持AI总结的社交媒体聚合解析器"
+description = "轻量、异步、开箱即用的社交媒体聚合解析库"
 readme = "README.md"
 requires-python = ">=3.12.0"
 authors = [
     { name = "梓澪", email = "zilingmio@gmail.com" }
 ]
 license = { text = "MIT" }
+keywords = ["parser", "video-downloader", "social-media", "crawler", "parsehub"]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
 dependencies = [
     "aiofiles>=23.2",
     "beautifulsoup4>=4.12.3",
@@ -25,7 +34,6 @@ dependencies = [
     "markdown>=3.7",
     "requests",
     "httpx>=0.24.1",
-    "pydantic-settings>=2.10.1",
     "pillow>=12.1.0",
     "python-slugify[unidecode]>=8.0.4",
 ]

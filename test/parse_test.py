@@ -6,7 +6,7 @@ import os
 from loguru import logger
 
 from src.parsehub.config import GlobalConfig, ParseConfig
-from src.parsehub.main import ParseHub
+from src.parsehub import ParseHub
 from src.parsehub.types import ParseResult
 
 # 测试用 URL 集合
