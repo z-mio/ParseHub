@@ -182,7 +182,7 @@ class YtVideoParseResult(VideoParseResult):
                     "Requested format is not available",
                 )
             ):
-                paramss.pop("writeautomaticsub")
+                paramss.pop("writeautomaticsub", None)
                 await self.__download(paramss, count + 1)
 
         except Exception as e:

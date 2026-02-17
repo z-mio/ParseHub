@@ -42,7 +42,9 @@ class DouyinParser(BaseParser):
         async with httpx.AsyncClient(timeout=15) as client:
             params = {"url": url, "minimal": False}
             try:
-                response = await client.get(f"{GlobalConfig.douyin_api}/api/hybrid/video_data", params=params)
+                response = await client.get(
+                    f"{str(GlobalConfig.douyin_api).rstrip('/')}/api/hybrid/video_data", params=params
+                )
             except httpx.ReadTimeout as e:
                 raise ParseError("抖音解析超时") from e
         if response.status_code != 200:

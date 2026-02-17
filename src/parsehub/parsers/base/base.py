@@ -2,7 +2,7 @@ import importlib
 import pkgutil
 import re
 from abc import ABC, abstractmethod
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 
@@ -104,5 +104,5 @@ class BaseParser(ABC):
         for i in query_params.copy().keys():
             if i not in self.__reserved_parameters__:
                 del query_params[i]
-        new_query = "&".join([f"{k}={v[0]}" for k, v in query_params.items()])
+        new_query = urlencode(query_params, doseq=True)
         return parsed_url._replace(query=new_query).geturl()
