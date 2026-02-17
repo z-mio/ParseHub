@@ -267,5 +267,8 @@ class DownloadResult:
         except Exception as e:
             raise DeleteError(f"目录删除失败: {self.output_dir}") from e
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(media={self.media}, output_dir={self.output_dir})"
+
 
 AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult

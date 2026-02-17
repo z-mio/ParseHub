@@ -40,33 +40,21 @@ uv add parsehub
 ## 🚀 快速开始
 
 ```python
-import asyncio
 from parsehub import ParseHub
 
-
-async def main():
-    ph = ParseHub()
-    # parse() 会自动识别链接所属平台，返回对应的解析结果。支持短链、分享文本等多种输入格式。
-    result = await ph._do_parse("https://x.com/elonmusk/status/1234567890")
-
-    print(result.title)  # 标题
-    print(result.content)  # 正文
-    print(result.platform)  # 平台
-    print(result.raw_url)  # 清理追踪参数后的原始链接
-    print(result.media)  # 媒体信息 (VideoRef / [ImageRef, ...] 等)
-
-
-asyncio.run(main())
+result = ParseHub().parse_sync("https://www.xiaoheihe.cn/app/bbs/link/174972336")
+print(result)
+# ImageParseResult(platform=小黑盒, title=名为希望和绝望的红包, content=[cube_doge][cube_doge][cube_doge], media=[17], raw_url=https://www.xiaoheihe.cn/app/bbs/link/174972336)
 ```
 
 ### 下载媒体
 
 ```python
-result = await ph._do_parse("https://www.bilibili.com/video/BV1xx411c7mD")
+from parsehub import ParseHub
 
-download_result = await result.download()
-
-print(download_result.media)  # 本地文件信息
+result = ParseHub().download_sync("https://www.xiaoheihe.cn/app/bbs/link/174972336")
+print(result)
+# DownloadResult(media=[ImageFile(path='D:\\downloads\\名为希望和绝望的红包\\0.jpg', width=1773, height=2364), ...], output_dir=D:\downloads\名为希望和绝望的红包)
 ```
 
 ## 🌐 支持平台
