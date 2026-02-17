@@ -41,9 +41,10 @@ class ParseResult(ABC):  # noqa: B024
         self.platform = platform
 
     def __repr__(self):
+        media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None
         return (
             f"{self.__class__.__name__}(platform={self.platform}, title={self.title or "''"},"
-            f" content={self.content or "''"}, media={f'[{len(self.media)}]' if self.media else None}, "
+            f" content={self.content or "''"}, media={media_count}, "
             f"raw_url={self.raw_url})"
         )
 
