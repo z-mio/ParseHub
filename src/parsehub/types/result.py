@@ -240,9 +240,10 @@ class RichTextParseResult(ParseResult):
         super().__init__(title=title, media=media, content=self.plaintext_content, raw_url=raw_url)
 
     def __repr__(self):
+        media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None
         return (
             f"{self.__class__.__name__}(title={self.title or "''"},"
-            f" markdown_content={self.markdown_content or "''"}, raw_url={self.raw_url})"
+            f" markdown_content={self.markdown_content or "''"}, media={media_count} raw_url={self.raw_url})"
         )
 
     @property
