@@ -108,7 +108,12 @@ class Twitter:
             match i["type"]:
                 case "photo":
                     medias.append(
-                        TwitterPhoto(url=self._build_img_url(media_url_https, "orig"), width=width, height=height)
+                        TwitterPhoto(
+                            url=self._build_img_url(media_url_https, "orig"),
+                            width=width,
+                            height=height,
+                            thumb_url=self._build_img_url(media_url_https, "small"),
+                        )
                     )
                 case "video":
                     video_info = i.get("video_info", {})
@@ -187,6 +192,7 @@ class TwitterPhoto:
     url: str
     height: int
     width: int
+    thumb_url: str | None = None
 
 
 @dataclass
