@@ -53,8 +53,8 @@ class YtParser(BaseParser, register=False):
         except Exception as e:
             raise ParseError(f"解析视频信息失败: {str(e)}") from e
 
-        if dl.get("_type"):
-            dl = dl["entries"][0]
+        if dl.get("_type") and dl["_type"] == "playlist":  # type: ignore
+            dl = dl["entries"][0]  # type: ignore
             url = dl["webpage_url"]
         title = dl["title"]
         duration = dl.get("duration", 0) or 0
@@ -91,11 +91,11 @@ class YtParser(BaseParser, register=False):
         params = {
             "format": "mp4+bestvideo[height<=1080]+bestaudio",
             "quiet": True,  # 不输出日志
-            # "writethumbnail": True,  # 下载缩略图
+            # "writethumbnail": True, # 下载缩略图
             # "postprocessors": [
             #     {
             #         "key": "FFmpegVideoConvertor",
-            #         "preferedformat": "mp4",  # 视频格式
+            #         "preferedformat": "mp4", # 视频格式
             #     }
             # ],
             "playlist_items": "1",  # 分p列表默认解析第一个
