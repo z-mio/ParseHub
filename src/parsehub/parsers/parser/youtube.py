@@ -2,7 +2,7 @@ import io
 from typing import Any
 
 from ...types.platform import Platform
-from ..base.ytdlp import YtImageParseResult, YtParser, YtVideoParseResult
+from ..base.ytdlp import YtParser
 
 
 class YtbParse(YtParser):
@@ -11,9 +11,6 @@ class YtbParse(YtParser):
     __match__ = r"^(http(s)?://).*youtu(be|.be)?(\.com)?/(?!(live|post))(?!@).+"
     __redirect_keywords__ = ["m.youtube.com"]
     __reserved_parameters__ = ["v", "list", "index"]
-
-    async def _do_parse(self, raw_url: str) -> YtVideoParseResult | YtImageParseResult:
-        return await super()._do_parse(raw_url)
 
     @property
     def params(self):
