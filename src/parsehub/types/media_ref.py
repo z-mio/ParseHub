@@ -48,10 +48,6 @@ class ImageRef(MediaRef):
 
     ext: str = "jpg"
 
-    def __post_init__(self):
-        if self.thumb_url is None:
-            self.thumb_url = self.url
-
 
 @dataclass(kw_only=True)
 class AniRef(MediaRef):
@@ -59,6 +55,7 @@ class AniRef(MediaRef):
     Attributes:
         url: URL
         ext: 默认扩展名
+        thumb_url: 缩略图 URL
         width: 宽度
         height: 高度
         duration: 视频时长，单位: 秒
@@ -86,10 +83,6 @@ class LivePhotoRef(MediaRef):
     video_url: str = None
     video_ext: str = "mp4"
     duration: int = 3
-
-    def __post_init__(self):
-        if self.thumb_url is None:
-            self.thumb_url = self.url
 
 
 AnyMediaRef = ImageRef | VideoRef | AniRef | LivePhotoRef
