@@ -21,7 +21,7 @@ class ParseResult(ABC):  # noqa: B024
 
     def __init__(
         self,
-        title: str,
+        title: str = "",
         content: str = "",
         media: list[AnyMediaRef] | AnyMediaRef = None,
         raw_url: str = None,

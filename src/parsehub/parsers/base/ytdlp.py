@@ -10,7 +10,6 @@ from ...config.config import GlobalConfig
 from ...types import (
     DownloadError,
     DownloadResult,
-    ImageParseResult,
     ParseError,
     ProgressCallback,
     VideoFile,
@@ -34,7 +33,7 @@ def download_video(yto_params: dict, urls: list[str]) -> None:
 class YtParser(BaseParser, register=False):
     """yt-dlp解析器"""
 
-    async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult", "YtImageParseResult"]:
+    async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult"]:
         raw_url = await self.get_raw_url(raw_url)
         video_info = await self._parse(raw_url)
         _d = {
@@ -43,7 +42,7 @@ class YtParser(BaseParser, register=False):
             "raw_url": raw_url,
             "dl": video_info,
         }
-        return YtVideoParseResult(video=video_info.url, **_d)
+        return YtVideoParseResult(video=None, **_d)
 
     async def _parse(self, url) -> "YtVideoInfo":
         try:
@@ -57,11 +56,11 @@ class YtParser(BaseParser, register=False):
             dl = dl["entries"][0]  # type: ignore
             url = dl["webpage_url"]
         title = dl["title"]
-        duration = dl.get("duration", 0) or 0
+        duration = dl.get("duration", 0)
         thumbnail = dl["thumbnail"]
         description = dl["description"]
-        width = dl.get("width", 0) or 0
-        height = dl.get("height", 0) or 0
+        width = dl.get("width", 0)
+        height = dl.get("height", 0)
         return YtVideoInfo(
             raw_video_info=dl,
             title=title,
@@ -91,7 +90,7 @@ class YtParser(BaseParser, register=False):
         params = {
             "format": "mp4+bestvideo[height<=1080]+bestaudio",
             "quiet": True,  # 不输出日志
-            "noprogress": True,
+            "noprogress": True,  # 不输出下载进度
             # "writethumbnail": True, # 下载缩略图
             # "postprocessors": [
             #     {
@@ -107,7 +106,7 @@ class YtParser(BaseParser, register=False):
 class YtVideoParseResult(VideoParseResult):
     def __init__(
         self,
-        title=None,
+        title,
         video=None,
         content=None,
         raw_url=None,
@@ -166,7 +165,7 @@ class YtVideoParseResult(VideoParseResult):
         loop = asyncio.get_running_loop()
         try:
             await asyncio.wait_for(
-                loop.run_in_executor(EXC, download_video, paramss, [self.media.url]),
+                loop.run_in_executor(EXC, download_video, paramss, [self.dl.url]),
                 timeout=300,
             )
         except TimeoutError as e:
@@ -187,13 +186,6 @@ class YtVideoParseResult(VideoParseResult):
             raise DownloadError(f"下载失败: {str(e)}") from e
 
 
-class YtImageParseResult(ImageParseResult):
-    def __init__(self, title="", photo=None, content=None, raw_url=None, dl: "YtVideoInfo" = None):
-        """dl: yt-dlp解析结果"""
-        super().__init__(title=title, photo=photo, content=content, raw_url=raw_url)
-        self.dl = dl
-
-
 @dataclass
 class YtVideoInfo:
     """raw_video_info: yt-dlp解析结果"""
@@ -203,6 +195,7 @@ class YtVideoInfo:
     description: str
     thumbnail: str
     url: str
+    """视频链接, 非视频下载链接"""
     duration: int = 0
     width: int = 0
     height: int = 0
