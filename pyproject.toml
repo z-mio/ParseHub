@@ -54,7 +54,6 @@ Issues = "https://github.com/z-mio/parsehub/issues"
 line-length = 120
 exclude = [
     "test",
-    "src/parsehub/deps/xhs"
 ]
 [tool.ruff.lint]
 select = [
