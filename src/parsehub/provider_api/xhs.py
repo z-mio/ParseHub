@@ -14,7 +14,7 @@ class XHSAPI:
 
     async def __fetch_html(self, url: str):
         async with httpx.AsyncClient(proxy=self.proxy) as client:
-            return (await client.get(url, timeout=15)).text
+            return (await client.get(url, timeout=30)).text
 
     @staticmethod
     async def __extract_data(html: str):

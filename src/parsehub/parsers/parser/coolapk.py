@@ -27,7 +27,7 @@ class CoolapkParser(BaseParser):
     async def _do_parse(
         self, raw_url: str
     ) -> Union["CoolapkImageParseResult", "CoolapkRichTextParseResult", "CoolapkMultimediaParseResult"]:
-        raw_url = clear_params(raw_url, ["s", "shareKey"])
+        raw_url_ = clear_params(raw_url, ["s", "shareKey"])
         try:
             coolapk = await Coolapk.parse(raw_url, proxy=self.cfg.proxy)
         except Exception as e:
@@ -38,20 +38,20 @@ class CoolapkParser(BaseParser):
                 title=coolapk.title,
                 media=media,
                 markdown_content=coolapk.markdown_content,
-                raw_url=raw_url,
+                raw_url=raw_url_,
             )
         if any(isinstance(m, AniRef) for m in media):
             return CoolapkMultimediaParseResult(
                 title=coolapk.title,
                 media=media,
                 content=coolapk.text_content,
-                raw_url=raw_url,
+                raw_url=raw_url_,
             )
         return CoolapkImageParseResult(
             title=coolapk.title,
             photo=media,
             content=coolapk.text_content,
-            raw_url=raw_url,
+            raw_url=raw_url_,
         )
 
 
