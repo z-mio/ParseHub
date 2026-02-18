@@ -31,7 +31,7 @@ class CoolapkParser(BaseParser):
         try:
             coolapk = await Coolapk.parse(raw_url, proxy=self.cfg.proxy)
         except Exception as e:
-            raise ParseError(e) from e
+            raise ParseError(str(e)) from e
         media = [AniRef(url=i) if ".gif" in i else ImageRef(url=i) for i in coolapk.imgs]
         if coolapk.markdown_content:
             return CoolapkRichTextParseResult(

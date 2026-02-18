@@ -40,9 +40,9 @@ class TwitterParser(BaseParser):
                             f"Twitter 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(self.cfg.cookie)}"
                         ) from e2
                 else:
-                    raise ParseError(e) from e
+                    raise ParseError(str(e)) from e
             else:
-                raise ParseError(e) from e
+                raise ParseError(str(e)) from e
         return tweet
 
     @staticmethod

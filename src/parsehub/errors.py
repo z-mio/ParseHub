@@ -1,8 +1,8 @@
 class ParseHubError(Exception):
     MSG = __doc__
 
-    def __init__(self, *args):
-        super().__init__(self.MSG, *args)
+    def __init__(self, msg: str = ""):
+        super().__init__(self.MSG if not msg else f"{self.MSG}: {msg}")
 
 
 class ParseError(ParseHubError):
