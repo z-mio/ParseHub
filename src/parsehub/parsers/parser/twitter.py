@@ -51,11 +51,17 @@ class TwitterParser(BaseParser):
         for m in tweet.media:
             match m:
                 case TwitterPhoto():
-                    path = ImageRef(url=m.url)
+                    path = ImageRef(url=m.url, height=m.height, width=m.width)
                 case TwitterVideo():
-                    path = VideoRef(url=m.url, height=m.height, width=m.width)
+                    path = VideoRef(
+                        url=m.url,
+                        height=m.height,
+                        width=m.width,
+                        duration=int(m.duration_millis / 1000),
+                        thumb_url=m.thumb_url,
+                    )
                 case TwitterAni():
-                    path = AniRef(url=m.url, ext="mp4")
+                    path = AniRef(url=m.url, ext="mp4", height=m.height, width=m.width, thumb_url=m.thumb_url)
             media.append(path)
         return MultimediaParseResult(content=tweet.full_text, media=media, raw_url=url)
 
