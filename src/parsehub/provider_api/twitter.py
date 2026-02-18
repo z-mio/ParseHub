@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Union
+from typing import Literal, Union
 
 import httpx
 from loguru import logger
@@ -70,8 +70,7 @@ class Twitter:
         response.raise_for_status()
         return self.parse(response.json())
 
-    @staticmethod
-    def parse(result: dict):
+    def parse(self, result: dict):
         if e := result.get("errors"):
             raise Exception(f"error -1: {e[0]['message']}")
 
@@ -101,22 +100,43 @@ class Twitter:
         media = legacy["entities"].get("media", [])
         medias = []
         for i in media:
+            original_info = i.get("original_info", {})
+            height = original_info.get("height", 0)
+            width = original_info.get("width", 0)
+            media_url_https = i["media_url_https"]
+
             match i["type"]:
                 case "photo":
-                    medias.append(TwitterPhoto(url=i["media_url_https"]))
+                    medias.append(
+                        TwitterPhoto(url=self._build_img_url(media_url_https, "orig"), width=width, height=height)
+                    )
                 case "video":
-                    original_info = i.get("original_info", {})
+                    video_info = i.get("video_info", {})
                     medias.append(
                         TwitterVideo(
-                            url=i["video_info"]["variants"][-1]["url"],
-                            height=original_info.get("height", 0),
-                            width=original_info.get("width", 0),
+                            url=video_info["variants"][-1]["url"],
+                            height=height,
+                            width=width,
+                            duration_millis=video_info.get("duration_millis", 0),
+                            thumb_url=self._build_img_url(media_url_https, "medium"),
                         )
                     )
                 case "animated_gif":
-                    medias.append(TwitterAni(url=i["video_info"]["variants"][-1]["url"]))
+                    medias.append(
+                        TwitterAni(
+                            url=i["video_info"]["variants"][-1]["url"],
+                            height=height,
+                            width=width,
+                            thumb_url=self._build_img_url(media_url_https, "small"),
+                        )
+                    )
 
         return TwitterTweet(tweet_id=tweet_id, full_text=full_text, media=medias)
+
+    @staticmethod
+    def _build_img_url(url: str, size: Literal["orig", "large", "medium", "small", "thumb"]):
+        p = "&" if "?" in url else "?"
+        return f"{url}{p}name={size}"
 
     @staticmethod
     def get_id_by_url(url: str):
@@ -158,13 +178,20 @@ class TwitterVideo:
     url: str
     height: int
     width: int
+    duration_millis: int
+    thumb_url: str | None = None
 
 
 @dataclass
 class TwitterPhoto:
     url: str
+    height: int
+    width: int
 
 
 @dataclass
 class TwitterAni:
     url: str
+    height: int
+    width: int
+    thumb_url: str | None = None
