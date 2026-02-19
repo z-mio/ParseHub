@@ -80,11 +80,10 @@ class BiliParse(YtParser):
         """是动态"""
         async with httpx.AsyncClient(proxy=self.cfg.proxy) as cli:
             url = str((await cli.get(url, follow_redirects=True, timeout=30)).url)
-        try:
-            if bool(re.search(r"\b\d{18,19}\b", url).group(0)):
-                return url
-        except AttributeError:
-            ...
+
+        if re.search(r"\b\d{18,19}\b", url):
+            return url
+        return None
 
     async def get_dynamic_info(self, url: str) -> BiliDynamic:
         async with BiliAPI(proxy=self.cfg.proxy) as bili:
