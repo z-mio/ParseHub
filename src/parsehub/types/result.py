@@ -43,8 +43,8 @@ class ParseResult(ABC):  # noqa: B024
     def __repr__(self):
         media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None
         return (
-            f"{self.__class__.__name__}(platform={self.platform}, title={self.title or "''"},"
-            f" content={self.content or "''"}, media={media_count}, "
+            f"{self.__class__.__name__}(platform={self.platform}, title={self.title or ''},"
+            f" content={self.content or ''}, media={media_count}, "
             f"raw_url={self.raw_url})"
         )
 
@@ -243,8 +243,8 @@ class RichTextParseResult(ParseResult):
     def __repr__(self):
         media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None
         return (
-            f"{self.__class__.__name__}(title={self.title or "''"},"
-            f" markdown_content={self.markdown_content or "''"}, media={media_count} raw_url={self.raw_url})"
+            f"{self.__class__.__name__}(title={self.title or ''},"
+            f" markdown_content={self.markdown_content or ''}, media={media_count} raw_url={self.raw_url})"
         )
 
     @property
