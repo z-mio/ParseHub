@@ -202,7 +202,8 @@ class ImageParseResult(ParseResult):
         content: str = "",
         raw_url: str = None,
     ):
-        photo = [ImageRef(url=p) if isinstance(p, str) else p for p in photo]
+        if photo:
+            photo = [ImageRef(url=p) if isinstance(p, str) else p for p in photo]
         super().__init__(title=title, media=photo, content=content, raw_url=raw_url)
 
 
