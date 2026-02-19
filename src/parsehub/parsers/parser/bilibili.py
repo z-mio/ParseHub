@@ -93,6 +93,7 @@ class BiliParse(YtParser):
             except Exception as e:
                 if "风控" in str(e):
                     raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cfg.cookie)}") from e
+                raise ParseError(str(e)) from e
         return dynamic_info
 
     async def bili_api_parse(self, url) -> Union["BiliVideoParseResult", "ImageParseResult"]:

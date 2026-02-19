@@ -72,12 +72,16 @@ class BiliAPI:
     async def get_video_info(self, url: str):
         """获取视频详细信息"""
         bvid = self.get_bvid(url)
+        if not bvid:
+            raise ValueError(f"Invalid url: {url}")
         response = await self._get_client().get(
             "https://api.bilibili.com/x/web-interface/view/detail",
             params={"bvid": bvid},
         )
         if response.status_code == 412:
             raise Exception("由于触发哔哩哔哩安全风控策略，该次访问请求被拒绝。")
+        else:
+            response.raise_for_status()
         return response.json()
 
     async def get_video_playurl(self, url, cid, b3, b4, is_high_quality=True) -> dict:
