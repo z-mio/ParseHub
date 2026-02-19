@@ -27,6 +27,14 @@ class ParseHub:
         p = parser(config=self.config)
         return await p.parse(url)
 
+    def parse_sync(self, url: str) -> AnyParseResult:
+        """
+        同步解析
+        :param url: 分享文案 / 分享链接
+        :return: AnyParseResult
+        """
+        return get_event_loop().run_until_complete(self.parse(url))
+
     async def download(
         self,
         url: str,
@@ -57,14 +65,6 @@ class ParseHub:
         result = await self.parse(url)
         return await result.download(path, callback, callback_args, proxy)
 
-    def parse_sync(self, url: str) -> AnyParseResult:
-        """
-        同步解析
-        :param url: 分享文案 / 分享链接
-        :return: AnyParseResult
-        """
-        return get_event_loop().run_until_complete(self.parse(url))
-
     def download_sync(
         self,
         url: str,
@@ -81,6 +81,17 @@ class ParseHub:
         :param callback_args: 进度回调函数参数
         :param proxy: 代理
         :return: DownloadResult
+
+        Note:
+            下载进度回调函数签名::
+
+                async def callback(current: int, total: int, unit: Literal['bytes', 'count'], *args) -> None
+
+            - current: 当前进度值
+            - total: 总进度值
+            - unit: 进度单位
+                - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
+                - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
         return get_event_loop().run_until_complete(self.download(url, path, callback, callback_args, proxy))
 

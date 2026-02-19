@@ -10,6 +10,7 @@ from slugify import slugify
 from ..config import GlobalConfig
 from ..errors import DeleteError, DownloadError
 from ..utils.downloader import download
+from ..utils.utils import get_event_loop
 from .callback import ProgressCallback
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef
@@ -171,6 +172,33 @@ class ParseResult(ABC):  # noqa: B024
         return await self._do_download(
             output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy
         )
+
+    def download_sync(
+        self,
+        path: str | Path = None,
+        callback: ProgressCallback = None,
+        callback_args: tuple = (),
+        proxy: str | None = None,
+    ) -> "DownloadResult":
+        """
+        :param path: 保存路径
+        :param callback: 下载进度回调函数
+        :param callback_args: 下载进度回调函数参数
+        :param proxy: 代理
+        :return: DownloadResult
+
+        Note:
+            下载进度回调函数签名::
+
+                async def callback(current: int, total: int, unit: Literal['bytes', 'count'], *args) -> None
+
+            - current: 当前进度值
+            - total: 总进度值
+            - unit: 进度单位
+                - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
+                - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
+        """
+        return get_event_loop().run_until_complete(self.download(path, callback, callback_args, proxy))
 
 
 class VideoParseResult(ParseResult):
