@@ -14,6 +14,7 @@ from ...types import (
     ProgressCallback,
     VideoFile,
     VideoParseResult,
+    VideoRef,
 )
 from .base import BaseParser
 
@@ -34,7 +35,6 @@ class YtParser(BaseParser, register=False):
     """yt-dlp解析器"""
 
     async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult"]:
-        raw_url = await self.get_raw_url(raw_url)
         video_info = await self._parse(raw_url)
         _d = {
             "title": video_info.title,
@@ -42,7 +42,16 @@ class YtParser(BaseParser, register=False):
             "raw_url": raw_url,
             "dl": video_info,
         }
-        return YtVideoParseResult(video=None, **_d)
+        return YtVideoParseResult(
+            video=VideoRef(
+                url=raw_url,
+                thumb_url=video_info.thumbnail,
+                width=video_info.width,
+                height=video_info.height,
+                duration=video_info.duration,
+            ),
+            **_d,
+        )
 
     async def _parse(self, url) -> "YtVideoInfo":
         try:
@@ -195,7 +204,7 @@ class YtVideoInfo:
     description: str
     thumbnail: str
     url: str
-    """视频链接, 非视频下载链接"""
+    """Youtube 链接, 非视频下载链接"""
     duration: int = 0
     width: int = 0
     height: int = 0
