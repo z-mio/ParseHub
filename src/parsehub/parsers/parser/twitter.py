@@ -15,7 +15,7 @@ from ..base.base import BaseParser
 class TwitterParser(BaseParser):
     __platform__ = Platform.TWITTER
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)?.+(twitter|x).com/.*/status/\d+"
+    __match__ = r"^(http(s)?://)?.+(twitter|fixupx|x).com/.*/status/\d+"
 
     async def _do_parse(self, raw_url: str) -> "MultimediaParseResult":
         tweet = await self._parse(raw_url)
