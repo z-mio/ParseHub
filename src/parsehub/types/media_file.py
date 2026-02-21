@@ -23,6 +23,10 @@ class MediaFile:
             self.width = info.width
             self.height = info.height
 
+    def exists(self) -> bool:
+        """检查文件是否存在"""
+        return Path(self.path).exists()
+
 
 @dataclass(kw_only=True)
 class VideoFile(MediaFile):
