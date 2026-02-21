@@ -1,6 +1,6 @@
 [project]
 name = "parsehub"
-version = "2.0.0"
+version = "2.0.1"
 description = "轻量、异步、开箱即用的社交媒体聚合解析库"
 readme = "README.md"
 requires-python = ">=3.12.0"
