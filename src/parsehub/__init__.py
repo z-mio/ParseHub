@@ -24,6 +24,8 @@ class ParseHub:
         :param url: 分享文案 / 分享链接
         """
         parser = self.get_parser(url)
+        if not parser:
+            raise UnknownPlatform(url)
         p = parser(config=self.config)
         return await p.parse(url)
 
@@ -96,7 +98,10 @@ class ParseHub:
         return get_event_loop().run_until_complete(self.download(url, path, callback, callback_args, proxy))
 
     async def get_raw_url(self, url: str) -> str:
-        """获取原始链接"""
+        """获取原始链接
+        :param url: 分享文案 / 分享链接
+        :return: 原始链接
+        """
         parser = self.get_parser(url)
         try:
             return await parser(config=self.config).get_raw_url(url)
@@ -104,23 +109,29 @@ class ParseHub:
             raise ParseError from e
 
     def _select_parser(self, url: str) -> type[BaseParser] | None:
-        """选择解析器"""
+        """选择解析器
+        :param url: 分享文案 / 分享链接
+        """
         for parser in self.parsers:
             if parser.match(url):
                 return parser
         return None
 
-    def get_parser(self, url) -> type[BaseParser]:
-        """获取解析器"""
+    def get_parser(self, url) -> type[BaseParser] | None:
+        """获取解析器
+        :param url: 分享文案 / 分享链接
+        """
         if parser := self._select_parser(url):
             return parser
-        raise UnknownPlatform(url)
+        return None
 
-    def get_platform(self, url) -> Platform:
-        """获取平台"""
+    def get_platform(self, url) -> Platform | None:
+        """获取平台
+        :param url: 分享文案 / 分享链接
+        """
         if parser := self._select_parser(url):
             return parser.__platform__
-        raise UnknownPlatform(url)
+        return None
 
     def get_platforms(self) -> list[dict]:
         """获取所有解析器的信息
