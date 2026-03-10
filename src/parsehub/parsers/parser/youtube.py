@@ -20,8 +20,8 @@ class YtbParse(YtParser):
             # "subtitlesformat": "ttml", # 字幕格式
             # "subtitleslangs": ["en", "ja", "zh-CN"], # 字幕语言
         }
-        if self.cfg.cookie:
-            sub["cookiefile"] = io.StringIO(self.to_netscape_cookie(self.cfg.cookie, "youtube.com"))
+        if self.cookie:
+            sub["cookiefile"] = io.StringIO(self.to_netscape_cookie(self.cookie, "youtube.com"))
         p = sub | super().params
         return p
 

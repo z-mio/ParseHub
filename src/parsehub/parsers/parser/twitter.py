@@ -26,18 +26,18 @@ class TwitterParser(BaseParser):
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str):
-        x = Twitter(self.cfg.proxy, cookie=None)
+        x = Twitter(self.proxy, cookie=None)
         try:
             tweet = await x.fetch_tweet(url)
         except Exception as e:
             if any(s in str(e) for s in ("error -2",)):
-                if self.cfg.cookie:
-                    x2 = Twitter(self.cfg.proxy, cookie=self.cfg.cookie)
+                if self.cookie:
+                    x2 = Twitter(self.proxy, cookie=self.cookie)
                     try:
                         tweet = await x2.fetch_tweet(url)
                     except Exception as e2:
                         raise ParseError(
-                            f"Twitter 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(self.cfg.cookie)}"
+                            f"Twitter 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(self.cookie)}"
                         ) from e2
                 else:
                     raise ParseError(str(e)) from e

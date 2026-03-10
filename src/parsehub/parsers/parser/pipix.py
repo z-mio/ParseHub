@@ -13,7 +13,7 @@ class PipixParser(BaseParser):
 
     async def _do_parse(self, raw_url: str) -> Union["ImageParseResult", "VideoParseResult"]:
         try:
-            ppx = await Pipix(self.cfg.proxy).parse(raw_url)
+            ppx = await Pipix(self.proxy).parse(raw_url)
         except Exception as e:
             raise ParseError("皮皮虾解析失败") from e
 

@@ -27,7 +27,7 @@ class XHSParser(BaseParser):
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         raw_url_ = clear_params(raw_url, "xsec_token")
-        xhs = XHSAPI(proxy=self.cfg.proxy)
+        xhs = XHSAPI(proxy=self.proxy)
         result = await xhs.extract(raw_url)
 
         desc = self.hashtag_handler(result.desc)
@@ -63,7 +63,7 @@ class XHSParser(BaseParser):
                 raise ParseError("不支持的类型")
 
     async def get_ext_by_url(self, url: str):
-        async with httpx.AsyncClient(proxy=self.cfg.proxy) as client:
+        async with httpx.AsyncClient(proxy=self.proxy) as client:
             try:
                 response = await client.head(url, follow_redirects=True)
             except Exception:

@@ -29,7 +29,7 @@ class CoolapkParser(BaseParser):
     ) -> Union["CoolapkImageParseResult", "CoolapkRichTextParseResult", "CoolapkMultimediaParseResult"]:
         raw_url_ = clear_params(raw_url, ["s", "shareKey"])
         try:
-            coolapk = await Coolapk.parse(raw_url, proxy=self.cfg.proxy)
+            coolapk = await Coolapk.parse(raw_url, proxy=self.proxy)
         except Exception as e:
             raise ParseError(str(e)) from e
         media = [AniRef(url=i) if ".gif" in i else ImageRef(url=i) for i in coolapk.imgs]

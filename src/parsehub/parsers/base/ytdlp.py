@@ -36,13 +36,11 @@ class YtParser(BaseParser, register=False):
 
     async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult"]:
         video_info = await self._parse(raw_url)
-        _d = {
-            "title": video_info.title,
-            "content": video_info.description,
-            "raw_url": raw_url,
-            "dl": video_info,
-        }
         return YtVideoParseResult(
+            dl=video_info,
+            title=video_info.title,
+            content=video_info.description,
+            raw_url=raw_url,
             video=VideoRef(
                 url=raw_url,
                 thumb_url=video_info.thumbnail,
@@ -50,7 +48,6 @@ class YtParser(BaseParser, register=False):
                 height=video_info.height,
                 duration=video_info.duration,
             ),
-            **_d,
         )
 
     async def _parse(self, url) -> "YtVideoInfo":
@@ -84,8 +81,8 @@ class YtParser(BaseParser, register=False):
 
     def _extract_info(self, url):
         params = self.params.copy()
-        if self.cfg.proxy:
-            params["proxy"] = self.cfg.proxy
+        if self.proxy:
+            params["proxy"] = self.proxy
 
         try:
             with YoutubeDL(params) as ydl:
@@ -115,11 +112,11 @@ class YtParser(BaseParser, register=False):
 class YtVideoParseResult(VideoParseResult):
     def __init__(
         self,
+        dl: "YtVideoInfo",
         title,
         video=None,
         content=None,
         raw_url=None,
-        dl: "YtVideoInfo" = None,
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
@@ -129,10 +126,10 @@ class YtVideoParseResult(VideoParseResult):
         self,
         *,
         output_dir: str | Path,
-        callback: ProgressCallback = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
-        headers: dict = None,
+        headers: dict | None = None,
     ) -> "DownloadResult":
         paramss = self.dl.paramss.copy()
         if proxy:
@@ -204,8 +201,8 @@ class YtVideoInfo:
     description: str
     thumbnail: str
     url: str
+    paramss: dict
     """Youtube 链接, 非视频下载链接"""
     duration: int = 0
     width: int = 0
     height: int = 0
-    paramss: dict = None

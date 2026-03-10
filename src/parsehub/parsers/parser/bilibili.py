@@ -78,7 +78,7 @@ class BiliParse(YtParser):
 
     async def is_dynamic(self, url) -> str | None:
         """是动态"""
-        async with httpx.AsyncClient(proxy=self.cfg.proxy) as cli:
+        async with httpx.AsyncClient(proxy=self.proxy) as cli:
             url = str((await cli.get(url, follow_redirects=True, timeout=30)).url)
 
         if re.search(r"\b\d{18,19}\b", url):
@@ -86,17 +86,17 @@ class BiliParse(YtParser):
         return None
 
     async def get_dynamic_info(self, url: str) -> BiliDynamic:
-        async with BiliAPI(proxy=self.cfg.proxy) as bili:
+        async with BiliAPI(proxy=self.proxy) as bili:
             try:
-                dynamic_info = await bili.get_dynamic_info(url, cookie=self.cfg.cookie)
+                dynamic_info = await bili.get_dynamic_info(url, cookie=self.cookie)
             except Exception as e:
                 if "风控" in str(e):
-                    raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cfg.cookie)}") from e
+                    raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cookie)}") from e
                 raise ParseError(str(e)) from e
         return dynamic_info
 
     async def bili_api_parse(self, url) -> Union["BiliVideoParseResult", "ImageParseResult"]:
-        async with BiliAPI(proxy=self.cfg.proxy) as bili:
+        async with BiliAPI(proxy=self.proxy) as bili:
             video_info = await bili.get_video_info(url)
 
             if not (data := video_info.get("data")):
@@ -140,13 +140,10 @@ class BiliParse(YtParser):
 
     async def ytp_parse(self, url) -> Union["YtVideoParseResult"]:
         result = await super()._do_parse(url)
-        _d = {
-            "title": result.title,
-            "raw_url": result.raw_url,
-            "dl": result.dl,
-        }
         return YtVideoParseResult(
-            **_d,
+            title=result.title,
+            raw_url=result.raw_url,
+            dl=result.dl,
             video=result.media,
         )
 
@@ -173,10 +170,10 @@ class BiliVideoParseResult(VideoParseResult):
         self,
         *,
         output_dir: str | Path,
-        callback: ProgressCallback = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
-        headers: dict = None,
+        headers: dict | None = None,
     ) -> "DownloadResult":
         headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
         return await super()._do_download(

@@ -9,7 +9,7 @@ class ThreadsParser(BaseParser):
     __match__ = r"^(http(s)?://)?.+threads.com/@[\w.]+/post/.*"
 
     async def _do_parse(self, raw_url: str) -> "MultimediaParseResult":
-        post = await ThreadsAPI(proxy=self.cfg.proxy).parse(raw_url)
+        post = await ThreadsAPI(proxy=self.proxy).parse(raw_url)
         media = []
         if post.media:
             pm: list[ThreadsMedia] = post.media if isinstance(post.media, list) else [post.media]

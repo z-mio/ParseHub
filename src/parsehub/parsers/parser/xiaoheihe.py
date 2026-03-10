@@ -20,7 +20,7 @@ class XiaoHeiHeParser(BaseParser):
     __redirect_keywords__ = ["api.xiaoheihe"]
 
     async def _do_parse(self, raw_url: str) -> AnyParseResult:
-        xhh: XiaoHeiHePost = await XiaoHeiHeAPI(proxy=self.cfg.proxy).parse(raw_url)
+        xhh: XiaoHeiHePost = await XiaoHeiHeAPI(proxy=self.proxy).parse(raw_url)
         media = self.__parse_media(xhh)
         v = {"title": xhh.title, "content": xhh.content, "raw_url": raw_url}
         match xhh.type:

@@ -9,7 +9,7 @@ class WXParser(BaseParser):
     __match__ = r"^(http(s)?://)mp.weixin.qq.com/s/.*"
 
     async def _do_parse(self, raw_url: str) -> "RichTextParseResult":
-        wx = await WX.parse(raw_url, self.cfg.proxy)
+        wx = await WX.parse(raw_url, self.proxy)
         return RichTextParseResult(
             title=wx.title,
             media=[ImageRef(url=i) for i in wx.imgs],

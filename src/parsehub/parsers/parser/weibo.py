@@ -20,7 +20,7 @@ class WeiboParser(BaseParser):
     __match__ = r"^(http(s)?://)(m\.|)weibo.(com|cn)/(?!(u/)).+"
 
     async def _do_parse(self, raw_url: str) -> MultimediaParseResult | VideoParseResult | ImageParseResult:
-        weibo = await WeiboAPI(self.cfg.proxy).parse(raw_url)
+        weibo = await WeiboAPI(self.proxy).parse(raw_url)
         data = weibo.data
         text = self.f_text(data.content)
         media = []
