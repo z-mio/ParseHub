@@ -7,31 +7,30 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
 
 from ... import parsers
-from ...config.config import GlobalConfig, ParseConfig
+from ...config.config import GlobalConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
-from ...utils.utils import match_url
+from ...utils.utils import match_url, normalize_cookie
 
 
 class BaseParser(ABC):
     _registry: list[type["BaseParser"]] = []
     _registry_initialized: bool = False
 
-    __platform__: Platform = None
+    __platform__: Platform | None = None
     """平台"""
     __supported_type__: list[str] = []
     """支持的类型, 例如: 图文, 视频, 动态"""
-    __match__: str = None
+    __match__: str | None = None
     """匹配规则"""
     __reserved_parameters__: list[str] = []
     """要保留的参数, 例如翻页. 默认清除全部参数"""
     __redirect_keywords__: list[str] = []
     """如果链接包含其中之一, 则遵循重定向规则"""
 
-    def __init__(self, config: ParseConfig = None):
-        if config is None:
-            config = ParseConfig()
-        self.cfg = config
+    def __init__(self, *, proxy: str | None = None, cookie: str | dict | None = None):
+        self.proxy = proxy
+        self.cookie = normalize_cookie(cookie)
 
     def __init_subclass__(cls, /, register=True, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -84,7 +83,7 @@ class BaseParser(ABC):
         if not url.startswith("http"):
             url = f"https://{url}"
         if any(x in url for x in self.__redirect_keywords__):
-            async with httpx.AsyncClient(proxy=self.cfg.proxy, timeout=30) as client:
+            async with httpx.AsyncClient(proxy=self.proxy, timeout=30) as client:
                 try:
                     r = await client.get(
                         url,

@@ -28,7 +28,7 @@ CODE_LEN = len(ENCODE_MAP)
 
 
 class BiliAPI:
-    def __init__(self, proxy: str = None):
+    def __init__(self, proxy: str | None = None):
         self.headers = {"User-Agent": USER_AGENT}
         self.proxy = proxy
         self._client: httpx.AsyncClient | None = None
@@ -39,7 +39,7 @@ class BiliAPI:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.aclose()
 
-    async def get_dynamic_info(self, url: str, cookie: dict = None) -> "BiliDynamic":
+    async def get_dynamic_info(self, url: str, cookie: dict | None = None) -> "BiliDynamic":
         """获取动态信息"""
         dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)
         params = {

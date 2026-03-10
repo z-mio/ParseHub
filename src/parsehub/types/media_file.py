@@ -89,7 +89,7 @@ class LivePhotoFile(MediaFile):
         duration: 视频时长，单位: 秒
     """
 
-    video_path: str | Path = None
+    video_path: str | Path | None = None
     duration: int = 3
 
     def __post_init__(self):

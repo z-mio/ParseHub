@@ -83,7 +83,7 @@ class Twitter:
             legacy: dict = tweet.get("legacy")
         else:
             tweet_id = result.get("rest_id", {})
-            legacy: dict = result.get("legacy")
+            legacy = result.get("legacy")
 
         if not legacy:
             if result.get("__typename") == "TweetTombstone":

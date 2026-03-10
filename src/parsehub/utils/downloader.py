@@ -11,11 +11,11 @@ import httpx
 
 async def download(
     url: str,
-    save_path: str | Path = None,
+    save_path: str | Path | None = None,
     *,
-    headers: dict = None,
-    proxies: httpx.Proxy = None,
-    progress: Callable = None,
+    headers: dict | None = None,
+    proxies: httpx.Proxy | None = None,
+    progress: Callable | None = None,
     progress_args: tuple = (),
     max_retries: int = 3,
     chunk_size: int = 8192,

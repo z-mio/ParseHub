@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from urllib.parse import parse_qs, urlparse
 
@@ -49,3 +50,38 @@ def clear_params(url: str, param: str | list[str]) -> str:
             del query_params[i]
     new_query = "&".join([f"{k}={v[0]}" for k, v in query_params.items()])
     return parsed_url._replace(query=new_query).geturl()
+
+
+def normalize_cookie(v):
+    if v is None or isinstance(v, dict):
+        return v
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+
+        if s.startswith("{") and s.endswith("}"):
+            try:
+                data = json.loads(s)
+            except Exception as e:
+                raise ValueError(f"cookie JSON解析失败: {e}") from e
+            if not isinstance(data, dict):
+                raise ValueError("cookie JSON必须是对象类型")
+            return {str(k).strip(): "" if v is None else str(v).strip() for k, v in data.items()}
+
+        if s.lower().startswith("cookie:"):
+            s = s[7:].strip()
+
+        parts = [p.strip() for p in s.split(";") if p.strip()]
+        result: dict[str, str] = {}
+        for p in parts:
+            if "=" not in p:
+                key = p.strip()
+                if key:
+                    result[key] = ""
+                continue
+            k, val = p.split("=", 1)
+            result[k.strip()] = val.strip()
+        return result or None
+
+    raise ValueError("cookie 必须是字符串、字典、JSON 或 None")

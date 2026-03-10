@@ -52,9 +52,7 @@ Issues = "https://github.com/z-mio/parsehub/issues"
 
 [tool.ruff]
 line-length = 120
-exclude = [
-    "test",
-]
+
 [tool.ruff.lint]
 select = [
     "E", # pycodestyle 错误检查

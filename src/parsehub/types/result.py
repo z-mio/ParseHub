@@ -22,11 +22,11 @@ class ParseResult(ABC):  # noqa: B024
 
     def __init__(
         self,
+        raw_url: str,
         title: str = "",
         content: str = "",
-        media: list[AnyMediaRef] | AnyMediaRef = None,
-        raw_url: str = None,
-        platform: Platform = None,
+        media: list[AnyMediaRef] | AnyMediaRef | None = None,
+        platform: Platform | None = None,
     ):
         """
         :param title: 标题
@@ -53,10 +53,10 @@ class ParseResult(ABC):  # noqa: B024
         self,
         *,
         output_dir: str | Path,
-        callback: ProgressCallback = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
-        headers: dict = None,
+        headers: dict | None = None,
     ) -> "DownloadResult":
         """
         执行下载
@@ -105,20 +105,19 @@ class ParseResult(ABC):  # noqa: B024
                     mf = AniFile(path=f, width=media.width, height=media.height, duration=media.duration)
                 case LivePhotoRef():
                     mf = LivePhotoFile(path=f, width=media.width, height=media.height, duration=media.duration)
-
-            # LivePhoto 额外下载视频部分
-            if isinstance(media, LivePhotoRef) and media.video_url:
-                try:
-                    vf = await download(
-                        media.video_url,
-                        f"{output_dir}/{i}_video.{media.video_ext}",
-                        headers=headers,
-                        proxies=proxy,
-                    )
-                except Exception as e:
-                    shutil.rmtree(output_dir, ignore_errors=True)
-                    raise DownloadError(f"LivePhoto 视频下载失败: {e}") from e
-                mf.video_path = vf
+                    if media.video_url:
+                        try:
+                            vf = await download(
+                                media.video_url,
+                                f"{output_dir}/{i}_video.{media.video_ext}",
+                                headers=headers,
+                                proxies=proxy,
+                            )
+                        except Exception as e:
+                            shutil.rmtree(output_dir, ignore_errors=True)
+                            raise DownloadError(f"LivePhoto 视频下载失败: {e}") from e
+                        else:
+                            mf.video_path = vf
 
             result_list.append(mf)
 
@@ -135,8 +134,8 @@ class ParseResult(ABC):  # noqa: B024
 
     async def download(
         self,
-        path: str | Path = None,
-        callback: ProgressCallback = None,
+        path: str | Path | None = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
     ) -> "DownloadResult":
@@ -175,8 +174,8 @@ class ParseResult(ABC):  # noqa: B024
 
     def download_sync(
         self,
-        path: str | Path = None,
-        callback: ProgressCallback = None,
+        path: str | Path | None = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
     ) -> "DownloadResult":
@@ -206,10 +205,10 @@ class VideoParseResult(ParseResult):
 
     def __init__(
         self,
+        raw_url: str,
         title: str = "",
-        video: str | VideoRef = None,
+        video: str | VideoRef | None = None,
         content: str = "",
-        raw_url: str = None,
     ):
         video = VideoRef(url=video) if isinstance(video, str) else video
         super().__init__(
@@ -225,10 +224,10 @@ class ImageParseResult(ParseResult):
 
     def __init__(
         self,
+        raw_url: str,
         title: str = "",
-        photo: list[str | ImageRef | LivePhotoRef] = None,
+        photo: list[str | ImageRef | LivePhotoRef] | None = None,
         content: str = "",
-        raw_url: str = None,
     ):
         if photo:
             photo = [ImageRef(url=p) if isinstance(p, str) else p for p in photo]
@@ -240,10 +239,10 @@ class MultimediaParseResult(ParseResult):
 
     def __init__(
         self,
+        raw_url: str,
         title: str = "",
-        media: list[AnyMediaRef] = None,
+        media: list[AnyMediaRef] | None = None,
         content: str = "",
-        raw_url: str = None,
     ):
         super().__init__(title=title, media=media, content=content, raw_url=raw_url)
 
@@ -253,10 +252,10 @@ class RichTextParseResult(ParseResult):
 
     def __init__(
         self,
+        raw_url: str,
         title: str = "",
-        media: list[AnyMediaRef] = None,
+        media: list[AnyMediaRef] | None = None,
         markdown_content: str = "",
-        raw_url: str = None,
     ):
         """
 

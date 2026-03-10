@@ -1,21 +1,25 @@
 import asyncio
+import os
 import unittest
 from pathlib import Path
 from typing import Any
-import os
+
+from dotenv import load_dotenv
 from loguru import logger
 
-from src.parsehub.config import GlobalConfig, ParseConfig
 from src.parsehub import ParseHub
+from src.parsehub.config import GlobalConfig
 from src.parsehub.types import ParseResult
+
+load_dotenv()
 
 # 测试用 URL 集合
 TEST_URLS = {
-    "bilibili": "https://t.bilibili.com/1169624254510006295",
-    "youtube": "https://youtu.be/haAB4R5XN4I",
-    "twitter": "https://x.com/aestheticspost_/status/2023047675940368400",
-    "douyin": "https://v.douyin.com/example/",
-    "tieba": "https://tieba.baidu.com/p/9462543824",
+    "bilibili": "https://www.bilibili.com/video/BV1R6NFzXE1H",
+    "youtube": "https://www.youtube.com/watch?v=1h_uc3K4Cpg&list=RDMM1h_uc3K4Cpg&start_radio=1",
+    "twitter": "https://x.com/ann_photo05/status/2030931621810254258",
+    "douyin": "https://www.douyin.com/video/7615533976798727464",
+    "tieba": "https://tieba.baidu.com/p/9939510114",
     "xhs": "https://www.xiaohongshu.com/discovery/item/example",
     "facebook": "https://www.facebook.com/reel/761988213517369",
     "weibo": "https://weibo.com/1234567890/example",
@@ -48,28 +52,21 @@ class TestParse(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         """测试前初始化"""
-        self.cookie = os.getenv("TEST_COOKIE")
-        self.proxy = os.getenv("TEST_PROXY")
-
-    def _create_parser(self, cookie: str = None, proxy: str = None) -> ParseHub:
-        """创建 ParseHub 实例"""
-        return ParseHub(
-            ParseConfig(
-                cookie=cookie or self.cookie,
-                proxy=proxy or self.proxy,
-            )
-        )
+        self.cookie = os.getenv("TEST_COOKIE", None)
+        self.proxy = os.getenv("TEST_PROXY", None)
+        self.dy_api = os.getenv("TEST_DOUYIN_API", None)
+        GlobalConfig.douyin_api = self.dy_api
 
     @logger.catch
     async def test_parse_only(self):
         """仅解析，不下载"""
-        ph = self._create_parser()
+        ph = ParseHub()
 
         urls = [
-            TEST_URLS["bilibili"],
+            TEST_URLS["tieba"],
         ]
 
-        tasks = [ph.parse(u) for u in urls]
+        tasks = [ph.parse(u, cookie=self.cookie, proxy=self.proxy) for u in urls]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for r in results:
@@ -82,10 +79,10 @@ class TestParse(unittest.IsolatedAsyncioTestCase):
     @logger.catch
     async def test_parse_and_download(self):
         """解析并下载"""
-        ph = self._create_parser()
+        ph = ParseHub()
         GlobalConfig.duration_limit = 0
 
-        r = await ph.parse(TEST_URLS["bilibili"])
+        r = await ph.parse(TEST_URLS["bilibili"], cookie=self.cookie, proxy=self.proxy)
         logger.debug("解析结果: {}", r)
         logger.debug("解析结果媒体: {}", r.media)
 

@@ -12,7 +12,7 @@ class TieBaParser(BaseParser):
 
     async def _do_parse(self, raw_url: str) -> Union["ImageParseResult", "VideoParseResult"]:
         try:
-            tb = await TieBa(self.cfg.proxy).parse(raw_url)
+            tb = await TieBa(self.proxy).parse(raw_url)
         except Exception as e:
             raise ParseError("贴吧解析失败") from e
 

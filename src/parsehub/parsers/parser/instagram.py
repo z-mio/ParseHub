@@ -59,7 +59,7 @@ class InstagramParser(BaseParser):
             post = await asyncio.wait_for(
                 asyncio.to_thread(
                     MyPost.from_shortcode,
-                    MyInstaloaderContext(self.cfg.proxy, cookie),
+                    MyInstaloaderContext(self.proxy, cookie),
                     shortcode,
                 ),
                 30,
@@ -69,8 +69,8 @@ class InstagramParser(BaseParser):
         except BadResponseException as e:
             match str(e):
                 case "Fetching Post metadata failed.":
-                    if self.cfg.cookie and cookie is None:
-                        return await self._parse(url, shortcode, self.cfg.cookie)
+                    if self.cookie and cookie is None:
+                        return await self._parse(url, shortcode, self.cookie)
                     else:
                         raise ParseError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频") from e
                 case _:

@@ -2,7 +2,6 @@ from pathlib import Path
 
 from loguru import logger
 
-from .config.config import ParseConfig
 from .errors import ParseError, UnknownPlatform
 from .parsers.base import BaseParser
 from .types import Platform
@@ -14,28 +13,31 @@ logger.disable(__name__)
 
 
 class ParseHub:
-    def __init__(self, config: ParseConfig = None):
-        """初始化解析器"""
-        self.config = config
+    def __init__(self):
         self.parsers: list[type[BaseParser]] = BaseParser.get_registry()
 
-    async def parse(self, url: str) -> AnyParseResult:
+    async def parse(self, url: str, *, proxy: str | None = None, cookie: str | dict | None = None) -> AnyParseResult:
         """解析
         :param url: 分享文案 / 分享链接
+        :param proxy: 代理
+        :param cookie: cookie
+        :return: AnyParseResult
         """
         parser = self.get_parser(url)
         if not parser:
             raise UnknownPlatform(url)
-        p = parser(config=self.config)
+        p = parser(proxy=proxy, cookie=cookie)
         return await p.parse(url)
 
-    def parse_sync(self, url: str) -> AnyParseResult:
+    def parse_sync(self, url: str, *, proxy: str | None = None, cookie: str | dict | None = None) -> AnyParseResult:
         """
         同步解析
         :param url: 分享文案 / 分享链接
+        :param proxy: 代理
+        :param cookie: cookie
         :return: AnyParseResult
         """
-        return get_event_loop().run_until_complete(self.parse(url))
+        return get_event_loop().run_until_complete(self.parse(url, proxy=proxy, cookie=cookie))
 
     async def download(
         self,
@@ -70,8 +72,8 @@ class ParseHub:
     def download_sync(
         self,
         url: str,
-        path: str | Path = None,
-        callback: ProgressCallback = None,
+        path: str | Path | None = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
     ) -> DownloadResult:
@@ -97,14 +99,15 @@ class ParseHub:
         """
         return get_event_loop().run_until_complete(self.download(url, path, callback, callback_args, proxy))
 
-    async def get_raw_url(self, url: str) -> str:
+    async def get_raw_url(self, url: str, proxy: str | None = None) -> str:
         """获取原始链接
         :param url: 分享文案 / 分享链接
+        :param proxy: 代理
         :return: 原始链接
         """
         parser = self.get_parser(url)
         try:
-            return await parser(config=self.config).get_raw_url(url)
+            return await parser(proxy=proxy).get_raw_url(url)
         except Exception as e:
             raise ParseError from e
 

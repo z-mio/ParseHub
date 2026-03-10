@@ -13,8 +13,8 @@ class MediaRef:
     """
 
     url: str
-    ext: str = None
-    thumb_url: str = None
+    ext: str | None = None
+    thumb_url: str | None = None
     width: int = 0
     height: int = 0
 
@@ -80,7 +80,7 @@ class LivePhotoRef(MediaRef):
     """
 
     ext: str = "jpg"
-    video_url: str = None
+    video_url: str | None = None
     video_ext: str = "mp4"
     duration: int = 3
 
