@@ -88,26 +88,21 @@ print(result)
 
 ```python
 from parsehub import ParseHub
-from parsehub.config import ParseConfig
 
-config = ParseConfig(
-    cookie="key1=value1; key2=value2",  # 从浏览器中获取
-    proxy="http://127.0.0.1:7890",  # 可选
-)
-ph = ParseHub(config=config)
+ph = ParseHub(cookie="key1=value1; key2=value2", proxy="http://127.0.0.1:7890",)
 ```
 
 Cookie 支持多种格式传入：
 
 ```python
 # 字符串
-ParseConfig(cookie="key1=value1; key2=value2")
+ParseHub(cookie="key1=value1; key2=value2")
 
 # JSON 字符串
-ParseConfig(cookie='{"key1": "value1", "key2": "value2"}')
+ParseHub(cookie='{"key1": "value1", "key2": "value2"}')
 
 # 字典
-ParseConfig(cookie={"key1": "value1", "key2": "value2"})
+ParseHub(cookie={"key1": "value1", "key2": "value2"})
 ```
 
 目前支持 Cookie 登录的平台:
