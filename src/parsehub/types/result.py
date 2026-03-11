@@ -167,10 +167,13 @@ class ParseResult(ABC):  # noqa: B024
             output_dir = save_dir.joinpath(f"{r}_{counter}")
             counter += 1
         output_dir.mkdir(parents=True, exist_ok=True)
-
-        return await self._do_download(
-            output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy
-        )
+        try:
+            return await self._do_download(
+                output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy
+            )
+        except Exception as e:
+            shutil.rmtree(output_dir, ignore_errors=True)
+            raise e
 
     def download_sync(
         self,
