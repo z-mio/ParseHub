@@ -118,10 +118,11 @@ class BiliParse(YtParser):
                     dimension = page_info["dimension"]
 
             b3, b4 = await bili.get_buvid()
-            if GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
-                video_playurl = await bili.get_video_playurl(url, cid, b3, b4, False)
-            else:
-                video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
+            video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
+            # if GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
+            #     video_playurl = await bili.get_video_playurl(url, cid, b3, b4, False)
+            # else:
+            #     video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
 
         durl = video_playurl["data"]["durl"][0]
         video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
