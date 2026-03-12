@@ -1,8 +1,12 @@
+import json
 import shutil
 import time
 from abc import ABC
+from dataclasses import asdict
 from pathlib import Path
+from typing import ClassVar
 
+import aiofiles
 from bs4 import BeautifulSoup
 from markdown import markdown as md_to_html
 from slugify import slugify
@@ -15,10 +19,13 @@ from .callback import ProgressCallback
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef
 from .platform import Platform
+from .post import PostType
 
 
 class ParseResult(ABC):  # noqa: B024
     """解析结果基类"""
+
+    type: ClassVar[PostType] = PostType.UNKNOWN
 
     def __init__(
         self,
@@ -31,7 +38,7 @@ class ParseResult(ABC):  # noqa: B024
         """
         :param title: 标题
         :param media: 媒体下载链接
-        :param content: 正文
+        :param content: 正文 (纯文本)
         :param raw_url: 原始帖子链接
         :param platform: 平台
         """
@@ -48,6 +55,23 @@ class ParseResult(ABC):  # noqa: B024
             f" content={self.content or ''}, media={media_count}, "
             f"raw_url={self.raw_url})"
         )
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        media = None
+        if isinstance(self.media, list):
+            media = [asdict(m) for m in self.media]
+        elif self.media:
+            media = asdict(self.media)
+
+        return {
+            "platform": self.platform.id if self.platform else None,
+            "type": self.type.value,
+            "title": self.title,
+            "content": self.content,
+            "raw_url": self.raw_url,
+            "media": media,
+        }
 
     async def _do_download(
         self,
@@ -135,15 +159,18 @@ class ParseResult(ABC):  # noqa: B024
     async def download(
         self,
         path: str | Path | None = None,
+        *,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
+        save_metadata: bool = False,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
         :param proxy: 代理
+        :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
 
         Note:
@@ -167,6 +194,11 @@ class ParseResult(ABC):  # noqa: B024
             output_dir = save_dir.joinpath(f"{r}_{counter}")
             counter += 1
         output_dir.mkdir(parents=True, exist_ok=True)
+
+        if save_metadata:
+            async with aiofiles.open(output_dir.joinpath("metadata.json"), "w", encoding="utf-8") as f:
+                await f.write(json.dumps(self.to_dict(), ensure_ascii=False, indent=4))
+
         try:
             return await self._do_download(
                 output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy
@@ -178,15 +210,18 @@ class ParseResult(ABC):  # noqa: B024
     def download_sync(
         self,
         path: str | Path | None = None,
+        *,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         proxy: str | None = None,
+        save_metadata: bool = False,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
         :param proxy: 代理
+        :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
 
         Note:
@@ -200,7 +235,11 @@ class ParseResult(ABC):  # noqa: B024
                 - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
-        return get_event_loop().run_until_complete(self.download(path, callback, callback_args, proxy))
+        return get_event_loop().run_until_complete(
+            self.download(
+                path, callback=callback, callback_args=callback_args, proxy=proxy, save_metadata=save_metadata
+            )
+        )
 
 
 class VideoParseResult(ParseResult):
