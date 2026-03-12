@@ -3,6 +3,7 @@ from .callback import ProgressCallback, ProgressUnit
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, MediaFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, MediaRef, VideoRef
 from .platform import Platform
+from .post import PostType
 from .result import (
     AnyParseResult,
     DownloadResult,
@@ -38,4 +39,5 @@ __all__ = [
     "AnyMediaFile",
     "ProgressCallback",
     "ProgressUnit",
+    "PostType",
 ]

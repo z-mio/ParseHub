@@ -43,6 +43,7 @@ class ParseHub:
         self,
         url: str,
         path: str | Path = None,
+        *,
         callback: ProgressCallback = None,
         callback_args: tuple = (),
         proxy: str | None = None,
@@ -67,7 +68,7 @@ class ParseHub:
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
         result = await self.parse(url)
-        return await result.download(path, callback, callback_args, proxy)
+        return await result.download(path, callback=callback, callback_args=callback_args, proxy=proxy)
 
     def download_sync(
         self,
@@ -97,7 +98,9 @@ class ParseHub:
                 - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
-        return get_event_loop().run_until_complete(self.download(url, path, callback, callback_args, proxy))
+        return get_event_loop().run_until_complete(
+            self.download(url, path, callback=callback, callback_args=callback_args, proxy=proxy)
+        )
 
     async def get_raw_url(self, url: str, proxy: str | None = None) -> str:
         """获取原始链接

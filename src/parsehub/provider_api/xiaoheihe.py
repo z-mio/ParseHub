@@ -182,8 +182,8 @@ class XiaoHeiHeAPI:
                             type=media_type,
                             url=image["url"],
                             thumb_url=image["url"],
-                            height=int(image.get("height", 0)),
-                            width=int(image.get("width", 0)),
+                            height=int(float(image.get("height", 0))),
+                            width=int(float(image.get("width", 0))),
                         )
                     )
             return XiaoHeiHePost(type=post_type, title=title, content=content, media=images)
