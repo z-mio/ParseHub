@@ -116,9 +116,6 @@ from parsehub.config import GlobalConfig
 
 # 自定义默认下载目录
 GlobalConfig.default_save_dir = "./my_downloads"
-
-# 视频时长限制 (超过此时长将下载最低画质，0 为不限制)
-GlobalConfig.duration_limit = 600  # 秒
 ```
 
 ## 🤝 参考项目
