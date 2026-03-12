@@ -245,6 +245,8 @@ class ParseResult(ABC):  # noqa: B024
 class VideoParseResult(ParseResult):
     """单个视频"""
 
+    type = PostType.VIDEO
+
     def __init__(
         self,
         raw_url: str,
@@ -264,6 +266,8 @@ class VideoParseResult(ParseResult):
 class ImageParseResult(ParseResult):
     """单图 / 多图 / 图集 / 实况照片"""
 
+    type = PostType.IMAGE
+
     def __init__(
         self,
         raw_url: str,
@@ -279,6 +283,8 @@ class ImageParseResult(ParseResult):
 class MultimediaParseResult(ParseResult):
     """多视频 / 视频 + 图片 / GIF / 实况照片"""
 
+    type = PostType.MULTIMEDIA
+
     def __init__(
         self,
         raw_url: str,
@@ -291,6 +297,8 @@ class MultimediaParseResult(ParseResult):
 
 class RichTextParseResult(ParseResult):
     """图文混排的文章"""
+
+    type = PostType.RICHTEXT
 
     def __init__(
         self,
