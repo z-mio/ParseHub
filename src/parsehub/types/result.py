@@ -324,6 +324,17 @@ class RichTextParseResult(ParseResult):
             f" markdown_content={self.markdown_content or ''}, media={media_count} raw_url={self.raw_url})"
         )
 
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        data = super().to_dict()
+        # 在 "content" 后面插入 "markdown_content"
+        result = {}
+        for key, value in data.items():
+            result[key] = value
+            if key == "content":
+                result["markdown_content"] = self.markdown_content
+        return result
+
     @property
     def plaintext_content(self) -> str:
         """从 markdown 转换为纯文本"""
