@@ -127,9 +127,13 @@ class YtVideoParseResult(VideoParseResult):
         output_dir: str | Path,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
     ) -> "DownloadResult":
+        if callback_kwargs is None:
+            callback_kwargs = {}
+
         paramss = self.dl.paramss.copy()
         if proxy:
             paramss["proxy"] = proxy
@@ -141,7 +145,7 @@ class YtVideoParseResult(VideoParseResult):
         #     paramss["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:
-            await callback(0, 1, "count", *callback_args)
+            await callback(0, 1, "count", *callback_args, **callback_kwargs)
 
         await self.__download(paramss)
 
@@ -150,7 +154,7 @@ class YtVideoParseResult(VideoParseResult):
             raise DownloadError("下载失败 -1")
 
         if callback:
-            await callback(1, 1, "count", *callback_args)
+            await callback(1, 1, "count", *callback_args, **callback_kwargs)
 
         video_path = v[0]
         return DownloadResult(

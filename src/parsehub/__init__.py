@@ -46,6 +46,7 @@ class ParseHub:
         *,
         callback: ProgressCallback = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         save_metadata: bool = False,
     ) -> DownloadResult:
@@ -54,6 +55,7 @@ class ParseHub:
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
+        :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
@@ -71,7 +73,12 @@ class ParseHub:
         """
         result = await self.parse(url)
         return await result.download(
-            path, callback=callback, callback_args=callback_args, proxy=proxy, save_metadata=save_metadata
+            path,
+            callback=callback,
+            callback_args=callback_args,
+            callback_kwargs=callback_kwargs,
+            proxy=proxy,
+            save_metadata=save_metadata,
         )
 
     def download_sync(
@@ -80,6 +87,7 @@ class ParseHub:
         path: str | Path | None = None,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         save_metadata: bool = False,
     ) -> DownloadResult:
@@ -89,6 +97,7 @@ class ParseHub:
         :param path: 下载路径
         :param callback: 进度回调函数
         :param callback_args: 进度回调函数参数
+        :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
@@ -106,7 +115,13 @@ class ParseHub:
         """
         return get_event_loop().run_until_complete(
             self.download(
-                url, path, callback=callback, callback_args=callback_args, proxy=proxy, save_metadata=save_metadata
+                url,
+                path,
+                callback=callback,
+                callback_args=callback_args,
+                callback_kwargs=callback_kwargs,
+                proxy=proxy,
+                save_metadata=save_metadata,
             )
         )
 

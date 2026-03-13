@@ -79,6 +79,7 @@ class ParseResult(ABC):  # noqa: B024
         output_dir: str | Path,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
     ) -> "DownloadResult":
@@ -87,6 +88,7 @@ class ParseResult(ABC):  # noqa: B024
         :param output_dir: 输出的子目录
         :param callback: 下载进度回调函数
         :param callback_args: 回调函数的参数
+        :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param headers: 请求头
         :return: DownloadResult
@@ -99,13 +101,15 @@ class ParseResult(ABC):  # noqa: B024
         for i, media in enumerate(media_list):
             dl_progress = None
             dl_progress_args = ()
+            dl_progress_kwargs = {}
             if callback and is_single:
 
-                async def _byte_callback(current, total, *args):
-                    await callback(current, total, "bytes", *args)
+                async def _byte_callback(current, total, *args, **kwargs):
+                    await callback(current, total, "bytes", *args, **kwargs)
 
                 dl_progress = _byte_callback
                 dl_progress_args = callback_args
+                dl_progress_kwargs = callback_kwargs
 
             try:
                 f = await download(
@@ -115,6 +119,7 @@ class ParseResult(ABC):  # noqa: B024
                     proxies=proxy,
                     progress=dl_progress,
                     progress_args=dl_progress_args,
+                    progress_kwargs=dl_progress_kwargs,
                 )
             except Exception as e:
                 shutil.rmtree(output_dir, ignore_errors=True)
@@ -162,6 +167,7 @@ class ParseResult(ABC):  # noqa: B024
         *,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         save_metadata: bool = False,
     ) -> "DownloadResult":
@@ -169,6 +175,7 @@ class ParseResult(ABC):  # noqa: B024
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
+        :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
@@ -176,7 +183,7 @@ class ParseResult(ABC):  # noqa: B024
         Note:
             下载进度回调函数签名::
 
-                async def callback(current: int, total: int, unit: Literal['bytes', 'count'], *args) -> None
+                async def callback(current: int, total: int, unit: Literal['bytes', 'count'], *args, **kwargs) -> None
 
             - current: 当前进度值
             - total: 总进度值
@@ -201,7 +208,11 @@ class ParseResult(ABC):  # noqa: B024
 
         try:
             return await self._do_download(
-                output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy
+                output_dir=output_dir,
+                callback=callback,
+                callback_args=callback_args,
+                callback_kwargs=callback_kwargs,
+                proxy=proxy,
             )
         except Exception as e:
             shutil.rmtree(output_dir, ignore_errors=True)
@@ -213,6 +224,7 @@ class ParseResult(ABC):  # noqa: B024
         *,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         save_metadata: bool = False,
     ) -> "DownloadResult":
@@ -220,6 +232,7 @@ class ParseResult(ABC):  # noqa: B024
         :param path: 保存路径
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
+        :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
@@ -237,7 +250,12 @@ class ParseResult(ABC):  # noqa: B024
         """
         return get_event_loop().run_until_complete(
             self.download(
-                path, callback=callback, callback_args=callback_args, proxy=proxy, save_metadata=save_metadata
+                path,
+                callback=callback,
+                callback_args=callback_args,
+                callback_kwargs=callback_kwargs,
+                proxy=proxy,
+                save_metadata=save_metadata,
             )
         )
 

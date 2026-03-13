@@ -62,6 +62,7 @@ class CoolapkParseResult(ParseResult):
         output_dir: str | Path,
         callback: ProgressCallback = None,
         callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict = None,
     ) -> "DownloadResult":
@@ -72,7 +73,12 @@ class CoolapkParseResult(ParseResult):
             )
         }
         return await super()._do_download(
-            output_dir=output_dir, callback=callback, callback_args=callback_args, proxy=proxy, headers=headers
+            output_dir=output_dir,
+            callback=callback,
+            callback_args=callback_args,
+            callback_kwargs=callback_kwargs,
+            proxy=proxy,
+            headers=headers,
         )
 
 
