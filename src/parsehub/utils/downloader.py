@@ -3,6 +3,7 @@ import os
 import re
 from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
 from urllib.parse import unquote, urlparse
 
 import aiofiles
@@ -17,6 +18,7 @@ async def download(
     proxies: httpx.Proxy | None = None,
     progress: Callable | None = None,
     progress_args: tuple = (),
+    progress_kwargs: dict | None = None,
     max_retries: int = 3,
     chunk_size: int = 8192,
 ) -> str:
@@ -26,7 +28,8 @@ async def download(
     :param headers: 请求头
     :param proxies: 代理
     :param progress: 下载进度回调函数
-    :param progress_args: 下载进度回调函数参数
+    :param progress_args: 下载进度回调函数的参数
+    :param progress_kwargs: 下载进度回调函数的关键字参数
     :param max_retries: 最大重试次数
     :param chunk_size: 分块大小
     :return: 文件路径
@@ -86,7 +89,9 @@ async def download(
                                 await f.write(chunk)
                                 current += len(chunk)
                                 if progress:
-                                    await progress(current, total_size, *progress_args)
+                                    if progress_kwargs is None:
+                                        progress_kwargs = {}
+                                    await progress(current, total_size, *progress_args, **progress_kwargs)
 
                     # 完整性校验
                     if 0 < total_size != current:
