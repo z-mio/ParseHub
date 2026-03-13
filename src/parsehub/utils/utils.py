@@ -15,7 +15,7 @@ def get_event_loop():
     return event_loop
 
 
-url_extractor = URLExtract()
+_url_extractor = URLExtract()
 
 
 def match_url(text: str) -> str:
@@ -23,7 +23,7 @@ def match_url(text: str) -> str:
     if not text:
         return ""
     text = re.sub(r"(https?://)", r" \1", text)  # 协议前面增加空格, 方便提取
-    url = url_extractor.find_urls(text, only_unique=True)
+    url = _url_extractor.find_urls(text, only_unique=True)
     return url[0] if url else ""
 
 

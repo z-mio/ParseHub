@@ -81,7 +81,7 @@ async def download(
 
                     current = resume_pos if is_resumed else 0
 
-                    file_mode = "ab" if is_resumed else "wb"
+                    file_mode: Literal["ab", "wb"] = "ab" if is_resumed else "wb"
 
                     async with aiofiles.open(file=resolved_path, mode=file_mode) as f:
                         async for chunk in r.aiter_bytes(chunk_size=chunk_size):

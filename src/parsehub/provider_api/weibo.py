@@ -294,4 +294,4 @@ class WeiboContent:
 
 
 if __name__ == "__main__":
-    print(asyncio.run(WeiboAPI().parse("https://weibo.com/3208333150/Ow0iEbEX0")))
+    print(asyncio.run(WeiboAPI().parse("https://weibo.com/6576374129/Qv0n8sXum")))
