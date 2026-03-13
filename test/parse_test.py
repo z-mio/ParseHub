@@ -2,7 +2,6 @@ import asyncio
 import os
 import unittest
 from pathlib import Path
-from typing import Any
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -38,13 +37,14 @@ TEST_URLS = {
 DOWNLOAD_PATH = Path(__file__).parent / "downloads"
 
 
-async def progress_callback(current: int, total: int, *_: Any) -> None:
-    """下载进度回调函数"""
-    if total > 0:
-        percentage = (current / total) * 100
-        print(f"\r下载进度: {percentage:.1f}% ({current}/{total})", end="")
-    else:
-        print(f"\r已下载: {current} bytes", end="")
+class ProgressCallback:
+    async def __call__(self, current: int, total: int, unit: str, *args, **kwargs) -> None:
+        """下载进度回调函数"""
+        if total > 0:
+            percentage = (current / total) * 100
+            print(f"\r下载进度: {percentage:.1f}% ({current}/{total})", end="")
+        else:
+            print(f"\r已下载: {current} bytes", end="")
 
 
 class TestParse(unittest.IsolatedAsyncioTestCase):
@@ -88,7 +88,7 @@ class TestParse(unittest.IsolatedAsyncioTestCase):
 
         s = await r.download(
             path=DOWNLOAD_PATH,
-            callback=progress_callback,
+            callback=ProgressCallback(),
         )
         logger.debug("下载结果: {}", s.media)
 
