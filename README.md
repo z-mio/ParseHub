@@ -82,6 +82,25 @@ print(result)
 
 ## 🔑 高级用法
 
+### 下载进度回调
+
+```python
+from parsehub import ParseHub
+
+
+class ProgressTracker:
+    async def __call__(self, current: int, total: int, unit: str, *args, task_name: str = "", **kwargs):
+        print(f"[{task_name}] {current}/{total} ({unit})")
+
+
+result = ParseHub().download_sync(
+    "https://example.com",
+    callback=ProgressTracker(),
+    callback_args=("extra_arg",),
+    callback_kwargs={"task_name": "demo"},
+)
+```
+
 ### Cookie 登录 & 代理
 
 部分平台的内容需要登录才能访问，通过 Cookie 即可解锁：
@@ -89,7 +108,7 @@ print(result)
 ```python
 from parsehub import ParseHub
 
-ph = ParseHub(cookie="key1=value1; key2=value2", proxy="http://127.0.0.1:7890",)
+ph = ParseHub(cookie="key1=value1; key2=value2", proxy="http://127.0.0.1:7890", )
 ```
 
 Cookie 支持多种格式传入：
