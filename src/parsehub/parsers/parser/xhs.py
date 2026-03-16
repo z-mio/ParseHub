@@ -29,7 +29,6 @@ class XHSParser(BaseParser):
         result = await xhs.extract(raw_url)
 
         desc = self.hashtag_handler(result.desc)
-        k = {"title": result.title, "content": desc, "raw_url": raw_url}
         match result.type:
             case XHSPostType.VIDEO:
                 v: XHSMedia = result.media[0]
@@ -37,7 +36,8 @@ class XHSParser(BaseParser):
                     video=VideoRef(
                         url=v.url, thumb_url=v.thumb_url, duration=v.duration, height=v.height, width=v.width
                     ),
-                    **k,
+                    title=result.title,
+                    content=desc,
                 )
             case XHSPostType.IMAGE:
                 photos: list[ImageRef | LivePhotoRef] = []
@@ -55,7 +55,8 @@ class XHSParser(BaseParser):
 
                 return ImageParseResult(
                     photo=photos,
-                    **k,
+                    title=result.title,
+                    content=desc,
                 )
             case _:
                 raise ParseError("不支持的类型")

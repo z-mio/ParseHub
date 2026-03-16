@@ -22,14 +22,13 @@ class XiaoHeiHeParser(BaseParser):
     async def _do_parse(self, raw_url: str) -> AnyParseResult:
         xhh: XiaoHeiHePost = await XiaoHeiHeAPI(proxy=self.proxy).parse(raw_url)
         media = self.__parse_media(xhh)
-        v = {"title": xhh.title, "content": xhh.content, "raw_url": raw_url}
         match xhh.type:
             case XiaoHeiHePostType.VIDEO:
-                return VideoParseResult(video=media, **v)
+                return VideoParseResult(video=media, title=xhh.title, content=xhh.content)
             case XiaoHeiHePostType.IMAGE:
                 if not media or all(isinstance(m, ImageRef) for m in media):
-                    return ImageParseResult(photo=media, **v)
-                return MultimediaParseResult(media=media, **v)
+                    return ImageParseResult(photo=media, title=xhh.title, content=xhh.content)
+                return MultimediaParseResult(media=media, title=xhh.title, content=xhh.content)
             case XiaoHeiHePostType.ARTICLE:
                 return RichTextParseResult(title=xhh.title, media=media, markdown_content=xhh.content)
 

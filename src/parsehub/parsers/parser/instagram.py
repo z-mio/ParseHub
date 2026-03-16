@@ -28,7 +28,6 @@ class InstagramParser(BaseParser):
             dimensions = {}
         width, height = dimensions.get("width", 0) or 0, dimensions.get("height", 0) or 0
 
-        k = {"title": post.title, "content": post.caption, "raw_url": raw_url}
         match post.typename:
             case "GraphSidecar":
                 media = [
@@ -37,9 +36,11 @@ class InstagramParser(BaseParser):
                     else ImageRef(url=i.display_url, width=i.width, height=i.height)
                     for i in post.get_sidecar_nodes()
                 ]
-                return MultimediaParseResult(media=media, **k)
+                return MultimediaParseResult(media=media, title=post.title, content=post.caption)
             case "GraphImage":
-                return ImageParseResult(photo=[ImageRef(url=post.url, width=width, height=height)], **k)
+                return ImageParseResult(
+                    photo=[ImageRef(url=post.url, width=width, height=height)], title=post.title, content=post.caption
+                )
             case "GraphVideo":
                 return VideoParseResult(
                     video=VideoRef(
@@ -49,7 +50,8 @@ class InstagramParser(BaseParser):
                         width=width,
                         height=height,
                     ),
-                    **k,
+                    title=post.title,
+                    content=post.caption,
                 )
             case _:
                 raise ParseError("不支持的类型")
