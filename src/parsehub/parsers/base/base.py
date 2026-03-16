@@ -63,7 +63,7 @@ class BaseParser(ABC):
         :param url: 分享文案 / 分享链接
         :return: 解析结果
         """
-        raw_url = await self.get_raw_url(url, after_clean_parameters=False)
+        raw_url = await self.get_raw_url(url, clean_all=False)
         result = await self._do_parse(raw_url)
         result.platform = self.__platform__
         result.raw_url = self._clean_params(raw_url, self.__after_clean_parameters__)
@@ -76,11 +76,32 @@ class BaseParser(ABC):
         """
         raise NotImplementedError
 
-    async def get_raw_url(self, url: str, after_clean_parameters: bool = False) -> str:
+    async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
         """
         清除链接中的参数
         :param url: 链接
-        :param after_clean_parameters: 是否执行后清理参数
+        :param clean_all: 是否清除全部可清除的参数 (包括解析后才需清除的参数)
+
+        Example:
+            以小红书为例，其解析器配置如下::
+
+                __reserved_parameters__ = []
+                __after_clean_parameters__ = ["xsec_token"]
+
+            原始链接::
+
+                https://www.xiaohongshu.com/explore/abc123?xsec_token=xxx&tracking=yyy
+
+            ``clean_all=False`` (解析阶段，保留解析所需的参数)::
+
+                https://www.xiaohongshu.com/explore/abc123?xsec_token=xxx
+                # tracking 被清除，xsec_token 保留（解析时需要它）
+
+            ``clean_all=True`` (最终输出，清除所有非必要参数)::
+
+                https://www.xiaohongshu.com/explore/abc123
+                # xsec_token 也被清除，返回干净的链接
+
         :return:
         """
         url = match_url(url)
@@ -107,9 +128,7 @@ class BaseParser(ABC):
         for i in query_params.copy().keys():
             is_reserved = i in self.__reserved_parameters__
             is_after_clean = i in self.__after_clean_parameters__
-            keep = (is_reserved and not (after_clean_parameters and is_after_clean)) or (
-                is_after_clean and not after_clean_parameters
-            )
+            keep = (is_reserved and not (clean_all and is_after_clean)) or (is_after_clean and not clean_all)
             if not keep:
                 query_params.pop(i, None)
 

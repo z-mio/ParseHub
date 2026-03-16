@@ -125,15 +125,37 @@ class ParseHub:
             )
         )
 
-    async def get_raw_url(self, url: str, proxy: str | None = None) -> str:
+    async def get_raw_url(self, url: str, proxy: str | None = None, clean_all: bool = True) -> str:
         """获取原始链接
         :param url: 分享文案 / 分享链接
         :param proxy: 代理
+        :param clean_all: 是否清除全部可清除的参数 (包括解析后才需清除的参数)
+
+        Example:
+            以小红书为例，其解析器配置如下::
+
+                __reserved_parameters__ = []
+                __after_clean_parameters__ = ["xsec_token"]
+
+            原始链接::
+
+                https://www.xiaohongshu.com/explore/abc123?xsec_token=xxx&tracking=yyy
+
+            ``clean_all=False`` (解析阶段，保留解析所需的参数)::
+
+                https://www.xiaohongshu.com/explore/abc123?xsec_token=xxx
+                # tracking 被清除，xsec_token 保留（解析时需要它）
+
+            ``clean_all=True`` (最终输出，清除所有非必要参数)::
+
+                https://www.xiaohongshu.com/explore/abc123
+                # xsec_token 也被清除，返回干净的链接
+
         :return: 原始链接
         """
         parser = self.get_parser(url)
         try:
-            return await parser(proxy=proxy).get_raw_url(url, after_clean_parameters=True)
+            return await parser(proxy=proxy).get_raw_url(url, clean_all=clean_all)
         except Exception as e:
             raise ParseError from e
 

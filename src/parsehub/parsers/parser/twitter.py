@@ -19,10 +19,10 @@ class TwitterParser(BaseParser):
 
     async def _do_parse(self, raw_url: str) -> "MultimediaParseResult":
         tweet = await self._parse(raw_url)
-        return await self.media_parse(raw_url, tweet)
+        return await self.media_parse(tweet)
 
-    async def get_raw_url(self, url: str, after_clean_parameters: bool = False) -> str:
-        url = await super().get_raw_url(url, after_clean_parameters=after_clean_parameters)
+    async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
+        url = await super().get_raw_url(url, clean_all=clean_all)
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str):
@@ -46,7 +46,7 @@ class TwitterParser(BaseParser):
         return tweet
 
     @staticmethod
-    async def media_parse(url, tweet: TwitterTweet):
+    async def media_parse(tweet: TwitterTweet):
         media = []
         for m in tweet.media:
             match m:

@@ -66,12 +66,12 @@ class BiliParse(YtParser):
         else:
             return super().match(url)
 
-    async def get_raw_url(self, url: str, after_clean_parameters: bool = False) -> str:
+    async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
         """获取原始链接"""
         if self._is_bvid(url):
             return f"https://www.bilibili.com/video/{url}"
         else:
-            return await super().get_raw_url(url, after_clean_parameters=after_clean_parameters)
+            return await super().get_raw_url(url, clean_all=clean_all)
 
     @staticmethod
     async def is_dynamic(url) -> str | None:
