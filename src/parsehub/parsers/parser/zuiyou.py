@@ -19,7 +19,6 @@ class ZuiYouParser(BaseParser):
                 else ImageRef(url=i.url, thumb_url=i.thumb_url)
                 for i in zy.media
             ],
-            raw_url=raw_url,
         )
 
 

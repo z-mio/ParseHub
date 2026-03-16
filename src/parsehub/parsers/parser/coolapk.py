@@ -36,20 +36,17 @@ class CoolapkParser(BaseParser):
                 title=coolapk.title,
                 media=media,
                 markdown_content=coolapk.markdown_content,
-                raw_url=raw_url,
             )
         if any(isinstance(m, AniRef) for m in media):
             return CoolapkMultimediaParseResult(
                 title=coolapk.title,
                 media=media,
                 content=coolapk.text_content,
-                raw_url=raw_url,
             )
         return CoolapkImageParseResult(
             title=coolapk.title,
             photo=media,
             content=coolapk.text_content,
-            raw_url=raw_url,
         )
 
 

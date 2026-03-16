@@ -14,7 +14,6 @@ class WXParser(BaseParser):
             title=wx.title,
             media=[ImageRef(url=i) for i in wx.imgs],
             markdown_content=wx.markdown_content,
-            raw_url=raw_url,
         )
 
 

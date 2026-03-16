@@ -31,7 +31,7 @@ class XiaoHeiHeParser(BaseParser):
                     return ImageParseResult(photo=media, **v)
                 return MultimediaParseResult(media=media, **v)
             case XiaoHeiHePostType.ARTICLE:
-                return RichTextParseResult(title=xhh.title, media=media, markdown_content=xhh.content, raw_url=raw_url)
+                return RichTextParseResult(title=xhh.title, media=media, markdown_content=xhh.content)
 
     @staticmethod
     def __parse_media(xhh: XiaoHeiHePost):

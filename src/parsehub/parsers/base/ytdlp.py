@@ -39,7 +39,6 @@ class YtParser(BaseParser, register=False):
             dl=video_info,
             title=video_info.title,
             content=video_info.description,
-            raw_url=raw_url,
             video=VideoRef(
                 url=raw_url,
                 thumb_url=video_info.thumbnail,
@@ -115,11 +114,10 @@ class YtVideoParseResult(VideoParseResult):
         title,
         video=None,
         content=None,
-        raw_url=None,
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
-        super().__init__(title=title, video=video, content=content, raw_url=raw_url)
+        super().__init__(title=title, video=video, content=content)
 
     async def _do_download(
         self,

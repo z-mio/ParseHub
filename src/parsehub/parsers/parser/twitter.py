@@ -21,8 +21,8 @@ class TwitterParser(BaseParser):
         tweet = await self._parse(raw_url)
         return await self.media_parse(raw_url, tweet)
 
-    async def get_raw_url(self, url: str) -> str:
-        url = await super().get_raw_url(url)
+    async def get_raw_url(self, url: str, after_clean_parameters: bool = False) -> str:
+        url = await super().get_raw_url(url, after_clean_parameters=after_clean_parameters)
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str):
@@ -63,7 +63,7 @@ class TwitterParser(BaseParser):
                 case TwitterAni():
                     path = AniRef(url=m.url, ext="mp4", height=m.height, width=m.width, thumb_url=m.thumb_url)
             media.append(path)
-        return MultimediaParseResult(content=tweet.full_text, media=media, raw_url=url)
+        return MultimediaParseResult(content=tweet.full_text, media=media)
 
 
 __all__ = ["TwitterParser"]

@@ -25,7 +25,6 @@ class KuaiShouParser(BaseParser):
                     height=result.height,
                     width=result.width,
                 ),
-                raw_url=raw_url,
             )
 
 

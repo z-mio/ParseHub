@@ -3,8 +3,6 @@ from pathlib import Path
 from typing import Union
 from urllib.parse import parse_qs, urlparse
 
-import httpx
-
 from ...config.config import GlobalConfig
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
 from ...types import (
@@ -30,8 +28,8 @@ class BiliParse(YtParser):
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
     async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
-        if ourl := await self.is_dynamic(raw_url):
-            dynamic = await self.get_dynamic_info(ourl)
+        if await self.is_dynamic(raw_url):
+            dynamic = await self.get_dynamic_info(raw_url)
             content = self.hashtag_handler(dynamic.content)
             photos = []
             if dynamic.images:
@@ -44,7 +42,6 @@ class BiliParse(YtParser):
                 title=dynamic.title,
                 content=content,
                 photo=photos,
-                raw_url=ourl,
             )
         else:
             try:
@@ -69,18 +66,16 @@ class BiliParse(YtParser):
         else:
             return super().match(url)
 
-    async def get_raw_url(self, url: str) -> str:
+    async def get_raw_url(self, url: str, after_clean_parameters: bool = False) -> str:
         """获取原始链接"""
         if self._is_bvid(url):
             return f"https://www.bilibili.com/video/{url}"
         else:
-            return await super().get_raw_url(url)
+            return await super().get_raw_url(url, after_clean_parameters=after_clean_parameters)
 
-    async def is_dynamic(self, url) -> str | None:
+    @staticmethod
+    async def is_dynamic(url) -> str | None:
         """是动态"""
-        async with httpx.AsyncClient(proxy=self.proxy) as cli:
-            url = str((await cli.get(url, follow_redirects=True, timeout=30)).url)
-
         if re.search(r"\b\d{18,19}\b", url):
             return url
         return None
@@ -128,7 +123,6 @@ class BiliParse(YtParser):
         video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
         return BiliVideoParseResult(
             title=data["View"]["title"],
-            raw_url=url,
             content=f"P{p}: {part}" if part else "",
             video=VideoRef(
                 url=video_url,
@@ -143,7 +137,6 @@ class BiliParse(YtParser):
         result = await super()._do_parse(url)
         return YtVideoParseResult(
             title=result.title,
-            raw_url=result.raw_url,
             dl=result.dl,
             video=result.media,
         )

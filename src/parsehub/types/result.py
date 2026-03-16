@@ -29,7 +29,6 @@ class ParseResult(ABC):  # noqa: B024
 
     def __init__(
         self,
-        raw_url: str,
         title: str = "",
         content: str = "",
         media: list[AnyMediaRef] | AnyMediaRef | None = None,
@@ -39,13 +38,12 @@ class ParseResult(ABC):  # noqa: B024
         :param title: 标题
         :param media: 媒体下载链接
         :param content: 正文 (纯文本)
-        :param raw_url: 原始帖子链接
         :param platform: 平台
         """
+        self.raw_url = None
         self.title = (title or "").strip()
         self.content = (content or "").strip()
         self.media = media
-        self.raw_url = raw_url
         self.platform = platform
 
     def __repr__(self):
@@ -267,7 +265,6 @@ class VideoParseResult(ParseResult):
 
     def __init__(
         self,
-        raw_url: str,
         title: str = "",
         video: str | VideoRef | None = None,
         content: str = "",
@@ -277,7 +274,6 @@ class VideoParseResult(ParseResult):
             title=title,
             media=video,
             content=content,
-            raw_url=raw_url,
         )
 
 
@@ -288,14 +284,13 @@ class ImageParseResult(ParseResult):
 
     def __init__(
         self,
-        raw_url: str,
         title: str = "",
         photo: list[str | ImageRef | LivePhotoRef] | None = None,
         content: str = "",
     ):
         if photo:
             photo = [ImageRef(url=p) if isinstance(p, str) else p for p in photo]
-        super().__init__(title=title, media=photo, content=content, raw_url=raw_url)
+        super().__init__(title=title, media=photo, content=content)
 
 
 class MultimediaParseResult(ParseResult):
@@ -305,12 +300,11 @@ class MultimediaParseResult(ParseResult):
 
     def __init__(
         self,
-        raw_url: str,
         title: str = "",
         media: list[AnyMediaRef] | None = None,
         content: str = "",
     ):
-        super().__init__(title=title, media=media, content=content, raw_url=raw_url)
+        super().__init__(title=title, media=media, content=content)
 
 
 class RichTextParseResult(ParseResult):
@@ -320,20 +314,17 @@ class RichTextParseResult(ParseResult):
 
     def __init__(
         self,
-        raw_url: str,
         title: str = "",
         media: list[AnyMediaRef] | None = None,
         markdown_content: str = "",
     ):
         """
-
         :param title: 标题
         :param media: 文章中的媒体
         :param markdown_content: markdown 格式正文
-        :param raw_url: 原始 URL
         """
         self.markdown_content = markdown_content
-        super().__init__(title=title, media=media, content=self.plaintext_content, raw_url=raw_url)
+        super().__init__(title=title, media=media, content=self.plaintext_content)
 
     def __repr__(self):
         media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None

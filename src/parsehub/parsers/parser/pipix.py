@@ -27,10 +27,9 @@ class PipixParser(BaseParser):
                     height=ppx.video_height,
                     width=ppx.video_width,
                 ),
-                raw_url=raw_url,
             )
         else:
-            return ImageParseResult(title=ppx.content, photo=ppx.img_url, raw_url=raw_url)
+            return ImageParseResult(title=ppx.content, photo=ppx.img_url)
 
 
 __all__ = ["PipixParser"]

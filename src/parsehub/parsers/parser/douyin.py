@@ -30,9 +30,9 @@ class DouyinParser(BaseParser):
 
         match data.type:
             case DYType.VIDEO:
-                return await self.video_parse(raw_url, data)
+                return await self.video_parse(data)
             case DYType.IMAGE:
-                return await self.image_parse(raw_url, data)
+                return await self.image_parse(data)
 
     @staticmethod
     async def parse_api(url) -> "DYResult":
@@ -52,17 +52,15 @@ class DouyinParser(BaseParser):
         return DYResult.parse(url, response.json())
 
     @staticmethod
-    async def video_parse(url, result: "DYResult"):
+    async def video_parse(result: "DYResult"):
         return VideoParseResult(
-            raw_url=url,
             title=result.desc,
             video=result.video,
         )
 
     @staticmethod
-    async def image_parse(url, result: "DYResult"):
+    async def image_parse(result: "DYResult"):
         return ImageParseResult(
-            raw_url=url,
             title=result.desc,
             photo=result.image_list,
         )

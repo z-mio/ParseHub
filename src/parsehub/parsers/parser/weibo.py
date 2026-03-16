@@ -29,7 +29,6 @@ class WeiboParser(BaseParser):
             if data.page_info.object_type == MediaType.VIDEO:
                 return VideoParseResult(
                     content=text,
-                    raw_url=raw_url,
                     video=VideoRef(
                         url=data.page_info.media_info.playback.url,
                         thumb_url=data.page_info.page_pic,
@@ -45,7 +44,7 @@ class WeiboParser(BaseParser):
             or (data.mix_media_info and data.mix_media_info.items)
         )
         if not media_info:
-            return MultimediaParseResult(content=text, raw_url=raw_url, media=[])
+            return MultimediaParseResult(content=text, media=[])
 
         for i in media_info:
             match i.type:
@@ -70,8 +69,8 @@ class WeiboParser(BaseParser):
                 case _:
                     media.append(ImageRef(url=i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
         if all((isinstance(m, ImageRef) or isinstance(m, LivePhotoRef)) for m in media):
-            return ImageParseResult(content=text, raw_url=raw_url, photo=media)
-        return MultimediaParseResult(content=text, raw_url=raw_url, media=media)
+            return ImageParseResult(content=text, photo=media)
+        return MultimediaParseResult(content=text, media=media)
 
     def f_text(self, text: str) -> str:
         # text = re.sub(r'<a  href="https://video.weibo.com.*?>.*的微博视频.*</a>', "", text)
