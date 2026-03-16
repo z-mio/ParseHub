@@ -14,7 +14,6 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ...utils.utils import clear_params
 from ..base import BaseParser
 
 
@@ -23,15 +22,14 @@ class XHSParser(BaseParser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(xiaohongshu|xhslink).com/.+"
     __redirect_keywords__ = ["xhslink", "item"]
-    __reserved_parameters__ = ["xsec_token"]
+    __after_clean_parameters__ = ["xsec_token"]
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        raw_url_ = clear_params(raw_url, "xsec_token")
         xhs = XHSAPI(proxy=self.proxy)
         result = await xhs.extract(raw_url)
 
         desc = self.hashtag_handler(result.desc)
-        k = {"title": result.title, "content": desc, "raw_url": raw_url_}
+        k = {"title": result.title, "content": desc, "raw_url": raw_url}
         match result.type:
             case XHSPostType.VIDEO:
                 v: XHSMedia = result.media[0]

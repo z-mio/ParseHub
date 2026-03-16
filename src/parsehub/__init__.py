@@ -133,7 +133,7 @@ class ParseHub:
         """
         parser = self.get_parser(url)
         try:
-            return await parser(proxy=proxy).get_raw_url(url)
+            return await parser(proxy=proxy).get_raw_url(url, after_clean_parameters=True)
         except Exception as e:
             raise ParseError from e
 

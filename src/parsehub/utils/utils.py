@@ -1,7 +1,6 @@
 import asyncio
 import json
 import re
-from urllib.parse import parse_qs, urlparse
 
 from urlextract import URLExtract
 
@@ -33,23 +32,6 @@ def cookie_ellipsis(cookie: dict) -> str:
     text = "; ".join([f"{k}={v}" for k, v in cookie.items()])
     c = min(len(text) // 3, 15)
     return f"{text[:c]}......{text[-c:]}"
-
-
-def clear_params(url: str, param: str | list[str]) -> str:
-    """
-    删除链接指定参数
-    :param url: 链接
-    :param param: 参数
-    :return:
-    """
-    params = param if isinstance(param, list) else [param]
-    parsed_url = urlparse(url)
-    query_params = parse_qs(parsed_url.query)
-    for i in params.copy():
-        if i in query_params:
-            del query_params[i]
-    new_query = "&".join([f"{k}={v[0]}" for k, v in query_params.items()])
-    return parsed_url._replace(query=new_query).geturl()
 
 
 def normalize_cookie(v):

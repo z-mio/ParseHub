@@ -25,6 +25,8 @@ class BaseParser(ABC):
     """匹配规则"""
     __reserved_parameters__: list[str] = []
     """要保留的参数, 例如翻页. 默认清除全部参数"""
+    __after_clean_parameters__: list[str] = []
+    """解析完成后需要清理的参数, 在解析完成前会保留这些参数, 优先级高于 __reserved_parameters__"""
     __redirect_keywords__: list[str] = []
     """如果链接包含其中之一, 则遵循重定向规则"""
 
@@ -61,9 +63,10 @@ class BaseParser(ABC):
         :param url: 分享文案 / 分享链接
         :return: 解析结果
         """
-        raw_url = await self.get_raw_url(url)
+        raw_url = await self.get_raw_url(url, after_clean_parameters=False)
         result = await self._do_parse(raw_url)
         result.platform = self.__platform__
+        result.raw_url = self._clean_params(raw_url, self.__after_clean_parameters__)
         return result
 
     @abstractmethod
@@ -73,10 +76,11 @@ class BaseParser(ABC):
         """
         raise NotImplementedError
 
-    async def get_raw_url(self, url: str) -> str:
+    async def get_raw_url(self, url: str, after_clean_parameters: bool = False) -> str:
         """
         清除链接中的参数
         :param url: 链接
+        :param after_clean_parameters: 是否执行后清理参数
         :return:
         """
         url = match_url(url)
@@ -101,7 +105,25 @@ class BaseParser(ABC):
         query_params = parse_qs(parsed_url.query)
 
         for i in query_params.copy().keys():
-            if i not in self.__reserved_parameters__:
-                del query_params[i]
+            is_reserved = i in self.__reserved_parameters__
+            is_after_clean = i in self.__after_clean_parameters__
+            keep = (is_reserved and not (after_clean_parameters and is_after_clean)) or (
+                is_after_clean and not after_clean_parameters
+            )
+            if not keep:
+                query_params.pop(i, None)
+
+        new_query = urlencode(query_params, doseq=True)
+        return parsed_url._replace(query=new_query).geturl()
+
+    @staticmethod
+    def _clean_params(url: str, params: list[str]) -> str:
+        """清除链接中的指定参数"""
+        if not params:
+            return url
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+        for p in params:
+            query_params.pop(p, None)
         new_query = urlencode(query_params, doseq=True)
         return parsed_url._replace(query=new_query).geturl()
