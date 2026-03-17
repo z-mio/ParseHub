@@ -1,6 +1,6 @@
 [project]
 name = "parsehub"
-version = "2.0.7"
+version = "2.0.8"
 description = "轻量、异步、开箱即用的社交媒体聚合解析库"
 readme = "README.md"
 requires-python = ">=3.12.0"
@@ -21,7 +21,6 @@ dependencies = [
     "aiofiles>=23.2",
     "beautifulsoup4>=4.12.3",
     "loguru>=0.6.0",
-    "opencv-python>=4.10.0.84",
     "pydub>=0.25.1",
     "python-dotenv>=1.0.1",
     "tenacity>=8.5.0",
@@ -36,6 +35,7 @@ dependencies = [
     "httpx>=0.24.1",
     "pillow>=12.1.0",
     "python-slugify[unidecode]>=8.0.4",
+    "opencv-python-headless>=4.13.0.92",
 ]
 
 [dependency-groups]
