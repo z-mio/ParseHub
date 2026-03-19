@@ -150,39 +150,42 @@ class YtVideoParseResult(VideoParseResult):
         #     paramss["format"] = "worstvideo* + worstaudio / worst"
 
         if callback:
-            loop = asyncio.get_running_loop()
-            progress_mode = "bytes"
-
-            def _progress_hook(d):
-                nonlocal progress_mode
-                if d["status"] == "downloading":
-                    # 已知问题: yt-dlp 返回的总进度不统一
-                    downloaded = int(d.get("downloaded_bytes", 0))
-                    total = int(d.get("total_bytes") or d.get("total_bytes_estimate") or 0)
-                    if total and progress_mode == "bytes":
-                        asyncio.run_coroutine_threadsafe(
-                            callback(downloaded, total, "bytes", *callback_args, **callback_kwargs),
-                            loop,
-                        )
-                    else:
-                        progress_mode = "count"
-                        asyncio.run_coroutine_threadsafe(
-                            callback(0, 1, "count", *callback_args, **callback_kwargs),
-                            loop,
-                        )
-                elif d["status"] == "finished" and progress_mode == "count":
-                    asyncio.run_coroutine_threadsafe(
-                        callback(1, 1, "count", *callback_args, **callback_kwargs),
-                        loop,
-                    )
-
-            paramss["progress_hooks"] = [_progress_hook]
+            # 已知问题: yt-dlp 返回的总进度不统一, 暂使用 count 进度
+            await callback(0, 1, "count", *callback_args, **callback_kwargs)
+            # loop = asyncio.get_running_loop()
+            # progress_mode = "bytes"
+            # def _progress_hook(d):
+            #     nonlocal progress_mode
+            #     if d["status"] == "downloading":
+            #         downloaded = int(d.get("downloaded_bytes", 0))
+            #         total = int(d.get("total_bytes") or d.get("total_bytes_estimate") or 0)
+            #         if total and progress_mode == "bytes":
+            #             asyncio.run_coroutine_threadsafe(
+            #                 callback(downloaded, total, "bytes", *callback_args, **callback_kwargs),
+            #                 loop,
+            #             )
+            #         else:
+            #             progress_mode = "count"
+            #             asyncio.run_coroutine_threadsafe(
+            #                 callback(0, 1, "count", *callback_args, **callback_kwargs),
+            #                 loop,
+            #             )
+            #     elif d["status"] == "finished" and progress_mode == "count":
+            #         asyncio.run_coroutine_threadsafe(
+            #             callback(1, 1, "count", *callback_args, **callback_kwargs),
+            #             loop,
+            #         )
+            #
+            # paramss["progress_hooks"] = [_progress_hook]
 
         await self._run_download(paramss)
 
         v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
         if not v:
             raise DownloadError("下载失败 -1")
+
+        if callback:
+            await callback(1, 1, "count", *callback_args, **callback_kwargs)
 
         video_path = v[0]
         return DownloadResult(
@@ -200,12 +203,7 @@ class YtVideoParseResult(VideoParseResult):
             raise DownloadError("下载失败 -2")
 
         try:
-            await asyncio.wait_for(
-                asyncio.to_thread(download_video, paramss, [self.dl.url]),
-                timeout=300,
-            )
-        except TimeoutError as e:
-            raise DownloadError("下载超时") from e
+            await asyncio.to_thread(download_video, paramss, [self.dl.url])
         except RuntimeError as e:
             error = str(e)
             if any(
