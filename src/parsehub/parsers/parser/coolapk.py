@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Union
 
@@ -37,17 +38,25 @@ class CoolapkParser(BaseParser):
                 media=media,
                 markdown_content=coolapk.markdown_content,
             )
+        content = self.hashtag_handler(coolapk.text_content)
         if any(isinstance(m, AniRef) for m in media):
             return CoolapkMultimediaParseResult(
                 title=coolapk.title,
                 media=media,
-                content=coolapk.text_content,
+                content=content,
             )
         return CoolapkImageParseResult(
             title=coolapk.title,
             photo=media,
-            content=coolapk.text_content,
+            content=content,
         )
+
+    @staticmethod
+    def hashtag_handler(desc: str):
+        hashtags = re.findall(r" ?#[^#]+# ?", desc)
+        for hashtag in hashtags:
+            desc = desc.replace(hashtag, f" {hashtag.strip().removesuffix('#')} ")
+        return desc
 
 
 class CoolapkParseResult(ParseResult):
