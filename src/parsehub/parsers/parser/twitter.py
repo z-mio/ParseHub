@@ -7,7 +7,7 @@ from ...provider_api.twitter import (
     TwitterTweet,
     TwitterVideo,
 )
-from ...types import AniRef, ImageRef, MultimediaParseResult, ParseError, Platform, VideoRef
+from ...types import AniRef, ImageRef, MultimediaParseResult, ParseError, Platform, RichTextParseResult, VideoRef
 from ...utils.utils import cookie_ellipsis
 from ..base.base import BaseParser
 
@@ -48,21 +48,24 @@ class TwitterParser(BaseParser):
     @staticmethod
     async def media_parse(tweet: TwitterTweet):
         media = []
-        for m in tweet.media:
-            match m:
-                case TwitterPhoto():
-                    path = ImageRef(url=m.url, height=m.height, width=m.width, thumb_url=m.thumb_url)
-                case TwitterVideo():
-                    path = VideoRef(
-                        url=m.url,
-                        height=m.height,
-                        width=m.width,
-                        duration=int(m.duration_millis / 1000),
-                        thumb_url=m.thumb_url,
-                    )
-                case TwitterAni():
-                    path = AniRef(url=m.url, ext="mp4", height=m.height, width=m.width, thumb_url=m.thumb_url)
-            media.append(path)
+        if tweet.media:
+            for m in tweet.media:
+                match m:
+                    case TwitterPhoto():
+                        path = ImageRef(url=m.url, height=m.height, width=m.width, thumb_url=m.thumb_url)
+                    case TwitterVideo():
+                        path = VideoRef(
+                            url=m.url,
+                            height=m.height,
+                            width=m.width,
+                            duration=int(m.duration_millis / 1000),
+                            thumb_url=m.thumb_url,
+                        )
+                    case TwitterAni():
+                        path = AniRef(url=m.url, ext="mp4", height=m.height, width=m.width, thumb_url=m.thumb_url)
+                media.append(path)
+        if article := tweet.article:
+            return RichTextParseResult(markdown_content=article.content, title=article.title, media=media)
         return MultimediaParseResult(content=tweet.full_text, media=media)
 
 
