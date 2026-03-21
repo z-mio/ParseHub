@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Union
 from urllib.parse import parse_qs, urlparse
 
+from loguru import logger
+
 from ...config.config import GlobalConfig
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
 from ...types import (
@@ -46,11 +48,12 @@ class BiliParse(YtParser):
         else:
             try:
                 return await self.bili_api_parse(raw_url)
-            except Exception:
+            except Exception as e:
+                logger.opt(exception=e).warning(f"Bilibili API 解析失败, 尝试 yt-dlp 解析")
                 try:
                     return await self.ytp_parse(raw_url)
                 except Exception as e:
-                    raise ParseError("Bilibili解析失败") from e
+                    raise ParseError("Bilibili 解析失败") from e
 
     @staticmethod
     def _is_bvid(url: str):
