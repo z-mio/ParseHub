@@ -115,7 +115,6 @@ class BaseParser(ABC):
                         follow_redirects=True,
                         headers={"User-Agent": GlobalConfig.ua},
                     )
-                    r.raise_for_status()
                 except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
                     raise ParseError("获取原始链接超时") from e
                 except Exception as e:

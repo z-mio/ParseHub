@@ -49,7 +49,7 @@ class BiliParse(YtParser):
             try:
                 return await self.bili_api_parse(raw_url)
             except Exception as e:
-                logger.opt(exception=e).warning(f"Bilibili API 解析失败, 尝试 yt-dlp 解析")
+                logger.opt(exception=e).warning("Bilibili API 解析失败, 尝试 yt-dlp 解析")
                 try:
                     return await self.ytp_parse(raw_url)
                 except Exception as e:
