@@ -21,7 +21,7 @@ from ..base.base import BaseParser
 class DouyinParser(BaseParser):
     __platform__ = Platform.DOUYIN
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)?.+douyin.com/(?!share/user).+|^(http(s)?://)?.+tiktok.com/.+"
+    __match__ = r"^(http(s)?://)?.+douyin.com/(?!share/user|qishui).+|^(http(s)?://)?.+tiktok.com/.+"
     __redirect_keywords__ = ["v.douyin", "vt.tiktok", "iesdouyin"]
     __reserved_parameters__ = ["modal_id"]
 
