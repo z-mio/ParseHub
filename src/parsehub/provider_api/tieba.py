@@ -1,74 +1,153 @@
+import hashlib
+import re
 from dataclasses import dataclass
+from enum import Enum
+from typing import Self
 
 import httpx
-from bs4 import BeautifulSoup
-from httpx import Response
 
 
 class TieBa:
     def __init__(self, proxy: str | None = None):
         self.proxy = proxy
 
-    @staticmethod
-    def _parse_out_the_body(text):
-        soup = BeautifulSoup(str(text), "lxml")
-        div_tag = soup.find_all("div")
-        [img.extract() for img in soup.find_all("img")]
-        [i.unwrap() for i in div_tag]
-        text = soup.text.strip()
-        # text = re.sub(
-        #     r"(<br/><br/>)+|点击展开，查看完整图片|<i.*></i>", "", str(soup)
-        # ).strip()
-        # text = re.sub(r'<span class="apc_src_wrapper">视频来自：.*</span>', "", text)
-        return text
+    async def parse(self, url: str) -> "TieBaPost":
+        data = await self.fetch_post_data(url)
+        return TieBaPost.parse(data)
 
     @staticmethod
-    async def get_tieba_img_url(html: Response):
-        """获取帖子中所有图片的URL"""
-        soup = BeautifulSoup(html.text, "lxml")
-        d_post_content_firstfloor = soup.find("div", {"class": "d_post_content_firstfloor"})
-        img_tags = d_post_content_firstfloor.find_all("img", {"class": "BDE_Image"})
-        return [img["src"] for img in img_tags if "src" in img.attrs]
+    def gen_sign(params: dict):
+        items = sorted(params.items())
+        base_str = "".join([f"{k}={v}" for k, v in items])
+        salt = "36770b1f34c9bbf2e7d1a99d2b82fa9e"
+        return hashlib.md5((base_str + salt).encode("utf-8")).hexdigest()
+
+    async def fetch_tbs(self) -> str:
+        async with httpx.AsyncClient(proxy=self.proxy) as cli:
+            result = await cli.get("http://tieba.baidu.com/dc/common/tbs")
+            result.raise_for_status()
+        result = result.json()
+        if tbs := result.get("tbs"):
+            return tbs
+        raise TieBaError("获取 tbs 失败")
 
     @staticmethod
-    async def get_tieba_video_url(html: Response):
-        """获取帖子中所有视频的URL"""
-        soup = BeautifulSoup(html.text, "lxml")
-        d_post_content_firstfloor = soup.find("div", {"class": "d_post_content_firstfloor"})
+    def get_kz(url: str) -> str:
+        if match := re.search(r"/p/(\d+)", url):
+            return match.group(1)
+        raise ValueError("无法从 URL 中提取帖子 ID")
 
-        if video_tags := d_post_content_firstfloor.find("embed", {"class": "BDE_Flash"}):
-            return video_tags["data-video"]
-        return None
+    async def fetch_post_data(self, url: str) -> dict:
+        kz = self.get_kz(url)
+        tbs = await self.fetch_tbs()
+        data = {
+            "pn": "1",
+            "lz": "0",
+            "r": "2",
+            "mark_type": "0",
+            "back": "0",
+            "fr": "personalize_page",
+            "kz": kz,
+            "session_request_times": "1",
+            "tbs": tbs,
+            "subapp_type": "pc",
+            "_client_type": "20",
+        }
+        data["sign"] = self.gen_sign(data)
+        async with httpx.AsyncClient(proxy=self.proxy, timeout=30) as cli:
+            result = await cli.post("https://tieba.baidu.com/c/f/pb/page_pc", data=data)
+            result.raise_for_status()
+            result = result.json()
+        if result["error_code"]:
+            raise TieBaError(em if (em := result["error_msg"]) else "获取帖子内容失败")
+        return result
 
-    async def get_the_content(self, html: Response):
-        """获取帖子的标题和内容"""
-        soup = BeautifulSoup(html.text, "lxml")
-        title = soup.find("h3", {"class": ["core_title_txt", "pull-left", "text-overflow"]}) or soup.find(
-            "h1", {"class": "core_title_txt"}
-        )
-        if not title:
-            raise Exception("未获取到标题内容")
-        title = title.text.strip()
-        content = soup.find("div", {"class": ["d_post_content", "j_d_post_content"]})
-        content = self._parse_out_the_body(content)
-        return title, content
 
-    async def get_html(self, t_url) -> Response:
-        async with httpx.AsyncClient(proxy=self.proxy) as c:
-            return await c.get(t_url, headers={"User-Agent": "Mozilla5.0/"}, timeout=15)
+class TieBaPostType(Enum):
+    PHOTO = "PHOTO"
+    VIDEO = "VIDEO"
 
-    async def parse(self, t_url) -> "TieBaPost":
-        res = await self.get_html(t_url)
 
-        title, content = await self.get_the_content(res)
-        img_url = await self.get_tieba_img_url(res)
-        video_url = await self.get_tieba_video_url(res)
-        return TieBaPost(title, content, img_url, video_url)
+@dataclass
+class TieBaVideo:
+    url: str
+    thumb_url: str | None = None
+    width: int = 0
+    height: int = 0
+    duration: int = 0
+
+
+@dataclass
+class TieBaPhoto:
+    url: str
+    thumb_url: str | None = None
+    width: int = 0
+    height: int = 0
 
 
 @dataclass
 class TieBaPost:
+    type: TieBaPostType
     title: str
     content: str
-    img_url: list
-    video_url: str = None
+    media: list[TieBaPhoto] | TieBaVideo | None = None
+
+    @classmethod
+    def parse(cls, data: dict) -> Self:
+        thread = data["thread"]
+        origin_thread_info = thread["origin_thread_info"]
+
+        # title
+        title = origin_thread_info["title"]
+
+        # content
+        origin_content = origin_thread_info["content"]
+        content_list: list[str] = []
+        for oc in origin_content:
+            oc_type = oc["type"]
+            match oc_type:
+                case 0:
+                    content_list.append(oc["text"])
+        content = "\n".join(content_list)
+
+        # media
+        media = []
+        if origin_media := origin_thread_info.get("media"):
+            post_type = TieBaPostType.PHOTO
+            for om in origin_media:
+                media.append(
+                    TieBaPhoto(
+                        url=om["big_pic"],
+                        thumb_url=om["small_pic"],
+                        width=om["width"],
+                        height=om["height"],
+                    )
+                )
+
+        elif video_info := thread.get("video_info"):
+            post_type = TieBaPostType.VIDEO
+            media.append(
+                TieBaVideo(
+                    url=video_info["video_url"],
+                    thumb_url=video_info["thumbnail_url"],
+                    width=video_info["video_width"],
+                    height=video_info["video_height"],
+                    duration=video_info["video_duration"],
+                )
+            )
+        else:
+            post_type = TieBaPostType.PHOTO
+
+        m = media[0] if post_type == TieBaPostType.VIDEO else media if media else None
+        return TieBaPost(
+            type=post_type,
+            title=title,
+            content=content,
+            media=m,
+        )
+
+
+class TieBaError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+        super().__init__(msg)
