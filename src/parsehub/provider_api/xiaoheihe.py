@@ -1,100 +1,23 @@
+import base64
+import gzip
 import hashlib
 import json
 import random
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.base import Cipher
+from cryptography.hazmat.primitives.ciphers.modes import CBC, ECB
 from markdownify import MarkdownConverter
-
-# TODO: 逆向 EP 和 DATA
-V4_EP = (
-    "CFcLOAE8E7Ew0J7yxtc9hPtklLIOym8yh1eU5jpB6D0M86gJERnbWbE7wPEWM95v8cWsxACqGq7iU"
-    "OEnrD2ODeFIj5VZdvbD3zhhOgT4FB6QfskCkuCN+JP/+aLz0rg/B+c/9fd5513ESuZxFVqUmrwe/v"
-    "jqZh5nS6Bsyt50VN8="
-)
-V4_DATA = (
-    "7ccf4483919143daa17cca371b849651ab10c58aa97415e3fcc9b2f4c0bc776844997f4059"
-    "512c213b3cc965e84693188b08f1ddb8924922598173e0cfa0bab40f242bcd20e11c728da7"
-    "5a75d64b75d4070affa0d64831d0b32efde8c74ac4e6adeef18bbcbd1d21131746d131e30c"
-    "8ba5939ea8247e79534f6688fed7545d5060b069e85c19d11c0277ee8015d2a989d84ce1bd"
-    "01ed2754a365959496343de0152044cef7db82d0353a091f566253f2f8ca14a192c64b610f"
-    "643309079d235d355438c84f566943df3df71c2cc979a68c6f36ce62861d6ddb64874d03f8"
-    "b596b1380de9f84a60aff650ec59e4b2427ba7492f541354ee4dfe09b02c7296539978d281"
-    "2269a7d37121ba96133b7e2b5fdba4922efc6f4bacd31855ca2604b86096ed5abfa6b87656"
-    "8298f4bd75c1de979608714b5f0ec2bd852ec6974f929891cfff70392b0c42c7efd9f53e6b"
-    "52541d08d654f85d92b29b553b3ea4de3c0ddf88ea77815871e476d5ba8b61dfbb427e3147"
-    "62b58a306479eeeb7831864bb593c91af9c85004e891efe5d495b3d1cb4885996ffeda2d50"
-    "7f747be1022544cf6ca1e4663bba30d7e7be129b23c5dd4ee1b56d2c48969eeee5b7b0e062"
-    "8cfc0527c5e2880c43a61dd753c72b76a0ec1556cac7682f54f0582b50419dbfaa504a9363"
-    "54dcb289d282dfa94ded53d926a4385cf437e35afed207c8ccf9eea2e2d493b645034a79ea"
-    "115b5df365cc3c6b160d0de25d5d94efd576538386521cc617058831a39bd9009555fe8bc3"
-    "419e1f4c9c51271d3996dd5616d0071d850a36799296abb9084a8a6b406f62341ebe581d50"
-    "11029c18e88074a2cd7e9fb6be16b948da4d696c624412a8adb4651af89e43db779ed90114"
-    "001c7ad552a6baf80447c751c39ce85ce713a661dd7b67be37aa749b46d8827b2187401e8c"
-    "3e26a5993b654d3b7e6a6323a512a00f925f887d7ce231f20788d999c527b63160b6b1893a"
-    "5891ab183760ca28c95232c164563857a98b963838d385b9638295ded7b69eeb7a43185463"
-    "d2278bd59409f5badc24abffcf5cab137f93d89657992b72c340d1a87ddec55a828d33857d"
-    "ae8b27fc0aad082e14cd8ef294938dddd095f11dd842f94aa055f3b0ba880cc87771f0d61d"
-    "cdc419027c010afb23d668b337cf63ce8359f51623326a81e7513beebfd98d3531b8c701b4"
-    "cc58b42937245244228fcefe0c74b491e765e98ec0f71814788c347b5340163aaa8aae7c97"
-    "332acb3270583f0d77c15c3216696ad4951e24a19107fd5fe150fc275198fe4c9794f2785d"
-    "a3b0b840ebfe75e823b997f0d2eda75f5debbeced24462f1b976e5fc9d643858143d1b0ee4"
-    "6dc3936991f50b5d9d7040a5d9f1cb202fbbc06420cdee16fafc0a6929789088ce8e695332"
-    "b0178a64761a352b15d87aa3a40529febc881d46a3ae80933e407fc2b28c5e0771dd426b02"
-    "1cf177e2ef53c94a0cc5fcc83212843955af3e5f3bb8b24e9ed121669dadd689d54644b507"
-    "1581b0e882d4513220cdf1fd5345b76d1fe1d824357bf3acd8a1c58d4bfb4fe3f39922f72e"
-    "2eb9a74ee4b5f248bf7e279569597f45ef0e7fcbefa2619dcf367fe3638cc93fe90583a72e"
-    "4190729c8c5ab6dd6fb6a37b43eaa90c2e25530ac9d9e923492037f1f14c0da73e4968391f"
-    "c96fe10e2bfbefd620bbd6ea4e948cf04d6219e2c32ee6875cb0c2515b3a9ff993438412d3"
-    "b1b71ba4c50ea98216b50778a1c909cbb7802acc8348aad6a9118a91a9be87f8610a1ab363"
-    "ba06beb726e0a5ce56820e6baf9de2d87a10ce1d5cdd2d94c9e0bab0a3b7b8809d52dd3926"
-    "873caf244ab322a0f2f4c4d9c119153d0b3105c8321dd30378b5345418c5a509fe731aef31"
-    "7b156cdd606d71b291954181fc3efd71467d809b90d2b02a876ddbe7c758c3189ff6ecca21"
-    "44b2a63ef949d7b8b643e3ca7a20c2e5c843e6e34f0260d3963982510a8c077dd7f47158de"
-    "ee71befbab650ef1fad54a622bf4d1c297d9a39995fb1420bdba52d20a939b2da9ec3d8a13"
-    "b156a597f9de8a683ad68a5725a3d2afbdfdbf9c024793558ba6bbd1f6d5f520988358f6d8"
-    "02c0ea8580d4f93218d729cf3bbec52e6224175a0f37dd5bb4901ec5efaa6625c6b6c3b452"
-    "752584d2e634fdee181ef7772857de3831725a6bbb6a22c29a4ddee5e8d1bf5c9aebc1b863"
-    "5ee14584163dae9d4fb2c28be4220a23bb889d1965b870c32273b0166f3195b22cb85fc570"
-    "fb3b13335c49792aaef7b675135a5ced82efe0c36713d7b40123254a7cb0099139bc6634c3"
-    "c1af20595392a6436b192b8e6bb43038a33dff4d22f6f11497cbcb5662e11f2d1510a77b61"
-    "0d1150b15a76b6c916767f1f7f0883db4a0f7b96e9d9b0884249f965212ec1cb54056ee26d"
-    "a2a883f29acdfc7040d4e2e99c4ffd42a8bb1c7852cb5b4c758cdc295baaf973eebd6e720c"
-    "bf0bd6b30ad4a7133929e4b1223c4a579dc1dde1f4fdc1fec5a83c0e3d5335f2dc79e57efc"
-    "74f64b4d69d0151d4025ee5392fd844f783e2c614903e0b3685362f142fa091dce36382c1d"
-    "dc3a6a63815fe062c59e86cad9d26bb54dbf93297ad4ae75039719eddf659c22f0922f08fe"
-    "9a2241200f87bfe60f92d9983062d868d5eaced8df5b2851f86b9ee00055d386bf1276ad9b"
-    "b27f2fa4b04ca6e773ff7348eb078e7b3b20ac5f878552133a652793f630304d28f1dc8ecb"
-    "eedf571f743ffb494c9b34a47df86df8530af4243f0fedfea466c374ff920571a998ebb799"
-    "6c9b0ec4ef5780bd519f19106ad1a5b16183bf62cbc0d7d7e4c297df6c0870fd07825d29c9"
-    "b51ecdc227efeda8848eaca34a4c65ef35c0d5d3fa6e02f416cf25c84ef054206906e0950e"
-    "24250b6e8cbea114c42de785f2ac69204ff675c7bd8f89bb1f683b9adb1c08d73cea3b5cfe"
-    "420fa46a893b9b4ba5674c502bebc59d492942af6eef30a09eb9ff94ead00ebc2007702868"
-    "63ec52c88a45ec7cbe5414485d28c64112aca5015f1976c2bd772cacb7baa5ae267035c7a1"
-    "d9703289821b84ef386f6998777f72f44392f28daa1dc23d26445ed5ca382405ae8b2b47a0"
-    "06d56a040b55c6796328ace7d8faa040d3009e5b627e12c30ec6c02bff8de7173b9f393320"
-    "3e0fb8e06f812ee8ba5a673f3fa31c27e5309a3f7e0a8a55829c0f5c8c7433bbc4db4cfce9"
-    "aea6f37058dd0bcaef20b54546466bdef7b5f69745d4d4ba59c61bc64fd4202f9ce95cc8e1"
-    "a56273db05551b6de959c5e2d5f2ccc6d9893d99e48a1ff043889c5bdcb96512ccff7237bd"
-    "95fd344d3dd46e8d19743a65cde0aeace9ec6563f4c5d2a1dd6e72a32b48dc9444246d6d9e"
-    "a5a9a8d4216b9e0b41f1e54179c52c9f456dbe6c4e8872627b54d7ca6957a270bac31a98cb"
-    "2bacf895f30ed6a508b9bdeb288ccfbf5166cec8535ab73c5fa90b41f4ba5d8a55a7cfb8d9"
-    "783e00356ee534676215463f0aa1333b3388c13c8c0f176af6d7d2a01e2dd01cac2eb73574"
-    "bd6c0930c412cf12bcb80708706cc94b2b9546621f64547b8543179a203d9d871dfc4d5cd4"
-    "8334f42598f62e7c8199782bd605c75dd719c0db51ed801a47938746caf258966fc3132f6c"
-    "77b0a97ba78ece0e150fee450a90433d2b8534d276b07e8d4586043de0ffe1af106f026d45"
-    "41ad961aea6f69fa92344ed9a93f76f2a9f0f29110a4f0a7bda6a84a46d815c68784ab6685"
-    "466059376f0f8866107623c49d59acf60a010c923a73177ea9f58e187bcec2d6feb94a5220"
-    "56325e1651b5499fd28c17456a756e171840b7f8f1d6785e3e63d0bb5a690cc148f45ba0b0"
-    "6b5e0c8da2c6711a6b5011fdfc57221767bce9925d149f357cfa8f108965f9f6037f9b3bc9"
-    "46d90499ec8c40108216ed10eea155cb8d8e7bf76cc17efc1fda962101dc22114ca7b3b39c"
-    "44c3345d0e1c525e4cbdc1f49dbb66ad1f5874bb91a577cf66428fa861624febfb03c369d1"
-    "9d794544"
-)
 
 
 class XiaoHeiHePostType(Enum):
@@ -208,7 +131,7 @@ class XiaoHeiHeAPI:
             "owner_only": "1",
             **sig_params,
         }
-        cookies = {"x_xhh_tokenid": await self.fetch_x_xhh_tokenid()}
+        cookies = {"x_xhh_tokenid": await SecuritySm.get_d_id()}
         async with httpx.AsyncClient(proxy=self.proxy) as cli:
             result = await cli.get(self.api_url + "/bbs/app/link/tree", params=params, cookies=cookies)
             result.raise_for_status()
@@ -230,28 +153,6 @@ class XiaoHeiHeAPI:
                 raise Exception(f"缺少token: {msg}")
             case _:
                 raise Exception(status)
-
-    async def v4(self):
-        json_data = {
-            "appId": "heybox_website",
-            "organization": "0yD85BjYvGFAvHaSQ1mc",
-            "ep": V4_EP,
-            "data": V4_DATA,
-            "os": "web",
-            "encode": 5,
-            "compress": 2,
-        }
-        async with httpx.AsyncClient(proxy=self.proxy) as cli:
-            result = await cli.post("https://fp-it.portal101.cn/deviceprofile/v4", json=json_data)
-            result.raise_for_status()
-            return result.json()
-
-    async def fetch_x_xhh_tokenid(self) -> str:
-        data = await self.v4()
-        device_id = data.get("detail", {}).get("deviceId")
-        if not device_id:
-            raise Exception("获取 x_xhh_tokenid 失败")
-        return f"B{device_id}"
 
 
 class XiaoHeiHeSign:
@@ -448,7 +349,7 @@ class XiaoHeiHeSign:
 
 
 class XHHConverter(MarkdownConverter):
-    def convert_img(self, el, text, parent_tags):
+    def convert_img(self, el, _, parent_tags):
         alt = el.attrs.get("alt", None) or ""
         src = el.attrs.get("data-original", None) or ""
         title = el.attrs.get("title", None) or ""
@@ -457,6 +358,193 @@ class XHHConverter(MarkdownConverter):
             return alt
 
         return f"![{alt}]({src}{title_part})"
+
+
+class SecuritySm:
+    # FROM https://github.com/YueHen14/skyland-auto-sign/blob/6e7115b5580377c842f50f05b0fa39ab079c17b1/SecuritySm.py
+
+    # 查询dId请求头
+    DEVICES_INFO_URL = "https://fp-it.portal101.cn/deviceprofile/v4"
+
+    # 数美配置
+    SM_CONFIG = {
+        "organization": "0yD85BjYvGFAvHaSQ1mc",
+        "appId": "heybox_website",
+        "publicKey": (
+            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCXj9exmI4nQjmT52iwr+yf7hAQ06bfSZHTAH"
+            "UfRBYiagCf/whhd8es0R79wBigpiHLd28TKA8b8mGR8OiiI1hV+qfynCWihvp3mdj8MiiH6SU3"
+            "lhro2hkfYzImZB0RmWr2zE4Xt1+A6Oyp6bf+W7JSxYUXHw3nNv7Td4jw4jEFKQIDAQAB"
+        ),  # 小黑盒公钥
+        "protocol": "https",
+        "apiHost": "fp-it.portal101.cn",
+    }
+
+    PK = serialization.load_der_public_key(base64.b64decode(SM_CONFIG["publicKey"]))
+
+    DES_RULE = {
+        "appId": {"cipher": "DES", "is_encrypt": 1, "key": "uy7mzc4h", "obfuscated_name": "xx"},
+        "box": {"is_encrypt": 0, "obfuscated_name": "jf"},
+        "canvas": {"cipher": "DES", "is_encrypt": 1, "key": "snrn887t", "obfuscated_name": "yk"},
+        "clientSize": {"cipher": "DES", "is_encrypt": 1, "key": "cpmjjgsu", "obfuscated_name": "zx"},
+        "organization": {"cipher": "DES", "is_encrypt": 1, "key": "78moqjfc", "obfuscated_name": "dp"},
+        "os": {"cipher": "DES", "is_encrypt": 1, "key": "je6vk6t4", "obfuscated_name": "pj"},
+        "platform": {"cipher": "DES", "is_encrypt": 1, "key": "pakxhcd2", "obfuscated_name": "gm"},
+        "plugins": {"cipher": "DES", "is_encrypt": 1, "key": "v51m3pzl", "obfuscated_name": "kq"},
+        "pmf": {"cipher": "DES", "is_encrypt": 1, "key": "2mdeslu3", "obfuscated_name": "vw"},
+        "protocol": {"is_encrypt": 0, "obfuscated_name": "protocol"},
+        "referer": {"cipher": "DES", "is_encrypt": 1, "key": "y7bmrjlc", "obfuscated_name": "ab"},
+        "res": {"cipher": "DES", "is_encrypt": 1, "key": "whxqm2a7", "obfuscated_name": "hf"},
+        "rtype": {"cipher": "DES", "is_encrypt": 1, "key": "x8o2h2bl", "obfuscated_name": "lo"},
+        "sdkver": {"cipher": "DES", "is_encrypt": 1, "key": "9q3dcxp2", "obfuscated_name": "sc"},
+        "status": {"cipher": "DES", "is_encrypt": 1, "key": "2jbrxxw4", "obfuscated_name": "an"},
+        "subVersion": {"cipher": "DES", "is_encrypt": 1, "key": "eo3i2puh", "obfuscated_name": "ns"},
+        "svm": {"cipher": "DES", "is_encrypt": 1, "key": "fzj3kaeh", "obfuscated_name": "qr"},
+        "time": {"cipher": "DES", "is_encrypt": 1, "key": "q2t3odsk", "obfuscated_name": "nb"},
+        "timezone": {"cipher": "DES", "is_encrypt": 1, "key": "1uv05lj5", "obfuscated_name": "as"},
+        "tn": {"cipher": "DES", "is_encrypt": 1, "key": "x9nzj1bp", "obfuscated_name": "py"},
+        "trees": {"cipher": "DES", "is_encrypt": 1, "key": "acfs0xo4", "obfuscated_name": "pi"},
+        "ua": {"cipher": "DES", "is_encrypt": 1, "key": "k92crp1t", "obfuscated_name": "bj"},
+        "url": {"cipher": "DES", "is_encrypt": 1, "key": "y95hjkoo", "obfuscated_name": "cf"},
+        "version": {"is_encrypt": 0, "obfuscated_name": "version"},
+        "vpw": {"cipher": "DES", "is_encrypt": 1, "key": "r9924ab5", "obfuscated_name": "ca"},
+    }
+
+    BROWSER_ENV = {
+        "plugins": (
+            "MicrosoftEdgePDFPluginPortableDocumentFormatinternal-pdf-viewer1,Micros"
+            "oftEdgePDFViewermhjfbmdgcfjbbpaeojofohoefgiehjai1"
+        ),
+        "ua": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0"
+        ),
+        "canvas": "259ffe69",  # 基于浏览器的canvas获得的值，不知道复用行不行
+        "timezone": -480,  # 时区，应该是固定值吧
+        "platform": "Win32",
+        "url": "https://www.skland.com/",  # 固定值
+        "referer": "",
+        "res": "1920_1080_24_1.25",  # 屏幕宽度_高度_色深_window.devicePixelRatio
+        "clientSize": "0_0_1080_1920_1920_1080_1920_1080",
+        "status": "0011",  # 不知道在干啥
+    }
+
+    # 将浏览器环境对象的key全部排序，然后对其所有的值及其子对象的值加入数字并字符串相加。若值为数字，
+    # 则乘以10000(0x2710)再将其转成字符串存入数组,最后再做md5,存入tn变量（tn变量要做加密）
+
+    # 把这个对象用加密规则进行加密，然后对结果做GZIP压缩（结果是对象，应该有序列化），最后做AES加密（加密细节目前不
+    # 清除），密钥为变量priId
+
+    # 加密规则：新对象的key使用相对应加解密规则的obfuscated_name值，value为字符串化后进行进行DES加密，再进行btoa加密
+
+    @classmethod
+    def _DES(cls, o: dict):
+        result = {}
+        for i in o.keys():
+            if i in cls.DES_RULE.keys():
+                rule = cls.DES_RULE[i]
+                res = o[i]
+                if rule["is_encrypt"] == 1:
+                    c = Cipher(TripleDES(rule["key"].encode("utf-8")), ECB())
+                    data = str(res).encode("utf-8")
+                    # 补足字节
+                    data += b"\x00" * 8
+                    res = base64.b64encode(c.encryptor().update(data)).decode("utf-8")
+                result[rule["obfuscated_name"]] = res
+            else:
+                result[i] = o[i]
+        return result
+
+    @staticmethod
+    def _AES(v: bytes, k: bytes):
+        iv = "0102030405060708"
+        key = AES(k)
+        c = Cipher(key, CBC(iv.encode("utf-8")))
+        c.encryptor()
+        # 填充明文
+        v += b"\x00"
+        while len(v) % 16 != 0:
+            v += b"\x00"
+        return c.encryptor().update(v).hex()
+
+    @staticmethod
+    def GZIP(o: dict):
+        # 这个压缩结果似乎和前台不太一样,不清楚是否会影响
+        json_str = json.dumps(o, ensure_ascii=False)
+        stream = gzip.compress(json_str.encode("utf-8"), 2, mtime=0)
+        return base64.b64encode(stream)
+
+    # 获得tn的值,后续做DES加密用
+    @staticmethod
+    def get_tn(o: dict):
+        sorted_keys = sorted(o.keys())
+
+        result_list = []
+
+        for i in sorted_keys:
+            v = o[i]
+            if isinstance(v, (int, float)):
+                v = str(v * 10000)
+            elif isinstance(v, dict):
+                v = SecuritySm.get_tn(v)
+            result_list.append(v)
+        return "".join(result_list)
+
+    @staticmethod
+    def get_smid():
+        t = time.localtime()
+        _time = f"{t.tm_year}{t.tm_mon:0>2d}{t.tm_mday:0>2d}{t.tm_hour:0>2d}{t.tm_min:0>2d}{t.tm_sec:0>2d}"
+        uid = str(uuid.uuid4())
+        v = _time + hashlib.md5(uid.encode("utf-8")).hexdigest() + "00"
+        smsk_web = hashlib.md5(("smsk_web_" + v).encode("utf-8")).hexdigest()[0:14]
+        return v + smsk_web + "0"
+
+    @classmethod
+    async def get_d_id(cls):
+        uid = str(uuid.uuid4()).encode("utf-8")
+        priId = hashlib.md5(uid).hexdigest()[0:16]
+        ep = cls.PK.encrypt(uid, padding.PKCS1v15())
+        ep = base64.b64encode(ep).decode("utf-8")
+
+        browser = cls.BROWSER_ENV.copy()
+        current_time = int(time.time() * 1000)
+        browser.update({"vpw": str(uuid.uuid4()), "svm": current_time, "trees": str(uuid.uuid4()), "pmf": current_time})
+
+        des_target = {
+            **browser,
+            "protocol": 102,
+            "organization": cls.SM_CONFIG["organization"],
+            "appId": cls.SM_CONFIG["appId"],
+            "os": "web",
+            "version": "3.0.0",
+            "sdkver": "3.0.0",
+            "box": "",  # 似乎是个SMID，但是第一次的时候是空,不过不影响结果
+            "rtype": "all",
+            "smid": cls.get_smid(),
+            "subVersion": "1.0.0",
+            "time": 0,
+        }
+        des_target["tn"] = hashlib.md5(cls.get_tn(des_target).encode()).hexdigest()
+
+        des_result = cls._AES(cls.GZIP(cls._DES(des_target)), priId.encode("utf-8"))
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                cls.DEVICES_INFO_URL,
+                json={
+                    "appId": "heybox_website",
+                    "compress": 2,
+                    "data": des_result,
+                    "encode": 5,
+                    "ep": ep,
+                    "organization": cls.SM_CONFIG["organization"],
+                    "os": "web",  # 固定值
+                },
+            )
+
+        resp = response.json()
+        if resp["code"] != 1100:
+            raise Exception("did计算失败")
+        # 开头必须是B
+        return "B" + resp["detail"]["deviceId"]
 
 
 if __name__ == "__main__":
