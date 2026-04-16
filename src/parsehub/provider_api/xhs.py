@@ -31,6 +31,8 @@ class XHSAPI:
         return data
 
     def __parse(self, data: dict):
+        if not data.get("note"):
+            raise ValueError("该帖子需要登录后才能查看")
         first_note_id = data["note"]["firstNoteId"]
         note = data["note"]["noteDetailMap"][first_note_id]["note"]
         title = note["title"]
