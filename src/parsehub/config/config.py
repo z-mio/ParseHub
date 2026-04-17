@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, HttpUrl
+from pydantic import BaseModel, ConfigDict
 
 
 class _GlobalConfig(BaseModel):
@@ -11,8 +11,6 @@ class _GlobalConfig(BaseModel):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
     )
-    douyin_api: HttpUrl = "https://douyin.wtf/"
-    """抖音解析API, 建议自行部署: https://github.com/Evil0ctal/Douyin_TikTok_Download_API"""
     default_save_dir: Path = Path(sys.argv[0]).parent / "downloads"
     """默认下载目录"""
 
