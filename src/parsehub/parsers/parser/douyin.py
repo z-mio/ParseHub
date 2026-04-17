@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union
+from pathlib import Path
+from typing import Self, Union
 
-import httpx
-
-from ...config import GlobalConfig
+from ... import ProgressCallback
+from ...provider_api.douyin import DouyinWebCrawler
 from ...types import (
+    DownloadResult,
     ImageParseResult,
     ImageRef,
     LivePhotoRef,
@@ -21,8 +22,8 @@ from ..base.base import BaseParser
 class DouyinParser(BaseParser):
     __platform__ = Platform.DOUYIN
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)?.+douyin.com/(?!share/user|qishui).+|^(http(s)?://)?.+tiktok.com/.+"
-    __redirect_keywords__ = ["v.douyin", "vt.tiktok", "iesdouyin"]
+    __match__ = r"^(http(s)?://)?.+douyin.com/(?!share/user|qishui).+"
+    __redirect_keywords__ = ["v.douyin", "iesdouyin"]
     __reserved_parameters__ = ["modal_id"]
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
@@ -34,26 +35,16 @@ class DouyinParser(BaseParser):
             case DYType.IMAGE:
                 return await self.image_parse(data)
 
-    @staticmethod
-    async def parse_api(url) -> "DYResult":
-        if not GlobalConfig.douyin_api:
-            raise ParseError("抖音解析API未配置")
-
-        async with httpx.AsyncClient(timeout=15) as client:
-            params = {"url": url, "minimal": False}
-            try:
-                response = await client.get(
-                    f"{str(GlobalConfig.douyin_api).rstrip('/')}/api/hybrid/video_data", params=params
-                )
-            except httpx.ReadTimeout as e:
-                raise ParseError("抖音解析超时") from e
-        if response.status_code != 200:
-            raise ParseError("抖音解析失败")
-        return DYResult.parse(url, response.json())
+    async def parse_api(self, url) -> "DYResult":
+        if not self.cookie:
+            raise ParseError("抖音 Cookie 未配置")
+        dwc = DouyinWebCrawler(proxy=self.proxy, cookie=self.cookie)
+        response = await dwc.parse(url)
+        return DYResult.parse(response)
 
     @staticmethod
     async def video_parse(result: "DYResult"):
-        return VideoParseResult(
+        return DouyinVideoParseResult(
             title=result.desc,
             video=result.video,
         )
@@ -66,6 +57,31 @@ class DouyinParser(BaseParser):
         )
 
 
+class DouyinVideoParseResult(VideoParseResult):
+    async def _do_download(
+        self,
+        *,
+        output_dir: str | Path,
+        callback: ProgressCallback | None = None,
+        callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
+        proxy: str | None = None,
+        headers: dict | None = None,
+    ) -> "DownloadResult":
+        headers = {
+            # "User-Agent": GlobalConfig.ua,
+            "Referer": "https://www.douyin.com/",
+        }
+        return await super()._do_download(
+            output_dir=output_dir,
+            callback=callback,
+            callback_args=callback_args,
+            callback_kwargs=callback_kwargs,
+            proxy=proxy,
+            headers=headers,
+        )
+
+
 class DYType(Enum):
     VIDEO = "video"
     IMAGE = "image"  # 实况图片 + 图片
@@ -74,15 +90,13 @@ class DYType(Enum):
 @dataclass
 class DYResult:
     type: DYType
-    platform: str
     video: VideoRef = None
     desc: str = ""
     image_list: list[ImageRef | LivePhotoRef] = None
 
-    @staticmethod
-    def parse(url: str, json_dict: dict):
-        platform = "douyin" if "douyin" in url else "tiktok"
-        data = json_dict.get("data")
+    @classmethod
+    def parse(cls, json_dict: dict) -> Self:
+        data = json_dict.get("aweme_detail")
         desc = data.get("desc")
 
         def v_p(video_data: dict):
@@ -94,6 +108,7 @@ class DYResult:
             bit_rate = bit_rate[0]
 
             video_url = bit_rate["play_addr"]["url_list"][0]
+            video_url = video_url.replace("playwm", "play")
             thumb_url_list = video_data["cover"]["url_list"]
             thumb_url = thumb_url_list[-1] if thumb_url_list else None
 
@@ -126,32 +141,29 @@ class DYResult:
                     else:
                         image_list.append(ImageRef(url=image["url_list"][-1]))
 
-                return DYResult(
+                return cls(
                     type=DYType.IMAGE,
                     desc=desc,
                     image_list=image_list,
-                    platform=platform,
                 )
             else:
                 image_list = [ImageRef(url=image["url_list"][-1]) for image in images]
-                return DYResult(
+                return cls(
                     type=DYType.IMAGE,
                     image_list=image_list,
                     desc=desc,
-                    platform=platform,
                 )
         elif image_post_info := data.get("image_post_info"):
             images = image_post_info.get("images")
             image_list = [ImageRef(url=image["display_image"]["url_list"][-1]) for image in images]
-            return DYResult(
+            return cls(
                 type=DYType.IMAGE,
                 image_list=image_list,
                 desc=desc,
-                platform=platform,
             )
         else:
             vpi = v_p(data.get("video"))
-            return DYResult(
+            return cls(
                 type=DYType.VIDEO,
                 video=VideoRef(
                     url=vpi["video_url"],
@@ -161,7 +173,6 @@ class DYResult:
                     duration=vpi["duration"],
                 ),
                 desc=desc,
-                platform=platform,
             )
 
 
