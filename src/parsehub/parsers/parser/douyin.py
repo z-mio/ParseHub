@@ -91,17 +91,6 @@ def remove_video_watermark(url: str) -> str:
 
 
 def parse_video_info(video_data: dict) -> dict:
-    """解析抖音视频信息
-
-    Args:
-        video_data: 抖音 API 返回的视频数据字典
-
-    Returns:
-        包含 video_url, thumb_url, duration, width, height 的字典
-
-    Raises:
-        ParseError: 未获取到视频下载地址时抛出
-    """
     bit_rates = video_data.get("bit_rate")
     if not bit_rates:
         raise ParseError("抖音解析失败: 未获取到视频下载地址")
@@ -151,17 +140,6 @@ class DouyinApiResult:
 
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
-        """解析抖音 API 响应
-
-        Args:
-            json_dict: 抖音 API 返回的原始 JSON 数据
-
-        Returns:
-            DouyinApiResult 实例
-
-        Raises:
-            ParseError: 解析失败时抛出
-        """
         data = json_dict.get("aweme_detail")
         if not data:
             raise ParseError("抖音解析失败: 未获取到作品详情")

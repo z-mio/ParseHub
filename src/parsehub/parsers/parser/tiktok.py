@@ -21,7 +21,7 @@ from ..base.base import BaseParser
 
 class TikTokParser(BaseParser):
     __platform__ = Platform.TIKTOK
-    __supported_type__ = ["视频", "图文"]
+    __supported_type__ = ["视频"]
     __match__ = r"^(http(s)?://)?.+tiktok.com/(?!share/user|qishui).+"
     __redirect_keywords__ = ["vt.tiktok"]
 
@@ -82,17 +82,6 @@ class TikTokVideoParseResult(VideoParseResult):
 
 
 def parse_video_info(video_data: dict) -> dict:
-    """解析 TikTok 视频信息
-
-    Args:
-        video_data: TikTok API 返回的视频数据字典
-
-    Returns:
-        包含 video_url, thumb_url, duration, width, height 的字典
-
-    Raises:
-        ParseError: 未获取到视频下载地址时抛出
-    """
     bit_rate_info = video_data.get("bitrateInfo")
     if not bit_rate_info:
         raise ParseError("TikTok 解析失败: 未获取到视频下载信`息")
@@ -142,17 +131,6 @@ class TikTokApiResult:
 
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
-        """解析 TikTok API 响应
-
-        Args:
-            json_dict: TikTok API 返回的原始 JSON 数据
-
-        Returns:
-            TikTokApiResult 实例
-
-        Raises:
-            ParseError: 解析失败时抛出
-        """
         data = json_dict.get("itemInfo", {}).get("itemStruct")
         if not data:
             raise ParseError("TikTok 解析失败: 未获取到作品详情")
