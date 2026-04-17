@@ -320,6 +320,17 @@ wheels = [
 ]
 
 [[package]]
+name = "gmssl"
+version = "3.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pycryptodomex" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/b1/01d707a2edfaad77715b2d27e5fbf14b6bcd34dd72ea179a5facfe4b1dd7/gmssl-3.2.2-py3-none-any.whl", hash = "sha256:59f069a91eb19ef59b9e7be4d436ed01c92ce064d3d7d45a8778fc07fd2cd068", size = 10185, upload-time = "2023-02-23T06:01:39.296Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -588,6 +599,7 @@ dependencies = [
     { name = "aiofiles" },
     { name = "beautifulsoup4" },
     { name = "cryptography" },
+    { name = "gmssl" },
     { name = "httpx" },
     { name = "instaloader" },
     { name = "loguru" },
@@ -616,6 +628,7 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=23.2" },
     { name = "beautifulsoup4", specifier = ">=4.12.3" },
     { name = "cryptography", specifier = ">=46.0.6" },
+    { name = "gmssl", specifier = ">=3.2.2" },
     { name = "httpx", specifier = ">=0.24.1" },
     { name = "instaloader", specifier = ">=4.14" },
     { name = "loguru", specifier = ">=0.6.0" },
