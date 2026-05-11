@@ -32,9 +32,12 @@ class XHSAPI:
 
     def __parse(self, data: dict):
         if not data.get("note"):
-            raise ValueError("该帖子需要登录后才能查看")
+            raise ValueError("该帖子需要登录后查看")
         first_note_id = data["note"]["firstNoteId"]
         note = data["note"]["noteDetailMap"][first_note_id]["note"]
+        if not note:
+            raise ValueError("未获取到内容, 该帖子可能需要登录后查看")
+
         title = note["title"]
         desc = note["desc"]
         return XHSPost(type=self.__get_post_type(note), title=title, desc=desc, media=self.__parse_media(note))
