@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from src.parsehub import ParseHub
-from src.parsehub.config import GlobalConfig
 from src.parsehub.types import ParseResult
 
 load_dotenv()
@@ -54,8 +53,6 @@ class TestParse(unittest.IsolatedAsyncioTestCase):
         """测试前初始化"""
         self.cookie = os.getenv("TEST_COOKIE", None)
         self.proxy = os.getenv("TEST_PROXY", None)
-        self.dy_api = os.getenv("TEST_DOUYIN_API", None)
-        GlobalConfig.douyin_api = self.dy_api
 
     @logger.catch
     async def test_parse_only(self):
@@ -80,7 +77,6 @@ class TestParse(unittest.IsolatedAsyncioTestCase):
     async def test_parse_and_download(self):
         """解析并下载"""
         ph = ParseHub()
-        GlobalConfig.duration_limit = 0
 
         r = await ph.parse(TEST_URLS["bilibili"], cookie=self.cookie, proxy=self.proxy)
         logger.debug("解析结果: {}", r)
