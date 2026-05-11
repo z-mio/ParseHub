@@ -1,10 +1,8 @@
 import asyncio
-import base64
-import hashlib
 import html
 import json
 import re
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -13,11 +11,6 @@ from ..config import GlobalConfig
 
 TIKTOK_APP_FEED = "https://api22-normal-c-alisg.tiktokv.com/aweme/v1/feed/"
 
-TIKTOK_WEB_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
-)
 FACEBOOK_EXTERNAL_HIT_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
 UNIVERSAL_DATA_RE = re.compile(
     r'<script[^>]+id=["\']__UNIVERSAL_DATA_FOR_REHYDRATION__["\'][^>]*>(?P<json>.*?)</script>',
@@ -31,16 +24,20 @@ TIKTOK_HEADERS = {
 }
 
 TIKTOK_WEB_HEADERS = {
-    "User-Agent": TIKTOK_WEB_USER_AGENT,
+    "User-Agent": GlobalConfig.ua,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.tiktok.com/",
 }
 
 
+class TikTokItemRef(NamedTuple):
+    media_type: str
+    aweme_id: str
+
+
 class TikTokWebCrawler:
-    _ITEM = re.compile(r"/(?:video|photo)/(\d+)")
-    _SHORT_URL = re.compile(r"https?://(?:(?:vm|vt)\.tiktok\.com|(?:www\.)?tiktok\.com/t)/[^\s)\]>\"']+")
+    _ITEM = re.compile(r"/(?P<media_type>video|photo)/(?P<aweme_id>\d+)")
     _URL = re.compile(r"https?://\S+")
 
     def __init__(
@@ -62,23 +59,23 @@ class TikTokWebCrawler:
         self.timeout = timeout
 
     async def parse(self, url: str) -> dict:
-        aweme_id = None
+        item_ref = None
         primary_error: Exception | None = None
 
         try:
             resolved_url = await self.resolve_url(url)
-            aweme_id = self.extract_aweme_id_from_url(resolved_url)
-            if not aweme_id:
+            item_ref = self.extract_item_ref_from_url(resolved_url)
+            if not item_ref:
                 raise ValueError(f"无法从链接中提取作品 ID: {resolved_url}")
-            return await self.fetch_one_video(aweme_id)
+            return await self.fetch_one_video(item_ref.aweme_id)
         except Exception as exc:
             primary_error = exc
 
-        if await self.is_photo_url(url):
+        if item_ref and item_ref.media_type == "photo":
             raise RuntimeError(f"获取 TikTok 图文作品失败: {primary_error}") from primary_error
 
         try:
-            return await self.fetch_one_video_from_web(url, expected_aweme_id=aweme_id)
+            return await self.fetch_video_from_web(url, expected_aweme_id=item_ref.aweme_id if item_ref else None)
         except Exception as web_error:
             raise RuntimeError(f"获取 TikTok 作品失败: feed={primary_error}; web={web_error}") from web_error
 
@@ -94,7 +91,7 @@ class TikTokWebCrawler:
     @classmethod
     def extract_url(cls, text: str) -> str:
         text = html.unescape(text.strip())
-        markdown_match = re.search(r"\]\((https?://[^)]+)\)", text)
+        markdown_match = re.search(r"]\((https?://[^)]+)\)", text)
         if markdown_match:
             return markdown_match.group(1).rstrip(".,;，。；'\")]}）】>」』")
         match = cls._URL.search(text)
@@ -103,17 +100,15 @@ class TikTokWebCrawler:
         return match.group(0).rstrip(".,;，。；'\")]}）】>」』")
 
     @classmethod
-    def extract_aweme_id_from_url(cls, url: str) -> str | None:
+    def extract_item_ref_from_url(cls, url: str) -> TikTokItemRef | None:
         match = cls._ITEM.search(url)
-        return match.group(1) if match else None
-
-    async def is_photo_url(self, url_or_text: str) -> bool:
-        resolved_url = await self.resolve_url(url_or_text)
-        return bool(re.search(r"/photo/\d+", resolved_url))
+        if not match:
+            return None
+        return TikTokItemRef(match.group("media_type"), match.group("aweme_id"))
 
     async def resolve_url(self, url_or_text: str) -> str:
         url = self.extract_url(url_or_text)
-        if self.extract_aweme_id_from_url(url):
+        if self.extract_item_ref_from_url(url):
             return url
 
         async with self._client() as client:
@@ -127,7 +122,7 @@ class TikTokWebCrawler:
 
     async def resolve_web_url(self, url_or_text: str) -> str:
         url = self.extract_url(url_or_text)
-        if self.extract_aweme_id_from_url(url) and not self._SHORT_URL.search(url):
+        if self.extract_item_ref_from_url(url):
             return url
 
         headers = dict(TIKTOK_WEB_HEADERS)
@@ -138,13 +133,6 @@ class TikTokWebCrawler:
                 response = await client.get(url)
             response.raise_for_status()
             return str(response.url)
-
-    async def get_aweme_id(self, url_or_text: str) -> str:
-        resolved_url = await self.resolve_url(url_or_text)
-        aweme_id = self.extract_aweme_id_from_url(resolved_url)
-        if not aweme_id:
-            raise ValueError(f"无法从链接中提取作品 ID: {resolved_url}")
-        return aweme_id
 
     async def fetch_one_video(self, aweme_id: str) -> dict[str, Any]:
         params = {
@@ -186,11 +174,13 @@ class TikTokWebCrawler:
 
         raise RuntimeError(f"获取 TikTok 作品失败: {last_error}")
 
-    async def fetch_one_video_from_web(self, url_or_text: str, expected_aweme_id: str | None = None) -> dict[str, Any]:
+    async def fetch_video_from_web(self, url_or_text: str, expected_aweme_id: str | None = None) -> dict[str, Any]:
         url = await self.resolve_web_url(url_or_text)
-        aweme_id = self.extract_aweme_id_from_url(url)
-        if not aweme_id:
+        item_ref = self.extract_item_ref_from_url(url)
+        if not item_ref:
             raise ValueError(f"无法从链接中提取作品 ID: {url}")
+        if item_ref.media_type == "photo":
+            raise ValueError("TikTok 图文作品不支持 Web hydration fallback")
 
         webpage = await self.download_webpage(url)
         universal_data = self._search_universal_data(webpage)
@@ -199,7 +189,7 @@ class TikTokWebCrawler:
 
         item = self._extract_web_item(universal_data)
         item_id = str(item.get("aweme_id") or item.get("id") or "")
-        expected_id = str(expected_aweme_id or aweme_id)
+        expected_id = str(expected_aweme_id or item_ref.aweme_id)
         if item_id and item_id != expected_id:
             raise RuntimeError(f"返回作品 ID 不匹配: expected={expected_id}, got={item_id}")
         if item_id and not item.get("aweme_id"):
@@ -217,10 +207,7 @@ class TikTokWebCrawler:
                 webpage = response.text
                 if self._search_universal_data(webpage):
                     return webpage
-                retried = await self._solve_challenge_and_retry(client, str(response.url), webpage)
-                if retried and self._search_universal_data(retried):
-                    return retried
-                last_webpage = retried or webpage
+                last_webpage = webpage
                 if attempt + 1 < self.max_retries:
                     await asyncio.sleep(1)
             return last_webpage
@@ -240,62 +227,6 @@ class TikTokWebCrawler:
         return data.get("__DEFAULT_SCOPE__") or {}
 
     @staticmethod
-    def _decode_html_class_json(webpage: str, element_id: str) -> Any:
-        match = re.search(rf'<[^>]+id=["\']{re.escape(element_id)}["\'][^>]*>', webpage)
-        if not match:
-            return None
-        class_match = re.search(r'class=["\']([^"\']+)["\']', match.group(0))
-        if not class_match:
-            return None
-        value = html.unescape(class_match.group(1))
-        try:
-            return json.loads(base64.b64decode(f"{value}===").decode())
-        except Exception:
-            return value
-
-    async def _solve_challenge_and_retry(
-        self,
-        client: httpx.AsyncClient,
-        url: str,
-        webpage: str,
-    ) -> str | None:
-        challenge_data = self._decode_html_class_json(webpage, "cs")
-        if not isinstance(challenge_data, dict):
-            return None
-        expected_digest_b64 = (((challenge_data.get("v") or {}).get("c")) or "")
-        base_hash_b64 = (((challenge_data.get("v") or {}).get("a")) or "")
-        if not expected_digest_b64 or not base_hash_b64:
-            return None
-        try:
-            expected_digest = base64.b64decode(expected_digest_b64)
-            base_hash = hashlib.sha256(base64.b64decode(base_hash_b64))
-        except Exception:
-            return None
-        for i in range(1_000_001):
-            test_hash = base_hash.copy()
-            number = str(i).encode()
-            test_hash.update(number)
-            if test_hash.digest() == expected_digest:
-                challenge_data["d"] = base64.b64encode(number).decode()
-                break
-        else:
-            return None
-        cookie_name = self._decode_html_class_json(webpage, "wci")
-        if not isinstance(cookie_name, str) or not cookie_name:
-            return None
-        cookie_value = base64.b64encode(json.dumps(challenge_data, separators=(",", ":")).encode()).decode()
-        self.cookies.set(cookie_name, cookie_value, domain=".tiktok.com")
-        client.cookies.set(cookie_name, cookie_value, domain=".tiktok.com")
-        rci_cookie_name = self._decode_html_class_json(webpage, "rci")
-        rci_cookie_value = self._decode_html_class_json(webpage, "rs")
-        if isinstance(rci_cookie_name, str) and isinstance(rci_cookie_value, str):
-            self.cookies.set(rci_cookie_name, rci_cookie_value, domain=".tiktok.com")
-            client.cookies.set(rci_cookie_name, rci_cookie_value, domain=".tiktok.com")
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.text
-
-    @staticmethod
     def _extract_web_item(universal_data: dict[str, Any]) -> dict[str, Any]:
         detail = universal_data.get("webapp.video-detail") or {}
         status = detail.get("statusCode") or 0
@@ -303,7 +234,7 @@ class TikTokWebCrawler:
             status = int(status)
         except (TypeError, ValueError):
             status = 0
-        item = (((detail.get("itemInfo") or {}).get("itemStruct")) or {})
+        item = ((detail.get("itemInfo") or {}).get("itemStruct")) or {}
         if item:
             return item
         if status in (10216, 10222):

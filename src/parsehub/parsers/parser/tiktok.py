@@ -9,8 +9,6 @@ from ...types import (
     DownloadResult,
     ImageParseResult,
     ImageRef,
-    LivePhotoRef,
-    MultimediaParseResult,
     ParseError,
     Platform,
     VideoParseResult,
@@ -25,7 +23,7 @@ class TikTokParser(BaseParser):
     __match__ = r"^(http(s)?://)?.+tiktok.com/(?!share/user|qishui).+"
     __redirect_keywords__ = ["vt.tiktok"]
 
-    async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
+    async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult"]:
         result = await self._fetch_api_result(raw_url)
 
         match result.type:
@@ -71,7 +69,6 @@ class TikTokVideoParseResult(VideoParseResult):
         headers: dict | None = None,
     ) -> "DownloadResult":
         headers = {
-            # "User-Agent": GlobalConfig.ua,
             "Referer": "https://www.tiktok.com/",
         }
         return await super()._do_download(
@@ -123,8 +120,7 @@ def pick_cover(video_data: dict) -> str | None:
         cover_url = first_url(video_data.get(key))
         if cover_url:
             return cover_url
-    cover = video_data.get("cover")
-    return cover if isinstance(cover, str) else None
+    return None
 
 
 def parse_video_info(video_data: dict) -> dict:
@@ -205,7 +201,7 @@ class TikTokApiResult:
     type: TikTokMediaType
     video: VideoRef = None
     desc: str = ""
-    image_list: list[ImageRef | LivePhotoRef] = None
+    image_list: list[ImageRef] = None
 
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
