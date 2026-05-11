@@ -1,7 +1,11 @@
 import asyncio
+import base64
+import hashlib
+import html
+import json
 import re
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 
@@ -9,48 +13,90 @@ from ..config import GlobalConfig
 
 TIKTOK_APP_FEED = "https://api22-normal-c-alisg.tiktokv.com/aweme/v1/feed/"
 
+TIKTOK_WEB_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
+FACEBOOK_EXTERNAL_HIT_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
+UNIVERSAL_DATA_RE = re.compile(
+    r'<script[^>]+id=["\']__UNIVERSAL_DATA_FOR_REHYDRATION__["\'][^>]*>(?P<json>.*?)</script>',
+    re.DOTALL,
+)
+
 TIKTOK_HEADERS = {
     "User-Agent": GlobalConfig.ua,
     "Referer": "https://www.tiktok.com/",
     "x-ladon": "Hello From Evil0ctal!",
 }
 
+TIKTOK_WEB_HEADERS = {
+    "User-Agent": TIKTOK_WEB_USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.tiktok.com/",
+}
+
 
 class TikTokWebCrawler:
     _ITEM = re.compile(r"/(?:video|photo)/(\d+)")
+    _SHORT_URL = re.compile(r"https?://(?:(?:vm|vt)\.tiktok\.com|(?:www\.)?tiktok\.com/t)/[^\s)\]>\"']+")
     _URL = re.compile(r"https?://\S+")
 
     def __init__(
         self,
-        cookie: dict = None,
-        proxy: str = None,
-        user_agent: str = None,
+        cookie: dict | None = None,
+        proxy: str | None = None,
+        user_agent: str | None = None,
         max_retries: int = 3,
         timeout: int = 15,
     ):
         self.headers = dict(TIKTOK_HEADERS)
         if user_agent:
             self.headers["User-Agent"] = user_agent
-        self.cookie = cookie
+        self.cookies = httpx.Cookies()
+        for key, value in (cookie or {}).items():
+            self.cookies.set(str(key), "" if value is None else str(value))
         self.proxy = proxy
         self.max_retries = max_retries
         self.timeout = timeout
 
     async def parse(self, url: str) -> dict:
-        aweme_id = await self.get_aweme_id(url)
-        return await self.fetch_one_video(aweme_id)
+        aweme_id = None
+        primary_error: Exception | None = None
 
-    def _client(self) -> httpx.AsyncClient:
+        try:
+            resolved_url = await self.resolve_url(url)
+            aweme_id = self.extract_aweme_id_from_url(resolved_url)
+            if not aweme_id:
+                raise ValueError(f"无法从链接中提取作品 ID: {resolved_url}")
+            return await self.fetch_one_video(aweme_id)
+        except Exception as exc:
+            primary_error = exc
+
+        if await self.is_photo_url(url):
+            raise RuntimeError(f"获取 TikTok 图文作品失败: {primary_error}") from primary_error
+
+        try:
+            return await self.fetch_one_video_from_web(url, expected_aweme_id=aweme_id)
+        except Exception as web_error:
+            raise RuntimeError(f"获取 TikTok 作品失败: feed={primary_error}; web={web_error}") from web_error
+
+    def _client(self, *, headers: dict[str, str] | None = None) -> httpx.AsyncClient:
         return httpx.AsyncClient(
-            headers=self.headers,
+            headers=headers or self.headers,
             timeout=self.timeout,
             follow_redirects=True,
             proxy=self.proxy,
-            cookies=self.cookie
+            cookies=self.cookies,
         )
 
     @classmethod
     def extract_url(cls, text: str) -> str:
+        text = html.unescape(text.strip())
+        markdown_match = re.search(r"\]\((https?://[^)]+)\)", text)
+        if markdown_match:
+            return markdown_match.group(1).rstrip(".,;，。；'\")]}）】>」』")
         match = cls._URL.search(text)
         if not match:
             raise ValueError("未找到 TikTok URL")
@@ -60,6 +106,10 @@ class TikTokWebCrawler:
     def extract_aweme_id_from_url(cls, url: str) -> str | None:
         match = cls._ITEM.search(url)
         return match.group(1) if match else None
+
+    async def is_photo_url(self, url_or_text: str) -> bool:
+        resolved_url = await self.resolve_url(url_or_text)
+        return bool(re.search(r"/photo/\d+", resolved_url))
 
     async def resolve_url(self, url_or_text: str) -> str:
         url = self.extract_url(url_or_text)
@@ -74,6 +124,20 @@ class TikTokWebCrawler:
         if "notfound" in resolved.lower():
             raise ValueError("TikTok 页面不可用，可能是地区、代理或链接问题")
         return resolved
+
+    async def resolve_web_url(self, url_or_text: str) -> str:
+        url = self.extract_url(url_or_text)
+        if self.extract_aweme_id_from_url(url) and not self._SHORT_URL.search(url):
+            return url
+
+        headers = dict(TIKTOK_WEB_HEADERS)
+        headers["User-Agent"] = FACEBOOK_EXTERNAL_HIT_UA
+        async with self._client(headers=headers) as client:
+            response = await client.head(url)
+            if response.status_code >= 400:
+                response = await client.get(url)
+            response.raise_for_status()
+            return str(response.url)
 
     async def get_aweme_id(self, url_or_text: str) -> str:
         resolved_url = await self.resolve_url(url_or_text)
@@ -121,3 +185,130 @@ class TikTokWebCrawler:
                     await asyncio.sleep(1)
 
         raise RuntimeError(f"获取 TikTok 作品失败: {last_error}")
+
+    async def fetch_one_video_from_web(self, url_or_text: str, expected_aweme_id: str | None = None) -> dict[str, Any]:
+        url = await self.resolve_web_url(url_or_text)
+        aweme_id = self.extract_aweme_id_from_url(url)
+        if not aweme_id:
+            raise ValueError(f"无法从链接中提取作品 ID: {url}")
+
+        webpage = await self.download_webpage(url)
+        universal_data = self._search_universal_data(webpage)
+        if not universal_data:
+            raise RuntimeError("无法从页面提取 __UNIVERSAL_DATA_FOR_REHYDRATION__")
+
+        item = self._extract_web_item(universal_data)
+        item_id = str(item.get("aweme_id") or item.get("id") or "")
+        expected_id = str(expected_aweme_id or aweme_id)
+        if item_id and item_id != expected_id:
+            raise RuntimeError(f"返回作品 ID 不匹配: expected={expected_id}, got={item_id}")
+        if item_id and not item.get("aweme_id"):
+            item["aweme_id"] = item_id
+        return item
+
+    async def download_webpage(self, url: str) -> str:
+        async with self._client(headers=TIKTOK_WEB_HEADERS) as client:
+            last_webpage = ""
+            for attempt in range(self.max_retries):
+                response = await client.get(url)
+                if urlparse(str(response.url)).path == "/login":
+                    raise RuntimeError("TikTok 要求登录才能访问这个内容")
+                response.raise_for_status()
+                webpage = response.text
+                if self._search_universal_data(webpage):
+                    return webpage
+                retried = await self._solve_challenge_and_retry(client, str(response.url), webpage)
+                if retried and self._search_universal_data(retried):
+                    return retried
+                last_webpage = retried or webpage
+                if attempt + 1 < self.max_retries:
+                    await asyncio.sleep(1)
+            return last_webpage
+
+    @staticmethod
+    def _search_universal_data(webpage: str) -> dict[str, Any]:
+        match = UNIVERSAL_DATA_RE.search(webpage)
+        if not match:
+            return {}
+        raw = html.unescape(match.group("json")).strip()
+        if not raw:
+            return {}
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return data.get("__DEFAULT_SCOPE__") or {}
+
+    @staticmethod
+    def _decode_html_class_json(webpage: str, element_id: str) -> Any:
+        match = re.search(rf'<[^>]+id=["\']{re.escape(element_id)}["\'][^>]*>', webpage)
+        if not match:
+            return None
+        class_match = re.search(r'class=["\']([^"\']+)["\']', match.group(0))
+        if not class_match:
+            return None
+        value = html.unescape(class_match.group(1))
+        try:
+            return json.loads(base64.b64decode(f"{value}===").decode())
+        except Exception:
+            return value
+
+    async def _solve_challenge_and_retry(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        webpage: str,
+    ) -> str | None:
+        challenge_data = self._decode_html_class_json(webpage, "cs")
+        if not isinstance(challenge_data, dict):
+            return None
+        expected_digest_b64 = (((challenge_data.get("v") or {}).get("c")) or "")
+        base_hash_b64 = (((challenge_data.get("v") or {}).get("a")) or "")
+        if not expected_digest_b64 or not base_hash_b64:
+            return None
+        try:
+            expected_digest = base64.b64decode(expected_digest_b64)
+            base_hash = hashlib.sha256(base64.b64decode(base_hash_b64))
+        except Exception:
+            return None
+        for i in range(1_000_001):
+            test_hash = base_hash.copy()
+            number = str(i).encode()
+            test_hash.update(number)
+            if test_hash.digest() == expected_digest:
+                challenge_data["d"] = base64.b64encode(number).decode()
+                break
+        else:
+            return None
+        cookie_name = self._decode_html_class_json(webpage, "wci")
+        if not isinstance(cookie_name, str) or not cookie_name:
+            return None
+        cookie_value = base64.b64encode(json.dumps(challenge_data, separators=(",", ":")).encode()).decode()
+        self.cookies.set(cookie_name, cookie_value, domain=".tiktok.com")
+        client.cookies.set(cookie_name, cookie_value, domain=".tiktok.com")
+        rci_cookie_name = self._decode_html_class_json(webpage, "rci")
+        rci_cookie_value = self._decode_html_class_json(webpage, "rs")
+        if isinstance(rci_cookie_name, str) and isinstance(rci_cookie_value, str):
+            self.cookies.set(rci_cookie_name, rci_cookie_value, domain=".tiktok.com")
+            client.cookies.set(rci_cookie_name, rci_cookie_value, domain=".tiktok.com")
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.text
+
+    @staticmethod
+    def _extract_web_item(universal_data: dict[str, Any]) -> dict[str, Any]:
+        detail = universal_data.get("webapp.video-detail") or {}
+        status = detail.get("statusCode") or 0
+        try:
+            status = int(status)
+        except (TypeError, ValueError):
+            status = 0
+        item = (((detail.get("itemInfo") or {}).get("itemStruct")) or {})
+        if item:
+            return item
+        if status in (10216, 10222):
+            raise RuntimeError("这个 TikTok 内容需要登录或无权访问")
+        if status == 10204:
+            raise RuntimeError("当前 IP 被 TikTok 阻止访问这个内容")
+        status_msg = detail.get("statusMsg") or detail.get("statusMessage") or status
+        raise RuntimeError(f"页面中没有作品详情，status={status_msg}")

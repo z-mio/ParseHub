@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Self, Union
 
 from ... import ProgressCallback
-from ...config import GlobalConfig
 from ...provider_api.tiktok import TikTokWebCrawler
 from ...types import (
     DownloadResult,
@@ -72,7 +71,7 @@ class TikTokVideoParseResult(VideoParseResult):
         headers: dict | None = None,
     ) -> "DownloadResult":
         headers = {
-            "User-Agent": GlobalConfig.ua,
+            # "User-Agent": GlobalConfig.ua,
             "Referer": "https://www.tiktok.com/",
         }
         return await super()._do_download(
@@ -85,9 +84,31 @@ class TikTokVideoParseResult(VideoParseResult):
         )
 
 
-def first_url(data: dict | None) -> str | None:
-    url_list = (data or {}).get("url_list") or (data or {}).get("UrlList") or []
-    return next((url for url in url_list if url), None)
+def media_urls(data: dict | str | list | None) -> list[str]:
+    if isinstance(data, str):
+        if data.startswith("//"):
+            return [f"https:{data}"]
+        return [data] if data.startswith(("http://", "https://")) else []
+    if isinstance(data, list):
+        result = []
+        for item in data:
+            result.extend(media_urls(item))
+        return result
+    if not isinstance(data, dict):
+        return []
+    for key in ("url_list", "UrlList", "urlList"):
+        if key in data:
+            return media_urls(data[key])
+    return []
+
+
+def first_url(data: dict | str | list | None) -> str | None:
+    return next(iter(media_urls(data)), None)
+
+
+def preferred_video_url(data: dict | str | list | None) -> str | None:
+    urls = media_urls(data)
+    return next((url for url in urls if "aweme" in url), None) or (urls[0] if urls else None)
 
 
 def as_int(value) -> int:
@@ -112,7 +133,7 @@ def parse_video_info(video_data: dict) -> dict:
 
     for bit_rate in bit_rates:
         play_addr = bit_rate.get("play_addr") or bit_rate.get("PlayAddr") or {}
-        video_url = first_url(play_addr)
+        video_url = preferred_video_url(play_addr)
         if not video_url:
             continue
 
@@ -135,18 +156,36 @@ def parse_video_info(video_data: dict) -> dict:
 
     if not candidates:
         play_addr = video_data.get("play_addr") or video_data.get("playAddr") or {}
-        video_url = first_url(play_addr)
+        video_url = preferred_video_url(play_addr)
         if video_url:
-            width = as_int(play_addr.get("width") or video_data.get("width"))
-            height = as_int(play_addr.get("height") or video_data.get("height"))
+            play_addr_data = play_addr if isinstance(play_addr, dict) else {}
+            width = as_int(play_addr_data.get("width") or video_data.get("width"))
+            height = as_int(play_addr_data.get("height") or video_data.get("height"))
             candidates.append(
                 {
                     "video_url": video_url,
                     "thumb_url": pick_cover(video_data),
-                    "duration": as_int(play_addr.get("duration") or video_data.get("duration")),
+                    "duration": as_int(play_addr_data.get("duration") or video_data.get("duration")),
                     "width": width,
                     "height": height,
                     "quality": (width * height, 0, 0),
+                }
+            )
+
+    if not candidates:
+        download_addr = video_data.get("download_addr") or video_data.get("downloadAddr") or {}
+        video_url = preferred_video_url(download_addr)
+        if video_url:
+            width = as_int(video_data.get("width"))
+            height = as_int(video_data.get("height"))
+            candidates.append(
+                {
+                    "video_url": video_url,
+                    "thumb_url": pick_cover(video_data),
+                    "duration": as_int(video_data.get("duration")),
+                    "width": width,
+                    "height": height,
+                    "quality": (width * height, -1, 0),
                 }
             )
 
@@ -184,7 +223,13 @@ class TikTokApiResult:
         image_list = []
 
         for image in image_post_info.get("images", []):
-            display_image = image.get("display_image") or image.get("displayImage") or image.get("image") or {}
+            display_image = (
+                image.get("display_image")
+                or image.get("displayImage")
+                or image.get("imageURL")
+                or image.get("image")
+                or {}
+            )
             url = first_url(display_image)
             if url:
                 image_list.append(
