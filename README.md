@@ -109,20 +109,27 @@ result = ParseHub().download_sync(
 ```python
 from parsehub import ParseHub
 
-ph = ParseHub(cookie="key1=value1; key2=value2", proxy="http://127.0.0.1:7890", )
+ph = ParseHub()
+result = ph.parse_sync(
+    "https://example.com",
+    cookie="key1=value1; key2=value2",
+    proxy="http://127.0.0.1:7890",
+)
 ```
 
 Cookie 支持多种格式传入：
 
 ```python
+ph = ParseHub()
+
 # 字符串
-ParseHub(cookie="key1=value1; key2=value2")
+ph.parse_sync("https://example.com", cookie="key1=value1; key2=value2")
 
 # JSON 字符串
-ParseHub(cookie='{"key1": "value1", "key2": "value2"}')
+ph.parse_sync("https://example.com", cookie='{"key1": "value1", "key2": "value2"}')
 
 # 字典
-ParseHub(cookie={"key1": "value1", "key2": "value2"})
+ph.parse_sync("https://example.com", cookie={"key1": "value1", "key2": "value2"})
 ```
 
 目前支持 Cookie 登录的平台:
