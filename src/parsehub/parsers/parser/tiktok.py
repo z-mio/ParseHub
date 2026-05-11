@@ -206,7 +206,7 @@ class TikTokApiResult:
 
     @classmethod
     def _parse_video(cls, data: dict, desc: str) -> Self:
-        video_data = data.get("video")
+        video_data = data.get("video", {})
         if not video_data:
             raise ParseError("TikTok 解析失败: 未获取到视频数据")
 

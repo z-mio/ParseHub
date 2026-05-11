@@ -16,18 +16,6 @@ TIKTOK_HEADERS = {
 }
 
 
-def _proxy_kwargs(proxy: str | None) -> dict:
-    if not proxy:
-        return {}
-    try:
-        ver = tuple(int(x) for x in httpx.__version__.split(".")[:2])
-        if ver >= (0, 28):
-            return {"proxy": proxy}
-    except Exception:
-        pass
-    return {"proxies": proxy}
-
-
 class TikTokWebCrawler:
     _ITEM = re.compile(r"/(?:video|photo)/(\d+)")
     _URL = re.compile(r"https?://\S+")
@@ -59,7 +47,7 @@ class TikTokWebCrawler:
             headers=self.headers,
             timeout=self.timeout,
             follow_redirects=True,
-            **_proxy_kwargs(self.proxy),
+            proxy=self.proxy,
         )
 
     @classmethod
