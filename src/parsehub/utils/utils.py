@@ -1,17 +1,20 @@
 import asyncio
 import json
 import re
+from collections.abc import Coroutine
+from typing import Any
 
 from urlextract import URLExtract
 
 
-def get_event_loop():
+def run_sync[T](coro: Coroutine[Any, Any, T]) -> T:
     try:
-        event_loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
-        event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(event_loop)
-    return event_loop
+        return asyncio.run(coro)
+
+    coro.close()
+    raise RuntimeError("sync API cannot be called from a running event loop; use async API instead")
 
 
 _url_extractor = URLExtract()

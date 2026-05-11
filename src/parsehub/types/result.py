@@ -14,7 +14,7 @@ from slugify import slugify
 from ..config import GlobalConfig
 from ..errors import DeleteError, DownloadError
 from ..utils.downloader import download
-from ..utils.utils import get_event_loop
+from ..utils.utils import run_sync
 from .callback import ProgressCallback
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef
@@ -246,7 +246,7 @@ class ParseResult(ABC):  # noqa: B024
                 - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
-        return get_event_loop().run_until_complete(
+        return run_sync(
             self.download(
                 path,
                 callback=callback,

@@ -7,7 +7,7 @@ from .parsers.base import BaseParser
 from .types import Platform
 from .types.callback import ProgressCallback
 from .types.result import AnyParseResult, DownloadResult
-from .utils.utils import get_event_loop
+from .utils.utils import run_sync
 
 logger.disable(__name__)
 
@@ -37,7 +37,7 @@ class ParseHub:
         :param cookie: cookie
         :return: AnyParseResult
         """
-        return get_event_loop().run_until_complete(self.parse(url, proxy=proxy, cookie=cookie))
+        return run_sync(self.parse(url, proxy=proxy, cookie=cookie))
 
     async def download(
         self,
@@ -113,7 +113,7 @@ class ParseHub:
                 - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
-        return get_event_loop().run_until_complete(
+        return run_sync(
             self.download(
                 url,
                 path,
