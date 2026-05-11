@@ -179,6 +179,129 @@ class TestParseResultToDict(unittest.TestCase):
         )
 
 
+class TestPlatformUrlMatching(unittest.TestCase):
+    def test_supported_platform_url_formats(self):
+        parsehub = ParseHub()
+        cases = {
+            Platform.BILIBILI: [
+                "BV1R6NFzXE1H",
+                "https://www.bilibili.com/video/BV1R6NFzXE1H",
+                "https://m.bilibili.com/video/BV1R6NFzXE1H?p=2",
+                "https://www.bilibili.com/video/av123456",
+                "https://www.bilibili.com/opus/1234567890123456789",
+                "https://t.bilibili.com/1234567890123456789",
+                "https://b23.tv/abc123",
+                "https://bili2233.cn/abc123",
+            ],
+            Platform.COOLAPK: [
+                "https://www.coolapk.com/feed/70163953",
+                "https://www.coolapk.com/picture/123456",
+            ],
+            Platform.DOUYIN: [
+                "https://www.douyin.com/video/7615533976798727464",
+                "https://www.douyin.com/note/7615533976798727464",
+                "https://v.douyin.com/iABC123/",
+                "https://iesdouyin.com/share/video/7615533976798727464/",
+            ],
+            Platform.FACEBOOK: [
+                "https://www.facebook.com/watch?v=761988213517369",
+                "https://www.facebook.com/share/v/761988213517369/",
+                "https://www.facebook.com/share/r/761988213517369/",
+                "https://www.facebook.com/example/videos/761988213517369/",
+                "https://www.facebook.com/reel/761988213517369",
+            ],
+            Platform.INSTAGRAM: [
+                "https://www.instagram.com/p/C0example/",
+                "https://instagram.com/reel/C0example/",
+                "https://www.instagram.com/share/BAexample/",
+                "https://www.instagram.com/user.name/p/C0example/",
+                "https://www.instagram.com/user.name/reel/C0example/",
+            ],
+            Platform.KUAISHOU: [
+                "https://www.kuaishou.com/short-video/3xexample",
+                "https://v.kuaishou.com/example",
+                "https://www.kuaishou.com/f/example",
+            ],
+            Platform.PIPIX: [
+                "https://h5.pipix.com/s/example/",
+                "https://h5.pipix.com/ppx/item/1234567890",
+            ],
+            Platform.THREADS: [
+                "https://www.threads.com/@zaborona.magazine/post/DBuqMBwMfxW",
+                "https://www.threads.com/@user_name/post/DBuqMBwMfxW",
+            ],
+            Platform.TIEBA: [
+                "https://tieba.baidu.com/p/9939510114",
+                "https://tieba.baidu.com/p/9939510114?pn=2",
+            ],
+            Platform.TIKTOK: [
+                "https://www.tiktok.com/@scout2015/video/6718335390845095173",
+                "https://www.tiktok.com/@scout2015/photo/6718335390845095173",
+                "https://vt.tiktok.com/ZSexample/",
+                "https://vm.tiktok.com/ZSexample/",
+            ],
+            Platform.TWITTER: [
+                "https://x.com/ann_photo05/status/2030931621810254258",
+                "https://twitter.com/ann_photo05/status/2030931621810254258",
+                "https://mobile.twitter.com/ann_photo05/status/2030931621810254258",
+                "https://fixupx.com/ann_photo05/status/2030931621810254258",
+            ],
+            Platform.WEIBO: [
+                "https://weibo.com/1234567890/Nexample",
+                "https://weibo.com/detail/1234567890123456",
+                "https://m.weibo.cn/status/Nexample",
+                "https://weibo.cn/status/Nexample",
+            ],
+            Platform.WEIXIN: [
+                "https://mp.weixin.qq.com/s/example",
+                "https://mp.weixin.qq.com/s/example?__biz=MzA&mid=123",
+            ],
+            Platform.XHS: [
+                "https://www.xiaohongshu.com/explore/6a01c2fc0000000037036508",
+                "https://www.xiaohongshu.com/discovery/item/6a01c2fc0000000037036508",
+                "https://xhslink.com/a/example",
+            ],
+            Platform.XIAOHEIHE: [
+                "https://www.xiaoheihe.cn/app/bbs/link/174972336",
+                "https://www.xiaoheihe.cn/v3/bbs/app/api/web/share?link_id=174972336",
+                "https://api.xiaoheihe.cn/v3/bbs/app/link?link_id=174972336",
+            ],
+            Platform.YOUTUBE: [
+                "https://www.youtube.com/watch?v=1h_uc3K4Cpg",
+                "https://www.youtube.com/shorts/1h_uc3K4Cpg",
+                "https://youtu.be/1h_uc3K4Cpg",
+                "https://m.youtube.com/watch?v=1h_uc3K4Cpg",
+                "https://music.youtube.com/watch?v=1h_uc3K4Cpg&list=RDMM1h_uc3K4Cpg",
+            ],
+            Platform.ZUIYOU: [
+                "https://share.xiaochuankeji.cn/hybrid/share/post?pid=393346270",
+                "https://share.xiaochuankeji.cn/hybrid/share/post?pid=393346270&zy_to=applink",
+            ],
+        }
+
+        for platform, urls in cases.items():
+            for url in urls:
+                with self.subTest(platform=platform.id, url=url):
+                    self.assertEqual(parsehub.get_platform(url), platform)
+
+    def test_known_unsupported_url_formats_are_not_matched(self):
+        parsehub = ParseHub()
+        urls = [
+            "https://www.douyin.com/share/user/MS4wLjABAAAA",
+            "https://www.douyin.com/qishui/share/video/123456",
+            "https://www.tiktok.com/share/user/123456",
+            "https://www.tiktok.com/qishui/share/video/123456",
+            "https://weibo.com/u/1234567890",
+            "https://www.youtube.com/live/1h_uc3K4Cpg",
+            "https://www.youtube.com/post/Ugkxexample",
+            "https://www.youtube.com/@example",
+        ]
+
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertIsNone(parsehub.get_platform(url))
+
+
 class TestRunSyncInsideEventLoop(unittest.IsolatedAsyncioTestCase):
     async def test_run_sync_raises_inside_existing_event_loop(self):
         async def get_value():
