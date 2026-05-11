@@ -697,7 +697,7 @@ class ABogus:
 
 
 class DouyinWebCrawler:
-    def __init__(self, cookie: str, proxy: str | None = None, user_agent: str = None):
+    def __init__(self, cookie: dict, proxy: str | None = None, user_agent: str = None):
         self.cookie = cookie
         self.proxy = proxy
         self.user_agent = user_agent or DEFAULT_USER_AGENT

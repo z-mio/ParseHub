@@ -127,7 +127,13 @@ ParseHub(cookie={"key1": "value1", "key2": "value2"})
 
 目前支持 Cookie 登录的平台:
 
-`Twitter` · `Instagram` · `Kuaishou` · `Bilibili` · `YouTube`
+- `Twitter`
+- `Instagram`
+- `Kuaishou`
+- `Bilibili`
+- `YouTube`
+- `抖音`
+- `TikTok`
 
 ### 全局配置
 
