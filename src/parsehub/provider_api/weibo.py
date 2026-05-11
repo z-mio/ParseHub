@@ -21,6 +21,8 @@ class WeiboAPI:
 
     async def parse(self, url: str) -> "WeiboContent":
         bid = self.get_id_by_url(url)
+        if not bid:
+            raise ValueError("Invalid URL")
         headers = {
             "referer": "https://weibo.com",
         }
