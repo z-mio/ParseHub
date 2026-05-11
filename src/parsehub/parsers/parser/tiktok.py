@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Self, Union
 
 from ... import ProgressCallback
+from ...config import GlobalConfig
 from ...provider_api.tiktok import TikTokWebCrawler
 from ...types import (
     DownloadResult,
@@ -21,7 +22,7 @@ from ..base.base import BaseParser
 
 class TikTokParser(BaseParser):
     __platform__ = Platform.TIKTOK
-    __supported_type__ = ["视频"]
+    __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+tiktok.com/(?!share/user|qishui).+"
     __redirect_keywords__ = ["vt.tiktok"]
 
@@ -35,14 +36,17 @@ class TikTokParser(BaseParser):
                 return self._build_image_result(result)
 
     async def _fetch_api_result(self, url: str) -> "TikTokApiResult":
-        """获取并解析 TikTok API 结果"""
         crawler = TikTokWebCrawler(proxy=self.proxy, cookie=self.cookie)
-        response = await crawler.parse(url)
-        return TikTokApiResult.parse(response)
+        try:
+            response = await crawler.parse(url)
+            return TikTokApiResult.parse(response)
+        except ParseError:
+            raise
+        except Exception as e:
+            raise ParseError(f"TikTok 解析失败: {e}") from e
 
     @staticmethod
     def _build_video_result(result: "TikTokApiResult") -> VideoParseResult:
-        """构建视频解析结果"""
         return TikTokVideoParseResult(
             title=result.desc,
             video=result.video,
@@ -50,7 +54,6 @@ class TikTokParser(BaseParser):
 
     @staticmethod
     def _build_image_result(result: "TikTokApiResult") -> ImageParseResult:
-        """构建图片解析结果"""
         return ImageParseResult(
             title=result.desc,
             photo=result.image_list,
@@ -69,6 +72,7 @@ class TikTokVideoParseResult(VideoParseResult):
         headers: dict | None = None,
     ) -> "DownloadResult":
         headers = {
+            "User-Agent": GlobalConfig.ua,
             "Referer": "https://www.tiktok.com/",
         }
         return await super()._do_download(
@@ -81,49 +85,84 @@ class TikTokVideoParseResult(VideoParseResult):
         )
 
 
+def first_url(data: dict | None) -> str | None:
+    url_list = (data or {}).get("url_list") or (data or {}).get("UrlList") or []
+    return next((url for url in url_list if url), None)
+
+
+def as_int(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def pick_cover(video_data: dict) -> str | None:
+    for key in ("origin_cover", "cover", "dynamic_cover", "originCover", "dynamicCover"):
+        cover_url = first_url(video_data.get(key))
+        if cover_url:
+            return cover_url
+    cover = video_data.get("cover")
+    return cover if isinstance(cover, str) else None
+
+
 def parse_video_info(video_data: dict) -> dict:
-    bit_rate_info = video_data.get("bitrateInfo")
-    if not bit_rate_info:
-        raise ParseError("TikTok 解析失败: 未获取到视频下载信`息")
+    bit_rates = video_data.get("bit_rate") or video_data.get("bitrateInfo") or []
+    candidates = []
 
-    # 按分辨率降序排列，选择最高质量
-    bit_rate_info.sort(
-        key=lambda x: x.get("PlayAddr", {}).get("Width", 0) * x.get("PlayAddr", {}).get("Height", 0),
-        reverse=True,
-    )
-    best_quality = bit_rate_info[0]
+    for bit_rate in bit_rates:
+        play_addr = bit_rate.get("play_addr") or bit_rate.get("PlayAddr") or {}
+        video_url = first_url(play_addr)
+        if not video_url:
+            continue
 
-    play_addr = best_quality.get("PlayAddr", {})
-    video_url_list = play_addr.get("UrlList", [])
-    if not video_url_list:
-        raise ParseError("抖音解析失败: 视频下载地址为空")
+        width = as_int(play_addr.get("width") or play_addr.get("Width") or video_data.get("width"))
+        height = as_int(play_addr.get("height") or play_addr.get("Height") or video_data.get("height"))
+        bitrate = as_int(bit_rate.get("bit_rate") or bit_rate.get("Bitrate") or bit_rate.get("bitrate"))
+        data_size = as_int(play_addr.get("data_size") or play_addr.get("DataSize") or bit_rate.get("data_size"))
+        duration = as_int(play_addr.get("duration") or play_addr.get("Duration") or video_data.get("duration"))
 
-    video_url = next((u for u in video_url_list if "aweme" in u), None)
-    thumb_url = video_data.get("cover")
-    duration = video_data.get("duration", 0)
-    width = video_data.get("width", 0)
-    height = video_data.get("height", 0)
+        candidates.append(
+            {
+                "video_url": video_url,
+                "thumb_url": pick_cover(video_data),
+                "duration": duration,
+                "width": width,
+                "height": height,
+                "quality": (width * height, bitrate, data_size),
+            }
+        )
 
-    return {
-        "video_url": video_url,
-        "thumb_url": thumb_url,
-        "duration": duration,
-        "width": width,
-        "height": height,
-    }
+    if not candidates:
+        play_addr = video_data.get("play_addr") or video_data.get("playAddr") or {}
+        video_url = first_url(play_addr)
+        if video_url:
+            width = as_int(play_addr.get("width") or video_data.get("width"))
+            height = as_int(play_addr.get("height") or video_data.get("height"))
+            candidates.append(
+                {
+                    "video_url": video_url,
+                    "thumb_url": pick_cover(video_data),
+                    "duration": as_int(play_addr.get("duration") or video_data.get("duration")),
+                    "width": width,
+                    "height": height,
+                    "quality": (width * height, 0, 0),
+                }
+            )
+
+    if not candidates:
+        raise ParseError("TikTok 解析失败: 未获取到无水印视频下载地址")
+
+    return max(candidates, key=lambda x: x["quality"])
 
 
 class TikTokMediaType(Enum):
-    """TikTok 媒体类型"""
-
     VIDEO = "video"
-    IMAGE = "image"  # 实况图片 + 图片
+    IMAGE = "image"
 
 
 @dataclass
 class TikTokApiResult:
-    """TikTok API 解析结果"""
-
     type: TikTokMediaType
     video: VideoRef = None
     desc: str = ""
@@ -131,45 +170,33 @@ class TikTokApiResult:
 
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
-        data = json_dict.get("itemInfo", {}).get("itemStruct")
-        if not data:
+        if not json_dict:
             raise ParseError("TikTok 解析失败: 未获取到作品详情")
 
-        desc = data.get("desc", "")
-
-        if image_post_info := data.get("imagePost"):
+        desc = json_dict.get("desc", "")
+        image_post_info: dict = json_dict.get("image_post_info", {}) or json_dict.get("imagePost", {})
+        if image_post_info:
             return cls._parse_image_post(image_post_info, desc)
-        else:
-            return cls._parse_video(data, desc)
+        return cls._parse_video(json_dict, desc)
 
     @classmethod
     def _parse_image_post(cls, image_post_info: dict, desc: str) -> Self:
-        """解析图片格式 (imagePost 字段)"""
-        images = image_post_info.get("images", [])
         image_list = []
 
-        for image in images:
-            if video := image.get("video"):
-                video_info = parse_video_info(video)
+        for image in image_post_info.get("images", []):
+            display_image = image.get("display_image") or image.get("displayImage") or image.get("image") or {}
+            url = first_url(display_image)
+            if url:
                 image_list.append(
-                    LivePhotoRef(
-                        url=video_info["thumb_url"],
-                        video_url=video_info["video_url"],
-                        width=int(video_info["width"]),
-                        height=int(video_info["height"]),
-                        duration=int(video_info["duration"]) or 3,
+                    ImageRef(
+                        url=url,
+                        height=as_int(display_image.get("height") or display_image.get("Height")),
+                        width=as_int(display_image.get("width") or display_image.get("Width")),
                     )
                 )
-            else:
-                url_list = image.get("image", {}).get("urlList", [])
-                if url_list:
-                    image_list.append(
-                        ImageRef(
-                            url=url_list[-1],
-                            height=image.get("image", {}).get("height", 0),
-                            width=image.get("image", {}).get("width", 0),
-                        )
-                    )
+
+        if not image_list:
+            raise ParseError("TikTok 解析失败: 未获取到无水印图文下载地址")
 
         return cls(
             type=TikTokMediaType.IMAGE,
@@ -179,7 +206,6 @@ class TikTokApiResult:
 
     @classmethod
     def _parse_video(cls, data: dict, desc: str) -> Self:
-        """解析视频"""
         video_data = data.get("video")
         if not video_data:
             raise ParseError("TikTok 解析失败: 未获取到视频数据")
