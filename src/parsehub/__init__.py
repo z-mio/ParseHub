@@ -26,8 +26,13 @@ class ParseHub:
         parser = self.get_parser(url)
         if not parser:
             raise UnknownPlatform(url)
-        p = parser(proxy=proxy, cookie=cookie)
-        return await p.parse(url)
+        try:
+            p = parser(proxy=proxy, cookie=cookie)
+            return await p.parse(url)
+        except ParseError:
+            raise
+        except Exception as e:
+            raise ParseError(str(e)) from e
 
     def parse_sync(self, url: str, *, proxy: str | None = None, cookie: str | dict | None = None) -> AnyParseResult:
         """

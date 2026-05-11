@@ -2,6 +2,7 @@ import unittest
 from urllib.parse import parse_qs, urlparse
 
 from src.parsehub import ParseHub
+from src.parsehub.errors import ParseError, UnknownPlatform
 from src.parsehub.parsers.base import BaseParser
 from src.parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
 from src.parsehub.utils.utils import match_url, normalize_cookie, run_sync
@@ -21,6 +22,24 @@ class DummyParser(BaseParser, register=False):
     async def _do_parse(self, raw_url: str) -> VideoParseResult:
         self.seen_raw_url = raw_url
         return VideoParseResult(title=" Dummy title ", content=" Dummy content ", video="https://cdn.example/video.mp4")
+
+
+class BrokenParser(BaseParser, register=False):
+    __platform__ = Platform.XHS
+    __supported_type__ = ["测试"]
+    __match__ = r"^(https?://)?broken\.example\.com/items/\d+"
+
+    async def _do_parse(self, raw_url: str) -> VideoParseResult:
+        raise ValueError("provider exploded")
+
+
+class ParseErrorParser(BaseParser, register=False):
+    __platform__ = Platform.XHS
+    __supported_type__ = ["测试"]
+    __match__ = r"^(https?://)?parse-error\.example\.com/items/\d+"
+
+    async def _do_parse(self, raw_url: str) -> VideoParseResult:
+        raise ParseError("already normalized")
 
 
 class TestCoreUtilities(unittest.TestCase):
@@ -114,6 +133,29 @@ class TestParserRegistry(unittest.TestCase):
         self.assertIn("图文", by_id["tieba"]["supported_types"])
         self.assertEqual(parsehub.get_platform("https://tieba.baidu.com/p/9939510114"), Platform.TIEBA)
         self.assertIsNone(parsehub.get_platform("https://example.invalid/not-supported"))
+
+
+class TestParseHubExceptionBoundary(unittest.IsolatedAsyncioTestCase):
+    async def test_parse_wraps_unexpected_parser_errors_as_parse_error(self):
+        parsehub = ParseHub()
+        parsehub.parsers = [BrokenParser]
+
+        with self.assertRaisesRegex(ParseError, "provider exploded"):
+            await parsehub.parse("https://broken.example.com/items/1")
+
+    async def test_parse_preserves_existing_parse_error(self):
+        parsehub = ParseHub()
+        parsehub.parsers = [ParseErrorParser]
+
+        with self.assertRaisesRegex(ParseError, "already normalized"):
+            await parsehub.parse("https://parse-error.example.com/items/1")
+
+    async def test_parse_preserves_unknown_platform(self):
+        parsehub = ParseHub()
+        parsehub.parsers = []
+
+        with self.assertRaisesRegex(UnknownPlatform, "example.invalid"):
+            await parsehub.parse("https://example.invalid/not-supported")
 
 
 class TestParseResultToDict(unittest.TestCase):
