@@ -22,7 +22,7 @@ class TikTokWebCrawler:
 
     def __init__(
         self,
-        cookie: str = None,
+        cookie: dict = None,
         proxy: str = None,
         user_agent: str = None,
         max_retries: int = 3,
@@ -31,9 +31,7 @@ class TikTokWebCrawler:
         self.headers = dict(TIKTOK_HEADERS)
         if user_agent:
             self.headers["User-Agent"] = user_agent
-        if cookie:
-            self.headers["Cookie"] = cookie
-
+        self.cookie = cookie
         self.proxy = proxy
         self.max_retries = max_retries
         self.timeout = timeout
@@ -48,6 +46,7 @@ class TikTokWebCrawler:
             timeout=self.timeout,
             follow_redirects=True,
             proxy=self.proxy,
+            cookies=self.cookie
         )
 
     @classmethod
