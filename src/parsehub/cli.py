@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 import unicodedata
@@ -13,6 +14,7 @@ from .cli_config import AutoCookieStore, ConfigStore, CookiePrompt, PlatformConf
 from .errors import ParseHubError
 
 _COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls", "set"}
+_CLI_EXTRA_MODULES = ("argcomplete", "platformdirs")
 
 
 class _ChineseHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -48,6 +50,9 @@ class _ChineseArgumentParser(argparse.ArgumentParser):
 
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if not _has_cli_extra_dependencies():
+        _print_cli_extra_hint()
+        return 1
     parser = _build_parser(Path(sys.argv[0]).name if argv is None else "parsehub")
     _enable_completion(parser)
     if not raw_argv:
@@ -595,11 +600,19 @@ def _complete_platforms(prefix: str, **_: Any) -> list[str]:
     return [platform for platform in _supported_platform_ids() if platform.startswith(prefix)]
 
 
+def _has_cli_extra_dependencies() -> bool:
+    return all(importlib.util.find_spec(module) is not None for module in _CLI_EXTRA_MODULES)
+
+
+def _print_cli_extra_hint() -> None:
+    print("错误: 未安装 ParseHub CLI 扩展依赖。", file=sys.stderr)
+    print('请运行: pip install "parsehub[cli]"', file=sys.stderr)
+    print('如果使用 uv: uv add "parsehub[cli]"', file=sys.stderr)
+
+
 def _enable_completion(parser: argparse.ArgumentParser) -> None:
-    try:
-        import argcomplete
-    except Exception:
-        return
+    import argcomplete
+
     argcomplete.autocomplete(parser)
 
 

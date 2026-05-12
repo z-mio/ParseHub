@@ -128,9 +128,28 @@ class TestCli(unittest.TestCase):
     def run_cli(self, argv):
         stdout = io.StringIO()
         stderr = io.StringIO()
-        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+        with (
+            patch.object(cli, "_has_cli_extra_dependencies", return_value=True),
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
             code = cli.main(argv)
         return code, stdout.getvalue(), stderr.getvalue()
+
+    def test_missing_cli_extra_prints_install_hint(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            patch.object(cli, "_has_cli_extra_dependencies", return_value=False),
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            code = cli.main(["platforms"])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertIn("未安装 ParseHub CLI 扩展依赖", stderr.getvalue())
+        self.assertIn('pip install "parsehub[cli]"', stderr.getvalue())
 
     def test_empty_args_print_help(self):
         code, stdout, stderr = self.run_cli([])
