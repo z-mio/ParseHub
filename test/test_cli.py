@@ -224,13 +224,16 @@ class TestCli(unittest.TestCase):
         self.assertEqual(stderr, "")
         self.assertEqual(FakeParseHub.instances[0].download_calls[0]["path"], Path.cwd() / "downloads")
 
-    def test_platforms_outputs_human_readable_list(self):
+    def test_platforms_outputs_aligned_human_readable_table(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["platforms"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
-        self.assertIn("xhs\t小红书\t视频、图文", stdout)
+        lines = stdout.splitlines()
+        self.assertEqual(lines[0], "平台  名称    支持类型")
+        self.assertEqual(lines[1], "----  ------  --------")
+        self.assertEqual(lines[2], "xhs   小红书  视频、图文")
 
     def test_short_platforms_alias_outputs_json(self):
         with patch.object(cli, "ParseHub", FakeParseHub):

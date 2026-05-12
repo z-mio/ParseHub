@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import unicodedata
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -117,9 +118,7 @@ def _cmd_platforms(args: argparse.Namespace) -> int:
     if args.json:
         _print_json(platforms, pretty=args.pretty)
     else:
-        for platform in platforms:
-            types = "、".join(platform.get("supported_types", []))
-            print(f"{platform.get('id')}\t{platform.get('name')}\t{types}")
+        _print_platforms_table(platforms)
     return 0
 
 
@@ -130,6 +129,23 @@ def _print_json(data: Any, *, pretty: bool) -> None:
     else:
         kwargs["separators"] = (",", ":")
     print(json.dumps(_jsonable(data), **kwargs))
+
+
+def _print_platforms_table(platforms: list[dict[str, Any]]) -> None:
+    rows = [
+        (
+            str(platform.get("id") or ""),
+            str(platform.get("name") or ""),
+            "、".join(platform.get("supported_types", [])),
+        )
+        for platform in platforms
+    ]
+    id_width = max([_display_width("平台")] + [_display_width(row[0]) for row in rows])
+    name_width = max([_display_width("名称")] + [_display_width(row[1]) for row in rows])
+    print(f"{_pad_display('平台', id_width)}  {_pad_display('名称', name_width)}  支持类型")
+    print(f"{_pad_display('-' * id_width, id_width)}  {_pad_display('-' * name_width, name_width)}  --------")
+    for platform_id, name, supported_types in rows:
+        print(f"{_pad_display(platform_id, id_width)}  {_pad_display(name, name_width)}  {supported_types}")
 
 
 def _print_parse_summary(data: dict[str, Any]) -> None:
@@ -191,6 +207,17 @@ def _jsonable(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_jsonable(v) for v in value]
     return value
+
+
+def _display_width(value: str) -> int:
+    width = 0
+    for char in value:
+        width += 2 if unicodedata.east_asian_width(char) in {"F", "W"} else 1
+    return width
+
+
+def _pad_display(value: str, width: int) -> str:
+    return value + " " * max(0, width - _display_width(value))
 
 
 def _normalize_argv(argv: list[str]) -> list[str]:
