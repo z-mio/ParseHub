@@ -132,6 +132,14 @@ class TestCli(unittest.TestCase):
             code = cli.main(argv)
         return code, stdout.getvalue(), stderr.getvalue()
 
+    def test_empty_args_print_help(self):
+        code, stdout, stderr = self.run_cli([])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("ParseHub 命令行工具", stdout)
+        self.assertIn("用法:", stdout)
+
     def test_parse_defaults_to_human_readable_chinese_summary(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
             code, stdout, stderr = self.run_cli(

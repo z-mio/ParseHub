@@ -50,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     parser = _build_parser(Path(sys.argv[0]).name if argv is None else "parsehub")
     _enable_completion(parser)
+    if not raw_argv:
+        parser.print_help()
+        return 0
     try:
         args = parser.parse_args(_normalize_argv(raw_argv))
         _finalize_output_args(args)
@@ -318,10 +321,7 @@ def _cmd_platform_cookie(args: argparse.Namespace) -> int:
     if args.clear:
         print(f"已清除 {platform} Cookie。" if store.delete(platform) else f"{platform} 还没有保存 Cookie，无需清除。")
         return 0
-    storage = store.set(platform, CookiePrompt().read(platform))
-    if storage == "file":
-        print("提示: 系统密钥库不可用，Cookie 已保存到本地 cookies.toml。", file=sys.stderr)
-        print("      请不要把该文件提交到 git。", file=sys.stderr)
+    store.set(platform, CookiePrompt().read(platform))
     print(f"已保存 {platform} Cookie。之后解析或下载该平台内容时会自动使用。")
     return 0
 

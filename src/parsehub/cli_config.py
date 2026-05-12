@@ -79,47 +79,6 @@ class ConfigStore:
         return changed
 
 
-class KeyringUnavailable(RuntimeError):
-    pass
-
-
-class KeyringCookieStore:
-    def __init__(self, service: str = "parsehub"):
-        self.service = service
-
-    def set(self, platform: str, cookie: str) -> None:
-        keyring = self._keyring()
-        try:
-            keyring.set_password(self.service, self._username(platform), cookie)
-        except Exception as e:
-            raise KeyringUnavailable(str(e)) from e
-
-    def get(self, platform: str) -> str | None:
-        keyring = self._keyring()
-        try:
-            return keyring.get_password(self.service, self._username(platform))
-        except Exception as e:
-            raise KeyringUnavailable(str(e)) from e
-
-    def delete(self, platform: str) -> bool:
-        try:
-            keyring = self._keyring()
-            keyring.delete_password(self.service, self._username(platform))
-            return True
-        except Exception:
-            return False
-
-    def _keyring(self) -> Any:
-        try:
-            import keyring
-        except Exception as e:
-            raise KeyringUnavailable("keyring 未安装") from e
-        return keyring
-
-    def _username(self, platform: str) -> str:
-        return f"cookie:{platform}"
-
-
 class FileCookieStore:
     def __init__(self, path: Path | None = None):
         self.path = default_cookie_path() if path is None else Path(path)
@@ -163,36 +122,20 @@ class FileCookieStore:
 
 
 class AutoCookieStore:
-    def __init__(
-        self,
-        keyring_store: KeyringCookieStore | None = None,
-        file_store: FileCookieStore | None = None,
-    ):
-        self.keyring_store = KeyringCookieStore() if keyring_store is None else keyring_store
+    def __init__(self, file_store: FileCookieStore | None = None):
         self.file_store = FileCookieStore() if file_store is None else file_store
 
-    def set(self, platform: str, cookie: str) -> Literal["keyring", "file"]:
-        try:
-            self.keyring_store.set(platform, cookie)
-            self.file_store.delete(platform)
-            return "keyring"
-        except KeyringUnavailable:
-            self.file_store.set(platform, cookie)
-            return "file"
+    def set(self, platform: str, cookie: str) -> None:
+        self.file_store.set(platform, cookie)
 
     def get(self, platform: str) -> str | None:
-        try:
-            value = self.keyring_store.get(platform)
-        except KeyringUnavailable:
-            value = None
-        return value or self.file_store.get(platform)
+        return self.file_store.get(platform)
 
     def delete(self, platform: str) -> bool:
-        deleted = self.keyring_store.delete(platform)
-        return self.file_store.delete(platform) or deleted
+        return self.file_store.delete(platform)
 
     def exists(self, platform: str) -> bool:
-        return self.get(platform) is not None
+        return self.file_store.exists(platform)
 
 
 class CookiePrompt:

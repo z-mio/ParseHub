@@ -47,7 +47,6 @@ ph = "parsehub.cli:main"
 [project.optional-dependencies]
 cli = [
     "argcomplete>=3.6.3",
-    "keyring>=25.6.0",
     "platformdirs>=4.5.1",
 ]
 
