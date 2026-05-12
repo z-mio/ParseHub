@@ -73,6 +73,11 @@ class FakeParseHub:
                 "save_metadata": save_metadata,
             }
         )
+        if callback:
+            import asyncio
+
+            asyncio.run(callback(512, 1024, "bytes"))
+            asyncio.run(callback(1024, 1024, "bytes"))
         return FakeDownloadResult()
 
     def get_platforms(self):
@@ -105,17 +110,26 @@ class TestCli(unittest.TestCase):
             code = cli.main(argv)
         return code, stdout.getvalue(), stderr.getvalue()
 
-    def test_parse_outputs_json_and_forwards_options(self):
+    def test_parse_defaults_to_human_readable_chinese_summary(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["parse", "分享 https://example.com/post/1", "--proxy", "http://proxy", "--cookie", "a=b"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
-        self.assertEqual(json.loads(stdout)["title"], "标题")
+        self.assertIn("平台: xhs", stdout)
+        self.assertIn("标题: 标题", stdout)
         self.assertEqual(
             FakeParseHub.instances[0].parse_calls,
             [{"url": "分享 https://example.com/post/1", "proxy": "http://proxy", "cookie": "a=b"}],
         )
+
+    def test_parse_json_outputs_json(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1", "--json"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(json.loads(stdout)["title"], "标题")
 
     def test_parse_compact_outputs_single_line_json(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
@@ -126,7 +140,21 @@ class TestCli(unittest.TestCase):
         self.assertNotIn("\n  ", stdout)
         self.assertEqual(json.loads(stdout)["platform"], "xhs")
 
-    def test_download_outputs_json_and_forwards_options(self):
+    def test_short_parse_alias_and_default_parse(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            alias_code, alias_stdout, alias_stderr = self.run_cli(["p", "https://example.com/post/1"])
+            default_code, default_stdout, default_stderr = self.run_cli(["https://example.com/post/2"])
+
+        self.assertEqual(alias_code, 0)
+        self.assertEqual(default_code, 0)
+        self.assertEqual(alias_stderr, "")
+        self.assertEqual(default_stderr, "")
+        self.assertIn("平台: xhs", alias_stdout)
+        self.assertIn("平台: xhs", default_stdout)
+        self.assertEqual(FakeParseHub.instances[0].parse_calls[0]["url"], "https://example.com/post/1")
+        self.assertEqual(FakeParseHub.instances[1].parse_calls[0]["url"], "https://example.com/post/2")
+
+    def test_download_outputs_summary_progress_and_forwards_options(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
             code, stdout, stderr = self.run_cli(
                 [
@@ -140,43 +168,73 @@ class TestCli(unittest.TestCase):
                     "http://parse-proxy",
                     "--parse-cookie",
                     "token=abc",
-                    "--save-metadata",
+                    "--metadata",
                 ]
             )
 
         self.assertEqual(code, 0)
-        self.assertEqual(stderr, "")
+        self.assertIn("下载完成: /tmp/parsehub-output", stdout)
+        self.assertIn("/tmp/parsehub-output/0.mp4", stdout)
+        self.assertIn("解析中...", stderr)
+        self.assertIn("下载中", stderr)
+        call = FakeParseHub.instances[0].download_calls[0]
+        self.assertEqual(call["url"], "https://example.com/post/1")
+        self.assertEqual(call["path"], "./out")
+        self.assertIsNotNone(call["callback"])
+        self.assertEqual(call["proxy"], "http://download-proxy")
+        self.assertEqual(call["parse_proxy"], "http://parse-proxy")
+        self.assertEqual(call["parse_cookie"], "token=abc")
+        self.assertTrue(call["save_metadata"])
+
+    def test_short_download_alias_outputs_json_and_forwards_output_dir(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["d", "https://example.com/post/1", "--output-dir", "./out", "--json"])
+
+        self.assertEqual(code, 0)
+        self.assertIn("解析中...", stderr)
         data = json.loads(stdout)
         self.assertEqual(data["output_dir"], "/tmp/parsehub-output")
         self.assertEqual(data["media"]["path"], "/tmp/parsehub-output/0.mp4")
-        self.assertEqual(
-            FakeParseHub.instances[0].download_calls,
-            [
-                {
-                    "url": "https://example.com/post/1",
-                    "path": "./out",
-                    "callback": None,
-                    "callback_args": (),
-                    "callback_kwargs": None,
-                    "proxy": "http://download-proxy",
-                    "parse_proxy": "http://parse-proxy",
-                    "parse_cookie": "token=abc",
-                    "save_metadata": True,
-                }
-            ],
-        )
+        self.assertEqual(FakeParseHub.instances[0].download_calls[0]["path"], "./out")
+
+    def test_download_quiet_suppresses_feedback_and_progress_callback(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["dl", "https://example.com/post/1", "--quiet"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("下载完成: /tmp/parsehub-output", stdout)
+        self.assertIsNone(FakeParseHub.instances[0].download_calls[0]["callback"])
+
+    def test_download_no_progress_keeps_status_but_disables_callback(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1", "--no-progress"])
+
+        self.assertEqual(code, 0)
+        self.assertIn("下载完成: /tmp/parsehub-output", stdout)
+        self.assertIn("解析中...", stderr)
+        self.assertNotIn("下载中", stderr)
+        self.assertIsNone(FakeParseHub.instances[0].download_calls[0]["callback"])
 
     def test_download_defaults_path_to_cwd_downloads(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
-            code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1"])
+            code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1", "--quiet"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
         self.assertEqual(FakeParseHub.instances[0].download_calls[0]["path"], Path.cwd() / "downloads")
 
-    def test_platforms_outputs_json(self):
+    def test_platforms_outputs_human_readable_list(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["platforms"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("xhs\t小红书\t视频、图文", stdout)
+
+    def test_short_platforms_alias_outputs_json(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["ls", "--json"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
@@ -189,6 +247,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(stdout, "")
         self.assertIn("boom", stderr)
+        self.assertIn("错误", stderr)
 
     def test_value_error_returns_one(self):
         with patch.object(cli, "ParseHub", ValueErrorParseHub):
@@ -197,6 +256,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(stdout, "")
         self.assertIn("bad input", stderr)
+        self.assertIn("错误", stderr)
 
     def test_keyboard_interrupt_returns_130(self):
         with patch.object(cli, "ParseHub", KeyboardInterruptParseHub):
@@ -204,14 +264,14 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(code, 130)
         self.assertEqual(stdout, "")
-        self.assertIn("Interrupted", stderr)
+        self.assertIn("已中断", stderr)
 
-    def test_argparse_error_returns_two(self):
+    def test_argparse_error_returns_two_in_chinese(self):
         code, stdout, stderr = self.run_cli(["parse"])
 
         self.assertEqual(code, 2)
         self.assertEqual(stdout, "")
-        self.assertIn("error", stderr)
+        self.assertIn("错误", stderr)
 
 
 if __name__ == "__main__":
