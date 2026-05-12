@@ -11,7 +11,7 @@
 
 轻量、异步、开箱即用的社交媒体解析与媒体下载库，支持 17+ 平台。
 
-[快速开始](#-快速开始) · [支持平台](#-支持平台) · [高级用法](#-高级用法) · [TG Bot](https://github.com/z-mio/parse_hub_bot)
+[支持平台](#-支持平台) · [安装](#-安装) · [快速开始](#-快速开始) · [API](#-api-速览) · [高级用法](#-高级用法) · [TG Bot](https://github.com/z-mio/parse_hub_bot)
 
 </div>
 
@@ -25,14 +25,38 @@
 - 📦 **同步 / 异步 API** — 同时提供 `async/await` 与 `*_sync` 调用方式
 - 🤖 **Telegram Bot** — 基于本项目的 Bot 已上线 → [@ParsehuBot](https://t.me/ParsehuBot)
 
+## 🌐 支持平台
+
+| 平台              | 视频 | 图文 | 其他    |
+|:----------------|:--:|:--:|:------|
+| **Twitter / X** | ✅  | ✅  |       |
+| **Instagram**   | ✅  | ✅  |       |
+| **YouTube**     | ✅  |    | 🎵 音乐 |
+| **Facebook**    | ✅  |    |       |
+| **Threads**     | ✅  | ✅  |       |
+| **Bilibili**    | ✅  |    | 📝 动态 |
+| **抖音**          | ✅  | ✅  |       |
+| **TikTok**      | ✅  | ✅  |       |
+| **微博**          | ✅  | ✅  |       |
+| **小红书**         | ✅  | ✅  |       |
+| **贴吧**          | ✅  | ✅  |       |
+| **微信公众号**       |    | ✅  |       |
+| **快手**          | ✅  |    |       |
+| **酷安**          |    | ✅  |       |
+| **皮皮虾**         | ✅  | ✅  |       |
+| **最右**          | ✅  | ✅  |       |
+| **小黑盒**         | ✅  | ✅  |       |
+
+> 可通过 `ParseHub().get_platforms()` 获取当前版本实际注册的平台列表。
+
 ## 📦 安装
 
 ```bash
+# uv (推荐)
+uv add parsehub
+
 # pip
 pip install parsehub
-
-# uv
-uv add parsehub
 ```
 
 > 要求 Python ≥ 3.12
@@ -83,73 +107,89 @@ print(result.output_dir)
 print(result.media)
 ```
 
-如果内容需要 Cookie 登录，先解析再下载：
+需要 Cookie 登录或解析代理时，可以直接在下载时传入解析参数：
 
 ```python
 from parsehub import ParseHub
 
 ph = ParseHub()
-parsed = ph.parse_sync(
+downloaded = ph.download_sync(
     "https://example.com",
-    cookie="key1=value1; key2=value2",
-    proxy="http://127.0.0.1:7890",
-)
-
-downloaded = parsed.download_sync(
     path="./downloads",
-    proxy="http://127.0.0.1:7890",
+    parse_cookie="key1=value1; key2=value2",
+    parse_proxy="http://127.0.0.1:7890",
     save_metadata=True,
 )
 ```
 
 ## 🧩 API 速览
 
-| 方法 | 说明 |
-|:--|:--|
-| `ParseHub().parse(url, *, proxy=None, cookie=None)` | 异步解析分享文案或链接 |
-| `ParseHub().parse_sync(url, *, proxy=None, cookie=None)` | 同步解析分享文案或链接 |
-| `ParseHub().download(url, path=None, *, callback=None, callback_args=(), callback_kwargs=None, proxy=None, save_metadata=False)` | 异步解析并下载媒体 |
-| `ParseHub().download_sync(url, path=None, callback=None, callback_args=(), callback_kwargs=None, proxy=None, save_metadata=False)` | 同步解析并下载媒体 |
-| `ParseHub().get_platform(url)` | 返回匹配到的平台枚举，未匹配时返回 `None` |
-| `ParseHub().get_platforms()` | 返回所有已注册平台的 `id`、名称和支持类型 |
-| `ParseHub().get_raw_url(url, proxy=None, clean_all=True)` | 获取清理后的原始链接 |
+### 解析
 
-解析结果常用字段：
+```python
+await ph.parse(url, proxy=None, cookie=None)
+ph.parse_sync(url, proxy=None, cookie=None)
+```
 
-| 字段 / 方法 | 说明 |
-|:--|:--|
-| `result.platform` | 平台枚举 |
-| `result.type` | 内容类型，如 `video`、`image`、`multimedia`、`richtext` |
-| `result.title` | 标题 |
-| `result.content` | 纯文本正文 |
-| `result.raw_url` | 清理后的原始链接 |
-| `result.media` | 媒体引用或媒体引用列表 |
-| `result.to_dict()` | 转为可序列化字典 |
-| `result.download(path=None, ...)` / `result.download_sync(path=None, ...)` | 下载当前解析结果中的媒体 |
+- `url`：分享文案或分享链接，支持自动提取文本中的第一个链接
+- `proxy`：解析阶段使用的代理
+- `cookie`：解析阶段使用的 Cookie，支持字符串、JSON 字符串或字典
 
-## 🌐 支持平台
+### 下载
 
-| 平台 | 视频 | 图文 | 其他 |
-|:--|:--:|:--:|:--|
-| **Twitter / X** | ✅ | ✅ | |
-| **Instagram** | ✅ | ✅ | |
-| **YouTube** | ✅ | | 🎵 音乐 |
-| **Facebook** | ✅ | | |
-| **Threads** | ✅ | ✅ | |
-| **Bilibili** | ✅ | | 📝 动态 |
-| **抖音** | ✅ | ✅ | |
-| **TikTok** | ✅ | ✅ | |
-| **微博** | ✅ | ✅ | |
-| **小红书** | ✅ | ✅ | |
-| **贴吧** | ✅ | ✅ | |
-| **微信公众号** | | ✅ | |
-| **快手** | ✅ | | |
-| **酷安** | | ✅ | |
-| **皮皮虾** | ✅ | ✅ | |
-| **最右** | ✅ | ✅ | |
-| **小黑盒** | ✅ | ✅ | |
+```python
+await ph.download(
+    url,
+    path=None,
+    callback=None,
+    callback_args=(),
+    callback_kwargs=None,
+    proxy=None,
+    parse_proxy=None,
+    parse_cookie=None,
+    save_metadata=False,
+)
 
-> 可通过 `ParseHub().get_platforms()` 获取当前版本实际注册的平台列表。
+ph.download_sync(
+    url,
+    path=None,
+    callback=None,
+    callback_args=(),
+    callback_kwargs=None,
+    proxy=None,
+    parse_proxy=None,
+    parse_cookie=None,
+    save_metadata=False,
+)
+```
+
+- `path`：下载保存目录，默认使用 `GlobalConfig.default_save_dir`
+- `proxy`：下载媒体时使用的代理
+- `parse_proxy` / `parse_cookie`：下载前解析链接时使用的代理和 Cookie
+- `save_metadata`：是否在输出目录保存 `metadata.json`
+
+### 工具方法
+
+```python
+ph.get_platform(url)
+ph.get_platforms()
+await ph.get_raw_url(url, proxy=None, clean_all=True)
+```
+
+- `get_platform()`：返回匹配到的平台枚举，未匹配时返回 `None`
+- `get_platforms()`：返回所有已注册平台的 `id`、名称和支持类型
+- `get_raw_url()`：获取清理后的原始链接
+
+### 解析结果
+
+- `result.platform`：平台枚举
+- `result.type`：内容类型，如 `video`、`image`、`multimedia`、`richtext`
+- `result.title`：标题
+- `result.content`：纯文本正文
+- `result.raw_url`：清理后的原始链接
+- `result.media`：媒体引用或媒体引用列表
+- `result.to_dict()`：转为可序列化字典
+- `result.download()` / `result.download_sync()`：下载当前解析结果中的媒体
 
 ## 🔑 高级用法
 
@@ -169,7 +209,7 @@ print(ph.parse_sync(text).raw_url)
 
 ### Cookie 登录与代理
 
-部分平台的内容需要登录后才能访问，可在解析时传入 `cookie` 和 `proxy`：
+需要登录态的平台可传 Cookie；解析入口使用 `cookie` / `proxy`，下载入口使用 `parse_cookie` / `parse_proxy` 作为解析阶段参数。
 
 ```python
 from parsehub import ParseHub
