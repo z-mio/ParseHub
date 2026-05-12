@@ -7,11 +7,10 @@ import sys
 import unicodedata
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from . import ParseHub
-from .cli_config import AutoCookieStore, ConfigStore, CookiePrompt, PlatformConfig
-from .errors import ParseHubError
+if TYPE_CHECKING:
+    from .cli_config import AutoCookieStore, PlatformConfig
 
 _COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls", "set"}
 _CLI_EXTRA_MODULES = ("argcomplete", "platformdirs")
@@ -64,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(args)
     except SystemExit as e:
         return _normalize_exit_code(e.code)
-    except (ParseHubError, ValueError) as e:
+    except ValueError as e:
         _print_error(e)
         return 1
     except KeyboardInterrupt:
@@ -229,7 +228,7 @@ def _add_json_options(parser: argparse.ArgumentParser) -> None:
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:
-    hub = ParseHub()
+    hub = _new_parsehub()
     platform_id = _detect_platform_id(hub, args.url_or_text)
     config = _load_platform_config(platform_id)
     proxy = args.proxy if args.proxy is not None else config.parse_proxy
@@ -243,7 +242,7 @@ def _cmd_parse(args: argparse.Namespace) -> int:
 
 
 def _cmd_download(args: argparse.Namespace) -> int:
-    hub = ParseHub()
+    hub = _new_parsehub()
     platform_id = _detect_platform_id(hub, args.url_or_text)
     config = _load_platform_config(platform_id)
     proxy = args.proxy if args.proxy is not None else config.download_proxy
@@ -273,7 +272,7 @@ def _cmd_download(args: argparse.Namespace) -> int:
 
 
 def _cmd_platforms(args: argparse.Namespace) -> int:
-    platforms = ParseHub().get_platforms()
+    platforms = _new_parsehub().get_platforms()
     if args.json:
         _print_json(platforms, pretty=args.pretty)
     else:
@@ -292,7 +291,7 @@ def _cmd_platform_list(args: argparse.Namespace) -> int:
 
 def _cmd_platform_show(args: argparse.Namespace) -> int:
     platform = _validate_platform(args.platform)
-    config = ConfigStore().get_platform(platform)
+    config = _config_store().get_platform(platform)
     data = _platform_config_row(_platform_info_map().get(platform, {"id": platform, "name": platform}), config)
     if args.json:
         _print_json(data, pretty=args.pretty)
@@ -306,7 +305,7 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
     if args.clear:
         if args.proxy:
             raise ValueError("清除代理时不需要填写代理地址。\n示例: parsehub set proxy xhs --clear")
-        changed = ConfigStore().clear_proxy(platform, args.proxy_target)
+        changed = _config_store().clear_proxy(platform, args.proxy_target)
         if changed:
             print(f"已清除 {platform} 的{_proxy_target_label(args.proxy_target)}。")
         else:
@@ -314,7 +313,7 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
         return 0
     if not args.proxy:
         raise ValueError("缺少代理地址。\n示例: parsehub set proxy xhs http://127.0.0.1:7890")
-    ConfigStore().set_proxy(platform, args.proxy, args.proxy_target)
+    _config_store().set_proxy(platform, args.proxy, args.proxy_target)
     print(f"已设置 {platform} 的{_proxy_target_label(args.proxy_target)}。")
     print(f"代理地址: {args.proxy}")
     return 0
@@ -322,11 +321,11 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
 
 def _cmd_platform_cookie(args: argparse.Namespace) -> int:
     platform = _validate_platform(args.platform)
-    store = AutoCookieStore()
+    store = _cookie_store()
     if args.clear:
         print(f"已清除 {platform} Cookie。" if store.delete(platform) else f"{platform} 还没有保存 Cookie，无需清除。")
         return 0
-    store.set(platform, CookiePrompt().read(platform))
+    store.set(platform, _cookie_prompt().read(platform))
     print(f"已保存 {platform} Cookie。之后解析或下载该平台内容时会自动使用。")
     return 0
 
@@ -338,16 +337,46 @@ def _print_error(error: Exception) -> None:
         print(f"  {line}", file=sys.stderr)
 
 
+def _new_parsehub() -> Any:
+    from . import ParseHub
+
+    return ParseHub()
+
+
+def _platform_config_type() -> type:
+    from .cli_config import PlatformConfig
+
+    return PlatformConfig
+
+
+def _config_store() -> Any:
+    from .cli_config import ConfigStore
+
+    return ConfigStore()
+
+
+def _cookie_store() -> Any:
+    from .cli_config import AutoCookieStore
+
+    return AutoCookieStore()
+
+
+def _cookie_prompt() -> Any:
+    from .cli_config import CookiePrompt
+
+    return CookiePrompt()
+
+
 def _load_platform_config(platform_id: str | None) -> PlatformConfig:
     if not platform_id:
-        return PlatformConfig()
-    return ConfigStore().get_platform(platform_id)
+        return _platform_config_type()()
+    return _config_store().get_platform(platform_id)
 
 
 def _load_cookie(platform_id: str | None) -> str | None:
     if not platform_id:
         return None
-    return AutoCookieStore().get(platform_id)
+    return _cookie_store().get(platform_id)
 
 
 def _detect_platform_id(hub: Any, url_or_text: str) -> str | None:
@@ -377,19 +406,19 @@ def _validate_platform(platform: str) -> str:
 
 
 def _supported_platform_ids() -> list[str]:
-    return [str(platform.get("id")) for platform in ParseHub().get_platforms() if platform.get("id")]
+    return [str(platform.get("id")) for platform in _new_parsehub().get_platforms() if platform.get("id")]
 
 
 def _platform_info_map() -> dict[str, dict[str, Any]]:
-    return {str(platform.get("id")): platform for platform in ParseHub().get_platforms() if platform.get("id")}
+    return {str(platform.get("id")): platform for platform in _new_parsehub().get_platforms() if platform.get("id")}
 
 
 def _platform_config_rows() -> list[dict[str, Any]]:
-    config_store = ConfigStore()
-    cookie_store = AutoCookieStore()
+    config_store = _config_store()
+    cookie_store = _cookie_store()
     return [
         _platform_config_row(platform, config_store.get_platform(str(platform["id"])), cookie_store=cookie_store)
-        for platform in ParseHub().get_platforms()
+        for platform in _new_parsehub().get_platforms()
     ]
 
 
@@ -401,7 +430,7 @@ def _platform_config_row(
 ) -> dict[str, Any]:
     platform_id = str(platform.get("id") or "")
     if cookie_store is None:
-        cookie_store = AutoCookieStore()
+        cookie_store = _cookie_store()
     return {
         "id": platform_id,
         "name": str(platform.get("name") or ""),

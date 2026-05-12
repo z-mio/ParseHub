@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from src.parsehub import cli
 from src.parsehub.cli_config import ConfigStore, FileCookieStore
@@ -118,8 +118,8 @@ class TestCli(unittest.TestCase):
         self.config_path = self.config_dir / "config.toml"
         self.cookie_path = self.config_dir / "cookies.toml"
         self.patches = [
-            patch.object(cli, "ConfigStore", lambda: ConfigStore(self.config_path)),
-            patch.object(cli, "AutoCookieStore", lambda: FileCookieStore(self.cookie_path)),
+            patch.object(cli, "_config_store", lambda: ConfigStore(self.config_path)),
+            patch.object(cli, "_cookie_store", lambda: FileCookieStore(self.cookie_path)),
         ]
         for item in self.patches:
             item.start()
@@ -130,6 +130,7 @@ class TestCli(unittest.TestCase):
         stderr = io.StringIO()
         with (
             patch.object(cli, "_has_cli_extra_dependencies", return_value=True),
+            patch.object(cli, "_enable_completion", return_value=None),
             contextlib.redirect_stdout(stdout),
             contextlib.redirect_stderr(stderr),
         ):
@@ -141,6 +142,7 @@ class TestCli(unittest.TestCase):
         stderr = io.StringIO()
         with (
             patch.object(cli, "_has_cli_extra_dependencies", return_value=False),
+            patch.object(cli, "_build_parser") as build_parser,
             contextlib.redirect_stdout(stdout),
             contextlib.redirect_stderr(stderr),
         ):
@@ -150,6 +152,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(stdout.getvalue(), "")
         self.assertIn("未安装 ParseHub CLI 扩展依赖", stderr.getvalue())
         self.assertIn('pip install "parsehub[cli]"', stderr.getvalue())
+        build_parser.assert_not_called()
 
     def test_empty_args_print_help(self):
         code, stdout, stderr = self.run_cli([])
@@ -160,7 +163,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("用法:", stdout)
 
     def test_parse_defaults_to_human_readable_chinese_summary(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(
                 ["parse", "分享 https://example.com/post/1", "--proxy", "http://proxy", "--cookie", "a=b"]
             )
@@ -175,7 +178,7 @@ class TestCli(unittest.TestCase):
         )
 
     def test_parse_json_outputs_json(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1", "--json"])
 
         self.assertEqual(code, 0)
@@ -183,7 +186,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(json.loads(stdout)["title"], "标题")
 
     def test_parse_compact_outputs_single_line_json(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1", "--compact"])
 
         self.assertEqual(code, 0)
@@ -192,7 +195,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(json.loads(stdout)["platform"], "xhs")
 
     def test_short_parse_alias_and_default_parse(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             alias_code, alias_stdout, alias_stderr = self.run_cli(["p", "https://example.com/post/1"])
             default_code, default_stdout, default_stderr = self.run_cli(["https://example.com/post/2"])
 
@@ -206,7 +209,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(FakeParseHub.instances[1].parse_calls[0]["url"], "https://example.com/post/2")
 
     def test_download_outputs_summary_progress_and_forwards_options(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(
                 [
                     "download",
@@ -238,7 +241,7 @@ class TestCli(unittest.TestCase):
         self.assertTrue(call["save_metadata"])
 
     def test_short_download_alias_outputs_json_and_forwards_output_dir(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["d", "https://example.com/post/1", "--output-dir", "./out", "--json"])
 
         self.assertEqual(code, 0)
@@ -249,7 +252,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(FakeParseHub.instances[0].download_calls[0]["path"], "./out")
 
     def test_download_quiet_suppresses_feedback_and_progress_callback(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["dl", "https://example.com/post/1", "--quiet"])
 
         self.assertEqual(code, 0)
@@ -258,7 +261,7 @@ class TestCli(unittest.TestCase):
         self.assertIsNone(FakeParseHub.instances[0].download_calls[0]["callback"])
 
     def test_download_no_progress_keeps_status_but_disables_callback(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1", "--no-progress"])
 
         self.assertEqual(code, 0)
@@ -268,7 +271,7 @@ class TestCli(unittest.TestCase):
         self.assertIsNone(FakeParseHub.instances[0].download_calls[0]["callback"])
 
     def test_download_defaults_path_to_cwd_downloads(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1", "--quiet"])
 
         self.assertEqual(code, 0)
@@ -276,7 +279,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(FakeParseHub.instances[0].download_calls[0]["path"], Path.cwd() / "downloads")
 
     def test_platforms_outputs_aligned_human_readable_table(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["platforms"])
 
         self.assertEqual(code, 0)
@@ -288,7 +291,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(lines[3], "weibo  微博    视频")
 
     def test_short_platforms_alias_outputs_json(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["ls", "--json"])
 
         self.assertEqual(code, 0)
@@ -302,7 +305,7 @@ class TestCli(unittest.TestCase):
         )
 
     def test_set_proxy_sets_and_shows_parse_and_download_proxy(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             set_code, set_stdout, set_stderr = self.run_cli(["set", "proxy", "xhs", "http://proxy"])
             show_code, show_stdout, show_stderr = self.run_cli(["set", "show", "xhs"])
 
@@ -318,7 +321,7 @@ class TestCli(unittest.TestCase):
         self.assertIn('download_proxy = "http://proxy"', self.config_path.read_text())
 
     def test_set_proxy_supports_targeted_clear(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             self.run_cli(["set", "proxy", "xhs", "http://parse", "--for", "parse"])
             self.run_cli(["set", "proxy", "xhs", "http://download", "--for", "download"])
             code, stdout, stderr = self.run_cli(["set", "proxy", "xhs", "--clear", "--for", "parse"])
@@ -333,9 +336,11 @@ class TestCli(unittest.TestCase):
         self.assertIn("下载代理: http://download", show_stdout)
 
     def test_set_cookie_sets_lists_and_clears_cookie_without_printing_value(self):
+        prompt = Mock()
+        prompt.read.return_value = "a=b; token=secret"
         with (
-            patch.object(cli, "ParseHub", FakeParseHub),
-            patch.object(cli.CookiePrompt, "read", return_value="a=b; token=secret"),
+            patch.object(cli, "_new_parsehub", FakeParseHub),
+            patch.object(cli, "_cookie_prompt", return_value=prompt),
         ):
             set_code, set_stdout, set_stderr = self.run_cli(["set", "cookie", "xhs"])
             list_code, list_stdout, list_stderr = self.run_cli(["set", "list"])
@@ -357,7 +362,7 @@ class TestCli(unittest.TestCase):
     def test_parse_uses_saved_platform_proxy_and_cookie(self):
         ConfigStore(self.config_path).set_proxy("xhs", "http://parse-proxy", "parse")
         FileCookieStore(self.cookie_path).set("xhs", "saved=cookie")
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1"])
 
         self.assertEqual(code, 0)
@@ -371,7 +376,7 @@ class TestCli(unittest.TestCase):
         store.set_proxy("xhs", "http://parse-proxy", "parse")
         store.set_proxy("xhs", "http://download-proxy", "download")
         FileCookieStore(self.cookie_path).set("xhs", "saved=cookie")
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1", "--quiet"])
 
         self.assertEqual(code, 0)
@@ -385,7 +390,7 @@ class TestCli(unittest.TestCase):
     def test_cli_options_override_saved_platform_config(self):
         ConfigStore(self.config_path).set_proxy("xhs", "http://saved-proxy", "all")
         FileCookieStore(self.cookie_path).set("xhs", "saved=cookie")
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(
                 [
                     "download",
@@ -409,7 +414,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(call["parse_cookie"], "cli=cookie")
 
     def test_parsehub_error_returns_one(self):
-        with patch.object(cli, "ParseHub", ErrorParseHub):
+        with patch.object(cli, "_new_parsehub", ErrorParseHub):
             code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1"])
 
         self.assertEqual(code, 1)
@@ -418,7 +423,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("错误", stderr)
 
     def test_value_error_returns_one(self):
-        with patch.object(cli, "ParseHub", ValueErrorParseHub):
+        with patch.object(cli, "_new_parsehub", ValueErrorParseHub):
             code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1"])
 
         self.assertEqual(code, 1)
@@ -427,7 +432,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("错误", stderr)
 
     def test_keyboard_interrupt_returns_130(self):
-        with patch.object(cli, "ParseHub", KeyboardInterruptParseHub):
+        with patch.object(cli, "_new_parsehub", KeyboardInterruptParseHub):
             code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1"])
 
         self.assertEqual(code, 130)
@@ -453,7 +458,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("parsehub set proxy xhs", stdout)
 
     def test_set_proxy_missing_value_shows_actionable_example(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["set", "proxy", "xhs"])
 
         self.assertEqual(code, 1)
@@ -463,7 +468,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("\n  示例:", stderr)
 
     def test_unknown_platform_error_lists_next_step(self):
-        with patch.object(cli, "ParseHub", FakeParseHub):
+        with patch.object(cli, "_new_parsehub", FakeParseHub):
             code, stdout, stderr = self.run_cli(["set", "show", "unknown"])
 
         self.assertEqual(code, 1)
