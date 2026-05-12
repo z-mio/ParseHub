@@ -281,7 +281,8 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(set_code, 0)
         self.assertEqual(set_stderr, "")
-        self.assertIn("已设置 xhs 的解析代理和下载代理", set_stdout)
+        self.assertIn("已设置 xhs 的解析代理和下载代理。", set_stdout)
+        self.assertIn("代理地址: http://proxy", set_stdout)
         self.assertEqual(show_code, 0)
         self.assertEqual(show_stderr, "")
         self.assertIn("解析代理: http://proxy", show_stdout)
@@ -301,7 +302,7 @@ class TestCli(unittest.TestCase):
         self.assertIn("已清除 xhs 的解析代理", stdout)
         self.assertEqual(show_code, 0)
         self.assertEqual(show_stderr, "")
-        self.assertIn("解析代理: -", show_stdout)
+        self.assertIn("解析代理: 未设置", show_stdout)
         self.assertIn("下载代理: http://download", show_stdout)
 
     def test_platform_cookie_sets_lists_and_clears_cookie_without_printing_value(self):
@@ -320,10 +321,10 @@ class TestCli(unittest.TestCase):
         self.assertEqual(list_code, 0)
         self.assertEqual(list_stderr, "")
         self.assertIn("xhs", list_stdout)
-        self.assertIn("yes", list_stdout)
+        self.assertIn("已设置", list_stdout)
         self.assertEqual(clear_code, 0)
         self.assertEqual(clear_stderr, "")
-        self.assertIn("已清除 xhs Cookie", clear_stdout)
+        self.assertIn("已清除 xhs Cookie。", clear_stdout)
         self.assertFalse(FileCookieStore(self.cookie_path).exists("xhs"))
 
     def test_parse_uses_saved_platform_proxy_and_cookie(self):
@@ -406,12 +407,41 @@ class TestCli(unittest.TestCase):
         self.assertEqual(stdout, "")
         self.assertIn("已中断", stderr)
 
-    def test_argparse_error_returns_two_in_chinese(self):
+    def test_argparse_error_returns_two_in_chinese_with_hint(self):
         code, stdout, stderr = self.run_cli(["parse"])
 
         self.assertEqual(code, 2)
         self.assertEqual(stdout, "")
         self.assertIn("错误", stderr)
+        self.assertIn("提示", stderr)
+
+    def test_top_level_help_uses_chinese_labels_and_examples(self):
+        code, stdout, stderr = self.run_cli(["--help"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("用法:", stdout)
+        self.assertIn("位置参数", stdout)
+        self.assertIn("常用示例", stdout)
+        self.assertIn("parsehub plat proxy xhs", stdout)
+
+    def test_platform_proxy_missing_value_shows_actionable_example(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["plat", "proxy", "xhs"])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(stdout, "")
+        self.assertIn("缺少代理地址", stderr)
+        self.assertIn("parsehub plat proxy xhs http://127.0.0.1:7890", stderr)
+
+    def test_unknown_platform_error_lists_next_step(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["plat", "show", "unknown"])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(stdout, "")
+        self.assertIn("未知平台: unknown", stderr)
+        self.assertIn("查看全部平台: parsehub platforms", stderr)
 
 
 if __name__ == "__main__":
