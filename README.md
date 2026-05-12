@@ -23,7 +23,7 @@
 - 🧹 **链接清理** — 自动提取分享文案中的链接，并清除可移除的跟踪参数
 - 🎬 **多媒体解析** — 支持视频、图文、动图、实况照片和富文本文章
 - 📦 **同步 / 异步 API** — 同时提供 `async/await` 与 `*_sync` 调用方式
-- 🤖 **Telegram Bot** — 基于本项目的 Bot 已上线 → [@ParsehuBot](https://t.me/ParsehuBot)
+- 🤖 **Telegram Bot** — 基于本项目的 Bot 已上线 → [@ParseHuBot](https://t.me/ParsehuBot)
 
 ## 🌐 支持平台
 
