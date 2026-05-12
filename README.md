@@ -11,7 +11,7 @@
 
 轻量、异步、开箱即用的社交媒体解析与媒体下载库，支持 17+ 平台。
 
-[支持平台](#-支持平台) · [安装](#-安装) · [快速开始](#-快速开始) · [API](#-api-速览) · [高级用法](#-高级用法) · [TG Bot](https://github.com/z-mio/parse_hub_bot)
+[安装](#-安装) · [CLI 快速使用](#-cli-快速使用) · [Python API](#-python-api-快速使用) · [支持平台](#-支持平台) · [高级用法](#-高级用法) · [TG Bot](https://github.com/z-mio/parse_hub_bot)
 
 </div>
 
@@ -25,43 +25,94 @@
 - 📦 **同步 / 异步 API** — 同时提供 `async/await` 与 `*_sync` 调用方式
 - 🤖 **Telegram Bot** — 基于本项目的 Bot 已上线 → [@ParseHuBot](https://t.me/ParsehuBot)
 
-## 🌐 支持平台
-
-| 平台              | 视频 | 图文 | 其他    |
-|:----------------|:--:|:--:|:------|
-| **Twitter / X** | ✅  | ✅  |       |
-| **Instagram**   | ✅  | ✅  |       |
-| **YouTube**     | ✅  |    | 🎵 音乐 |
-| **Facebook**    | ✅  |    |       |
-| **Threads**     | ✅  | ✅  |       |
-| **Bilibili**    | ✅  |    | 📝 动态 |
-| **抖音**          | ✅  | ✅  |       |
-| **TikTok**      | ✅  | ✅  |       |
-| **微博**          | ✅  | ✅  |       |
-| **小红书**         | ✅  | ✅  |       |
-| **贴吧**          | ✅  | ✅  |       |
-| **微信公众号**       |    | ✅  |       |
-| **快手**          | ✅  |    |       |
-| **酷安**          |    | ✅  |       |
-| **皮皮虾**         | ✅  | ✅  |       |
-| **最右**          | ✅  | ✅  |       |
-| **小黑盒**         | ✅  | ✅  |       |
-
-> 可通过 `ParseHub().get_platforms()` 获取当前版本实际注册的平台列表。
-
 ## 📦 安装
 
+> Python ≥ 3.12
+
+### 安装为命令行工具
+
+如果主要把 ParseHub 当作 CLI 使用，推荐用 `pipx` 安装隔离的命令行环境：
+
 ```bash
-# uv (推荐)
+pipx install "parsehub[cli]"
+ph --help
+```
+
+### 安装为 Python 库
+
+如果要在项目代码中调用 Python API：
+
+```bash
+# uv
 uv add parsehub
 
 # pip
 pip install parsehub
 ```
 
-> 要求 Python ≥ 3.12
+项目内也需要完整 CLI 配置能力时，可安装 `cli` 扩展：
 
-## 🚀 快速开始
+```bash
+# uv
+uv add "parsehub[cli]"
+
+# pip
+pip install "parsehub[cli]"
+```
+
+## 🚀 CLI 快速使用
+
+解析链接或分享文案：
+
+```bash
+parsehub "https://example.com/post/1"
+
+# 短命令等价写法
+ph "https://example.com/post/1"
+```
+
+下载媒体：
+
+```bash
+parsehub download "https://example.com/post/1" -o ./downloads
+
+# 短命令等价写法
+ph d "https://example.com/post/1" -o ./downloads
+```
+
+查看支持的平台：
+
+```bash
+ph platforms
+# 或
+ph ls
+```
+
+配置某个平台的代理和 Cookie：
+
+```bash
+# 同时设置解析代理和下载代理
+ph set proxy xhs http://127.0.0.1:7890
+
+# 只设置下载代理
+ph set proxy xhs http://127.0.0.1:7891 --for download
+
+# 保存 Cookie，输入时不会显示在终端里
+ph set cookie xhs
+
+# 查看配置状态
+ph set list
+ph set show xhs
+```
+
+配置会自动按平台应用到后续解析和下载；临时覆盖时仍可直接传参数：
+
+```bash
+ph "https://example.com/post/1" --proxy http://127.0.0.1:7890
+ph d "https://example.com/post/1" --parse-proxy http://127.0.0.1:7890 --cookie "key=value"
+```
+
+## 🐍 Python API 快速使用
 
 ### 同步解析
 
@@ -122,74 +173,29 @@ downloaded = ph.download_sync(
 )
 ```
 
-## 🧩 API 速览
+## 🌐 支持平台
 
-### 解析
+| 平台              | 视频 | 图文 | 其他    |
+|:----------------|:--:|:--:|:------|
+| **Twitter / X** | ✅  | ✅  |       |
+| **Instagram**   | ✅  | ✅  |       |
+| **YouTube**     | ✅  |    | 🎵 音乐 |
+| **Facebook**    | ✅  |    |       |
+| **Threads**     | ✅  | ✅  |       |
+| **Bilibili**    | ✅  |    | 📝 动态 |
+| **抖音**          | ✅  | ✅  |       |
+| **TikTok**      | ✅  | ✅  |       |
+| **微博**          | ✅  | ✅  |       |
+| **小红书**         | ✅  | ✅  |       |
+| **贴吧**          | ✅  | ✅  |       |
+| **微信公众号**       |    | ✅  |       |
+| **快手**          | ✅  |    |       |
+| **酷安**          |    | ✅  |       |
+| **皮皮虾**         | ✅  | ✅  |       |
+| **最右**          | ✅  | ✅  |       |
+| **小黑盒**         | ✅  | ✅  |       |
 
-```python
-await ph.parse(url, proxy=None, cookie=None)
-ph.parse_sync(url, proxy=None, cookie=None)
-```
-
-- `url`：分享文案或分享链接，支持自动提取文本中的第一个链接
-- `proxy`：解析阶段使用的代理
-- `cookie`：解析阶段使用的 Cookie，支持字符串、JSON 字符串或字典
-
-### 下载
-
-```python
-await ph.download(
-    url,
-    path=None,
-    callback=None,
-    callback_args=(),
-    callback_kwargs=None,
-    proxy=None,
-    parse_proxy=None,
-    parse_cookie=None,
-    save_metadata=False,
-)
-
-ph.download_sync(
-    url,
-    path=None,
-    callback=None,
-    callback_args=(),
-    callback_kwargs=None,
-    proxy=None,
-    parse_proxy=None,
-    parse_cookie=None,
-    save_metadata=False,
-)
-```
-
-- `path`：下载保存目录，默认使用 `GlobalConfig.default_save_dir`
-- `proxy`：下载媒体时使用的代理
-- `parse_proxy` / `parse_cookie`：下载前解析链接时使用的代理和 Cookie
-- `save_metadata`：是否在输出目录保存 `metadata.json`
-
-### 工具方法
-
-```python
-ph.get_platform(url)
-ph.get_platforms()
-await ph.get_raw_url(url, proxy=None, clean_all=True)
-```
-
-- `get_platform()`：返回匹配到的平台枚举，未匹配时返回 `None`
-- `get_platforms()`：返回所有已注册平台的 `id`、名称和支持类型
-- `get_raw_url()`：获取清理后的原始链接
-
-### 解析结果
-
-- `result.platform`：平台枚举
-- `result.type`：内容类型，如 `video`、`image`、`multimedia`、`richtext`
-- `result.title`：标题
-- `result.content`：纯文本正文
-- `result.raw_url`：清理后的原始链接
-- `result.media`：媒体引用或媒体引用列表
-- `result.to_dict()`：转为可序列化字典
-- `result.download()` / `result.download_sync()`：下载当前解析结果中的媒体
+> 可通过 `ph ls` 或 `ParseHub().get_platforms()` 获取当前版本实际注册的平台列表。
 
 ## 🔑 高级用法
 

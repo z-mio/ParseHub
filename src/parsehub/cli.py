@@ -73,8 +73,8 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
         description=(
             "ParseHub 命令行工具：解析和下载社交媒体内容。\n\n"
             "常用示例:\n"
-            "  parsehub \"分享文案或链接\"\n"
-            "  parsehub d \"分享文案或链接\" -o ./downloads\n"
+            '  parsehub "分享文案或链接"\n'
+            '  parsehub d "分享文案或链接" -o ./downloads\n'
             "  parsehub set proxy xhs http://127.0.0.1:7890\n"
             "  parsehub set cookie xhs"
         ),
@@ -100,9 +100,9 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
         description=(
             "解析并下载媒体。默认会自动读取该平台保存的解析代理、下载代理和 Cookie。\n\n"
             "示例:\n"
-            "  parsehub d \"https://...\"\n"
-            "  parsehub d \"https://...\" -o ./downloads\n"
-            "  parsehub d \"https://...\" --parse-proxy http://127.0.0.1:7890"
+            '  parsehub d "https://..."\n'
+            '  parsehub d "https://..." -o ./downloads\n'
+            '  parsehub d "https://..." --parse-proxy http://127.0.0.1:7890'
         ),
     )
     download_parser.add_argument("url_or_text", help="分享链接或包含链接的分享文案")
