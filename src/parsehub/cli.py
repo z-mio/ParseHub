@@ -60,7 +60,9 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
     download_parser.add_argument("--proxy", help="下载代理")
     download_parser.add_argument("--parse-proxy", help="解析阶段代理")
     download_parser.add_argument("--parse-cookie", help="解析阶段 Cookie")
-    download_parser.add_argument("-m", "--metadata", "--save-metadata", dest="save_metadata", action="store_true", help="保存 metadata.json")
+    download_parser.add_argument(
+        "-m", "--metadata", "--save-metadata", dest="save_metadata", action="store_true", help="保存 metadata.json"
+    )
     download_parser.add_argument("-q", "--quiet", action="store_true", help="不输出状态和进度信息")
     download_parser.add_argument("--no-progress", action="store_true", help="不显示下载进度")
     _add_json_options(download_parser)
@@ -282,7 +284,10 @@ class _ProgressReporter:
         if unit == "bytes":
             if total > 0:
                 percent = min(100, int(current * 100 / total))
-                return f"下载中 {_progress_bar(percent)} {percent}% {_format_bytes(current)}/{_format_bytes(total)}", percent
+                return (
+                    f"下载中 {_progress_bar(percent)} {percent}% {_format_bytes(current)}/{_format_bytes(total)}",
+                    percent,
+                )
             return f"下载中 {_format_bytes(current)}", current
         if total > 0:
             percent = min(100, int(current * 100 / total))

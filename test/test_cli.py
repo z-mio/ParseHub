@@ -112,7 +112,9 @@ class TestCli(unittest.TestCase):
 
     def test_parse_defaults_to_human_readable_chinese_summary(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
-            code, stdout, stderr = self.run_cli(["parse", "分享 https://example.com/post/1", "--proxy", "http://proxy", "--cookie", "a=b"])
+            code, stdout, stderr = self.run_cli(
+                ["parse", "分享 https://example.com/post/1", "--proxy", "http://proxy", "--cookie", "a=b"]
+            )
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
