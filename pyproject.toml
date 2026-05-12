@@ -44,6 +44,13 @@ dependencies = [
 parsehub = "parsehub.cli:main"
 ph = "parsehub.cli:main"
 
+[project.optional-dependencies]
+cli = [
+    "argcomplete>=3.6.3",
+    "keyring>=25.6.0",
+    "platformdirs>=4.5.1",
+]
+
 [dependency-groups]
 dev = [
     "ruff>=0.14.14",

@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from . import ParseHub
+from .cli_config import AutoCookieStore, ConfigStore, CookiePrompt, PlatformConfig
 from .errors import ParseHubError
 
-_COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls"}
+_COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls", "platform", "plat"}
 
 
 class _ChineseArgumentParser(argparse.ArgumentParser):
@@ -23,6 +24,7 @@ class _ChineseArgumentParser(argparse.ArgumentParser):
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     parser = _build_parser(Path(sys.argv[0]).name if argv is None else "parsehub")
+    _enable_completion(parser)
     try:
         args = parser.parse_args(_normalize_argv(raw_argv))
         _finalize_output_args(args)
@@ -49,17 +51,22 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
 
     parse_parser = subparsers.add_parser("parse", aliases=["p"], help="解析链接或分享文案")
     parse_parser.add_argument("url_or_text", help="分享链接或包含链接的分享文案")
-    parse_parser.add_argument("--proxy", help="解析代理")
-    parse_parser.add_argument("--cookie", help="解析 Cookie")
+    parse_parser.add_argument("--proxy", help="解析代理，默认读取平台解析代理")
+    parse_parser.add_argument("--cookie", help="解析 Cookie，默认读取平台 Cookie")
     _add_json_options(parse_parser)
     parse_parser.set_defaults(func=_cmd_parse)
 
     download_parser = subparsers.add_parser("download", aliases=["d", "dl"], help="解析并下载媒体")
     download_parser.add_argument("url_or_text", help="分享链接或包含链接的分享文案")
     download_parser.add_argument("-o", "--output-dir", "--path", dest="path", help="下载保存目录")
-    download_parser.add_argument("--proxy", help="下载代理")
-    download_parser.add_argument("--parse-proxy", help="解析阶段代理")
-    download_parser.add_argument("--parse-cookie", help="解析阶段 Cookie")
+    download_parser.add_argument("--proxy", "--download-proxy", dest="proxy", help="下载代理，默认读取平台下载代理")
+    download_parser.add_argument("--parse-proxy", help="解析阶段代理，默认读取平台解析代理")
+    download_parser.add_argument(
+        "--cookie",
+        "--parse-cookie",
+        dest="parse_cookie",
+        help="解析阶段 Cookie，默认读取平台 Cookie",
+    )
     download_parser.add_argument(
         "-m", "--metadata", "--save-metadata", dest="save_metadata", action="store_true", help="保存 metadata.json"
     )
@@ -72,7 +79,46 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
     _add_json_options(platforms_parser)
     platforms_parser.set_defaults(func=_cmd_platforms)
 
+    _add_platform_commands(subparsers)
+
     return parser
+
+
+def _add_platform_commands(subparsers: argparse._SubParsersAction) -> None:
+    platform_parser = subparsers.add_parser("platform", aliases=["plat"], help="管理平台代理和 Cookie")
+    platform_subparsers = platform_parser.add_subparsers(dest="platform_command", metavar="平台命令", required=True)
+
+    list_parser = platform_subparsers.add_parser("list", help="列出平台代理和 Cookie 状态")
+    _add_json_options(list_parser)
+    list_parser.set_defaults(func=_cmd_platform_list)
+
+    show_parser = platform_subparsers.add_parser("show", help="查看平台配置")
+    _add_platform_argument(show_parser)
+    _add_json_options(show_parser)
+    show_parser.set_defaults(func=_cmd_platform_show)
+
+    proxy_parser = platform_subparsers.add_parser("proxy", help="设置或清除平台代理")
+    _add_platform_argument(proxy_parser)
+    proxy_parser.add_argument("proxy", nargs="?", help="代理地址")
+    proxy_parser.add_argument(
+        "--for",
+        dest="proxy_target",
+        choices=["parse", "download", "all"],
+        default="all",
+        help="代理用途",
+    )
+    proxy_parser.add_argument("--clear", action="store_true", help="清除代理")
+    proxy_parser.set_defaults(func=_cmd_platform_proxy)
+
+    cookie_parser = platform_subparsers.add_parser("cookie", help="设置或清除平台 Cookie")
+    _add_platform_argument(cookie_parser)
+    cookie_parser.add_argument("--clear", action="store_true", help="清除 Cookie")
+    cookie_parser.set_defaults(func=_cmd_platform_cookie)
+
+
+def _add_platform_argument(parser: argparse.ArgumentParser) -> None:
+    action = parser.add_argument("platform", help="平台 ID，如 xhs")
+    action.completer = _complete_platforms
 
 
 def _add_json_options(parser: argparse.ArgumentParser) -> None:
@@ -83,7 +129,12 @@ def _add_json_options(parser: argparse.ArgumentParser) -> None:
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:
-    data = ParseHub().parse_sync(args.url_or_text, proxy=args.proxy, cookie=args.cookie).to_dict()
+    hub = ParseHub()
+    platform_id = _detect_platform_id(hub, args.url_or_text)
+    config = _load_platform_config(platform_id)
+    proxy = args.proxy if args.proxy is not None else config.parse_proxy
+    cookie = args.cookie if args.cookie is not None else _load_cookie(platform_id)
+    data = hub.parse_sync(args.url_or_text, proxy=proxy, cookie=cookie).to_dict()
     if args.json:
         _print_json(data, pretty=args.pretty)
     else:
@@ -92,17 +143,23 @@ def _cmd_parse(args: argparse.Namespace) -> int:
 
 
 def _cmd_download(args: argparse.Namespace) -> int:
+    hub = ParseHub()
+    platform_id = _detect_platform_id(hub, args.url_or_text)
+    config = _load_platform_config(platform_id)
+    proxy = args.proxy if args.proxy is not None else config.download_proxy
+    parse_proxy = args.parse_proxy if args.parse_proxy is not None else config.parse_proxy
+    parse_cookie = args.parse_cookie if args.parse_cookie is not None else _load_cookie(platform_id)
     reporter = _ProgressReporter(enabled=not args.quiet and not args.no_progress)
     if not args.quiet:
         print("解析中...", file=sys.stderr)
 
-    result = ParseHub().download_sync(
+    result = hub.download_sync(
         args.url_or_text,
         path=args.path or Path.cwd() / "downloads",
         callback=reporter if reporter.enabled else None,
-        proxy=args.proxy,
-        parse_proxy=args.parse_proxy,
-        parse_cookie=args.parse_cookie,
+        proxy=proxy,
+        parse_proxy=parse_proxy,
+        parse_cookie=parse_cookie,
         save_metadata=args.save_metadata,
     )
     reporter.finish()
@@ -122,6 +179,126 @@ def _cmd_platforms(args: argparse.Namespace) -> int:
     else:
         _print_platforms_table(platforms)
     return 0
+
+
+def _cmd_platform_list(args: argparse.Namespace) -> int:
+    rows = _platform_config_rows()
+    if args.json:
+        _print_json(rows, pretty=args.pretty)
+    else:
+        _print_platform_config_table(rows)
+    return 0
+
+
+def _cmd_platform_show(args: argparse.Namespace) -> int:
+    platform = _validate_platform(args.platform)
+    config = ConfigStore().get_platform(platform)
+    data = _platform_config_row(_platform_info_map().get(platform, {"id": platform, "name": platform}), config)
+    if args.json:
+        _print_json(data, pretty=args.pretty)
+    else:
+        _print_platform_config_detail(data)
+    return 0
+
+
+def _cmd_platform_proxy(args: argparse.Namespace) -> int:
+    platform = _validate_platform(args.platform)
+    if args.clear:
+        if args.proxy:
+            raise ValueError("--clear 不能同时指定代理地址")
+        changed = ConfigStore().clear_proxy(platform, args.proxy_target)
+        print(f"已清除 {platform} 的{_proxy_target_label(args.proxy_target)}" if changed else f"{platform} 未配置代理")
+        return 0
+    if not args.proxy:
+        raise ValueError("缺少代理地址")
+    ConfigStore().set_proxy(platform, args.proxy, args.proxy_target)
+    print(f"已设置 {platform} 的{_proxy_target_label(args.proxy_target)}: {args.proxy}")
+    return 0
+
+
+def _cmd_platform_cookie(args: argparse.Namespace) -> int:
+    platform = _validate_platform(args.platform)
+    store = AutoCookieStore()
+    if args.clear:
+        print(f"已清除 {platform} Cookie" if store.delete(platform) else f"{platform} 未保存 Cookie")
+        return 0
+    storage = store.set(platform, CookiePrompt().read(platform))
+    if storage == "file":
+        print("系统密钥库不可用，Cookie 已保存到本地 cookies.toml。", file=sys.stderr)
+    print(f"已保存 {platform} Cookie")
+    return 0
+
+
+def _load_platform_config(platform_id: str | None) -> PlatformConfig:
+    if not platform_id:
+        return PlatformConfig()
+    return ConfigStore().get_platform(platform_id)
+
+
+def _load_cookie(platform_id: str | None) -> str | None:
+    if not platform_id:
+        return None
+    return AutoCookieStore().get(platform_id)
+
+
+def _detect_platform_id(hub: Any, url_or_text: str) -> str | None:
+    get_platform = getattr(hub, "get_platform", None)
+    if not callable(get_platform):
+        return None
+    platform = get_platform(url_or_text)
+    return _platform_id(platform)
+
+
+def _platform_id(platform: Any) -> str | None:
+    value = getattr(platform, "id", None)
+    if isinstance(value, str):
+        return value
+    if isinstance(platform, str):
+        return platform
+    return None
+
+
+def _validate_platform(platform: str) -> str:
+    platform = platform.lower()
+    platform_ids = set(_supported_platform_ids())
+    if platform_ids and platform not in platform_ids:
+        raise ValueError(f"未知平台: {platform}")
+    return platform
+
+
+def _supported_platform_ids() -> list[str]:
+    return [str(platform.get("id")) for platform in ParseHub().get_platforms() if platform.get("id")]
+
+
+def _platform_info_map() -> dict[str, dict[str, Any]]:
+    return {str(platform.get("id")): platform for platform in ParseHub().get_platforms() if platform.get("id")}
+
+
+def _platform_config_rows() -> list[dict[str, Any]]:
+    config_store = ConfigStore()
+    cookie_store = AutoCookieStore()
+    return [
+        _platform_config_row(platform, config_store.get_platform(str(platform["id"])), cookie_store=cookie_store)
+        for platform in ParseHub().get_platforms()
+    ]
+
+
+def _platform_config_row(
+    platform: dict[str, Any],
+    config: PlatformConfig,
+    *,
+    cookie_store: AutoCookieStore | None = None,
+) -> dict[str, Any]:
+    platform_id = str(platform.get("id") or "")
+    if cookie_store is None:
+        cookie_store = AutoCookieStore()
+    return {
+        "id": platform_id,
+        "name": str(platform.get("name") or ""),
+        "parse_proxy": config.parse_proxy,
+        "download_proxy": config.download_proxy,
+        "cookie": cookie_store.exists(platform_id),
+    }
 
 
 def _print_json(data: Any, *, pretty: bool) -> None:
@@ -148,6 +325,40 @@ def _print_platforms_table(platforms: list[dict[str, Any]]) -> None:
     print(f"{_pad_display('-' * id_width, id_width)}  {_pad_display('-' * name_width, name_width)}  --------")
     for platform_id, name, supported_types in rows:
         print(f"{_pad_display(platform_id, id_width)}  {_pad_display(name, name_width)}  {supported_types}")
+
+
+def _print_platform_config_table(rows: list[dict[str, Any]]) -> None:
+    table = [
+        (
+            str(row["id"]),
+            str(row["name"]),
+            _yes_no(bool(row["parse_proxy"])),
+            _yes_no(bool(row["download_proxy"])),
+            _yes_no(bool(row["cookie"])),
+        )
+        for row in rows
+    ]
+    id_width = max([_display_width("平台")] + [_display_width(row[0]) for row in table])
+    name_width = max([_display_width("名称")] + [_display_width(row[1]) for row in table])
+    print(f"{_pad_display('平台', id_width)}  {_pad_display('名称', name_width)}  解析代理  下载代理  Cookie")
+    print(
+        f"{_pad_display('-' * id_width, id_width)}  {_pad_display('-' * name_width, name_width)}  "
+        "--------  --------  ------"
+    )
+    for platform_id, name, parse_proxy, download_proxy, cookie in table:
+        print(
+            f"{_pad_display(platform_id, id_width)}  {_pad_display(name, name_width)}  "
+            f"{_pad_display(parse_proxy, 8)}  {_pad_display(download_proxy, 8)}  {cookie}"
+        )
+
+
+def _print_platform_config_detail(data: dict[str, Any]) -> None:
+    print(f"平台: {data['id']}")
+    if data.get("name"):
+        print(f"名称: {data['name']}")
+    print(f"解析代理: {data.get('parse_proxy') or '-'}")
+    print(f"下载代理: {data.get('download_proxy') or '-'}")
+    print(f"Cookie: {'已保存' if data.get('cookie') else '-'}")
 
 
 def _print_parse_summary(data: dict[str, Any]) -> None:
@@ -253,6 +464,26 @@ def _translate_argparse_error(message: str) -> str:
     for source, target in replacements.items():
         message = message.replace(source, target)
     return message
+
+
+def _proxy_target_label(target: str) -> str:
+    return {"parse": "解析代理", "download": "下载代理", "all": "解析代理和下载代理"}[target]
+
+
+def _yes_no(value: bool) -> str:
+    return "yes" if value else "no"
+
+
+def _complete_platforms(prefix: str, **_: Any) -> list[str]:
+    return [platform for platform in _supported_platform_ids() if platform.startswith(prefix)]
+
+
+def _enable_completion(parser: argparse.ArgumentParser) -> None:
+    try:
+        import argcomplete
+    except Exception:
+        return
+    argcomplete.autocomplete(parser)
 
 
 class _ProgressReporter:

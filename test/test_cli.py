@@ -1,12 +1,14 @@
 import contextlib
 import io
 import json
+import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import patch
 
 from src.parsehub import cli
+from src.parsehub.cli_config import ConfigStore, FileCookieStore
 from src.parsehub.errors import ParseError
 
 
@@ -80,8 +82,16 @@ class FakeParseHub:
             asyncio.run(callback(1024, 1024, "bytes"))
         return FakeDownloadResult()
 
+    def get_platform(self, url):
+        if "weibo" in url:
+            return "weibo"
+        return "xhs"
+
     def get_platforms(self):
-        return [{"id": "xhs", "name": "小红书", "supported_types": ["视频", "图文"]}]
+        return [
+            {"id": "xhs", "name": "小红书", "supported_types": ["视频", "图文"]},
+            {"id": "weibo", "name": "微博", "supported_types": ["视频"]},
+        ]
 
 
 class ErrorParseHub:
@@ -102,6 +112,18 @@ class KeyboardInterruptParseHub:
 class TestCli(unittest.TestCase):
     def setUp(self):
         FakeParseHub.instances = []
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.config_dir = Path(self.tmp.name)
+        self.config_path = self.config_dir / "config.toml"
+        self.cookie_path = self.config_dir / "cookies.toml"
+        self.patches = [
+            patch.object(cli, "ConfigStore", lambda: ConfigStore(self.config_path)),
+            patch.object(cli, "AutoCookieStore", lambda: FileCookieStore(self.cookie_path)),
+        ]
+        for item in self.patches:
+            item.start()
+            self.addCleanup(item.stop)
 
     def run_cli(self, argv):
         stdout = io.StringIO()
@@ -233,9 +255,10 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
         lines = stdout.splitlines()
-        self.assertEqual(lines[0], "平台  名称    支持类型")
-        self.assertEqual(lines[1], "----  ------  --------")
-        self.assertEqual(lines[2], "xhs   小红书  视频、图文")
+        self.assertEqual(lines[0], "平台   名称    支持类型")
+        self.assertEqual(lines[1], "-----  ------  --------")
+        self.assertEqual(lines[2], "xhs    小红书  视频、图文")
+        self.assertEqual(lines[3], "weibo  微博    视频")
 
     def test_short_platforms_alias_outputs_json(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
@@ -243,7 +266,119 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
-        self.assertEqual(json.loads(stdout), [{"id": "xhs", "name": "小红书", "supported_types": ["视频", "图文"]}])
+        self.assertEqual(
+            json.loads(stdout),
+            [
+                {"id": "xhs", "name": "小红书", "supported_types": ["视频", "图文"]},
+                {"id": "weibo", "name": "微博", "supported_types": ["视频"]},
+            ],
+        )
+
+    def test_platform_proxy_sets_and_shows_parse_and_download_proxy(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            set_code, set_stdout, set_stderr = self.run_cli(["plat", "proxy", "xhs", "http://proxy"])
+            show_code, show_stdout, show_stderr = self.run_cli(["platform", "show", "xhs"])
+
+        self.assertEqual(set_code, 0)
+        self.assertEqual(set_stderr, "")
+        self.assertIn("已设置 xhs 的解析代理和下载代理", set_stdout)
+        self.assertEqual(show_code, 0)
+        self.assertEqual(show_stderr, "")
+        self.assertIn("解析代理: http://proxy", show_stdout)
+        self.assertIn("下载代理: http://proxy", show_stdout)
+        self.assertIn('parse_proxy = "http://proxy"', self.config_path.read_text())
+        self.assertIn('download_proxy = "http://proxy"', self.config_path.read_text())
+
+    def test_platform_proxy_supports_targeted_clear(self):
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            self.run_cli(["plat", "proxy", "xhs", "http://parse", "--for", "parse"])
+            self.run_cli(["plat", "proxy", "xhs", "http://download", "--for", "download"])
+            code, stdout, stderr = self.run_cli(["plat", "proxy", "xhs", "--clear", "--for", "parse"])
+            show_code, show_stdout, show_stderr = self.run_cli(["plat", "show", "xhs"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("已清除 xhs 的解析代理", stdout)
+        self.assertEqual(show_code, 0)
+        self.assertEqual(show_stderr, "")
+        self.assertIn("解析代理: -", show_stdout)
+        self.assertIn("下载代理: http://download", show_stdout)
+
+    def test_platform_cookie_sets_lists_and_clears_cookie_without_printing_value(self):
+        with (
+            patch.object(cli, "ParseHub", FakeParseHub),
+            patch.object(cli.CookiePrompt, "read", return_value="a=b; token=secret"),
+        ):
+            set_code, set_stdout, set_stderr = self.run_cli(["plat", "cookie", "xhs"])
+            list_code, list_stdout, list_stderr = self.run_cli(["plat", "list"])
+            clear_code, clear_stdout, clear_stderr = self.run_cli(["plat", "cookie", "xhs", "--clear"])
+
+        self.assertEqual(set_code, 0)
+        self.assertEqual(set_stderr, "")
+        self.assertIn("已保存 xhs Cookie", set_stdout)
+        self.assertNotIn("secret", set_stdout)
+        self.assertEqual(list_code, 0)
+        self.assertEqual(list_stderr, "")
+        self.assertIn("xhs", list_stdout)
+        self.assertIn("yes", list_stdout)
+        self.assertEqual(clear_code, 0)
+        self.assertEqual(clear_stderr, "")
+        self.assertIn("已清除 xhs Cookie", clear_stdout)
+        self.assertFalse(FileCookieStore(self.cookie_path).exists("xhs"))
+
+    def test_parse_uses_saved_platform_proxy_and_cookie(self):
+        ConfigStore(self.config_path).set_proxy("xhs", "http://parse-proxy", "parse")
+        FileCookieStore(self.cookie_path).set("xhs", "saved=cookie")
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["parse", "https://example.com/post/1"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("平台: xhs", stdout)
+        self.assertEqual(FakeParseHub.instances[0].parse_calls[0]["proxy"], "http://parse-proxy")
+        self.assertEqual(FakeParseHub.instances[0].parse_calls[0]["cookie"], "saved=cookie")
+
+    def test_download_uses_saved_platform_proxies_and_cookie(self):
+        store = ConfigStore(self.config_path)
+        store.set_proxy("xhs", "http://parse-proxy", "parse")
+        store.set_proxy("xhs", "http://download-proxy", "download")
+        FileCookieStore(self.cookie_path).set("xhs", "saved=cookie")
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(["download", "https://example.com/post/1", "--quiet"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("下载完成", stdout)
+        call = FakeParseHub.instances[0].download_calls[0]
+        self.assertEqual(call["proxy"], "http://download-proxy")
+        self.assertEqual(call["parse_proxy"], "http://parse-proxy")
+        self.assertEqual(call["parse_cookie"], "saved=cookie")
+
+    def test_cli_options_override_saved_platform_config(self):
+        ConfigStore(self.config_path).set_proxy("xhs", "http://saved-proxy", "all")
+        FileCookieStore(self.cookie_path).set("xhs", "saved=cookie")
+        with patch.object(cli, "ParseHub", FakeParseHub):
+            code, stdout, stderr = self.run_cli(
+                [
+                    "download",
+                    "https://example.com/post/1",
+                    "--quiet",
+                    "--proxy",
+                    "http://cli-download",
+                    "--parse-proxy",
+                    "http://cli-parse",
+                    "--cookie",
+                    "cli=cookie",
+                ]
+            )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("下载完成", stdout)
+        call = FakeParseHub.instances[0].download_calls[0]
+        self.assertEqual(call["proxy"], "http://cli-download")
+        self.assertEqual(call["parse_proxy"], "http://cli-parse")
+        self.assertEqual(call["parse_cookie"], "cli=cookie")
 
     def test_parsehub_error_returns_one(self):
         with patch.object(cli, "ParseHub", ErrorParseHub):
