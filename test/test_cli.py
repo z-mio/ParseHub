@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import patch
 
-from parsehub import cli
-from parsehub.errors import ParseError
+from src.parsehub import cli
+from src.parsehub.errors import ParseError
 
 
 class FakeParseResult:
