@@ -40,6 +40,10 @@ dependencies = [
     "gmssl>=3.2.2",
 ]
 
+[project.scripts]
+parsehub = "parsehub.cli:main"
+ph = "parsehub.cli:main"
+
 [dependency-groups]
 dev = [
     "ruff>=0.14.14",
