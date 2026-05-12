@@ -53,6 +53,8 @@ class ParseHub:
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
+        parse_proxy: str | None = None,
+        parse_cookie: str | dict | None = None,
         save_metadata: bool = False,
     ) -> DownloadResult:
         """下载
@@ -61,7 +63,9 @@ class ParseHub:
         :param callback: 下载进度回调函数
         :param callback_args: 下载进度回调函数参数
         :param callback_kwargs: 回调函数的关键字参数
-        :param proxy: 代理
+        :param proxy: 下载代理
+        :param parse_proxy: 解析代理
+        :param parse_cookie: 解析 cookie
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
 
@@ -76,7 +80,7 @@ class ParseHub:
                 - ``bytes``: 字节进度，用于单文件下载时报告已下载/总字节数
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
-        result = await self.parse(url)
+        result = await self.parse(url, proxy=parse_proxy, cookie=parse_cookie)
         return await result.download(
             path,
             callback=callback,
@@ -94,6 +98,8 @@ class ParseHub:
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
+        parse_proxy: str | None = None,
+        parse_cookie: str | dict | None = None,
         save_metadata: bool = False,
     ) -> DownloadResult:
         """
@@ -103,7 +109,9 @@ class ParseHub:
         :param callback: 进度回调函数
         :param callback_args: 进度回调函数参数
         :param callback_kwargs: 回调函数的关键字参数
-        :param proxy: 代理
+        :param proxy: 下载代理
+        :param parse_proxy: 解析代理
+        :param parse_cookie: 解析 cookie
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :return: DownloadResult
 
@@ -126,6 +134,8 @@ class ParseHub:
                 callback_args=callback_args,
                 callback_kwargs=callback_kwargs,
                 proxy=proxy,
+                parse_proxy=parse_proxy,
+                parse_cookie=parse_cookie,
                 save_metadata=save_metadata,
             )
         )
