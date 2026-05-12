@@ -432,7 +432,8 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(stdout, "")
         self.assertIn("缺少代理地址", stderr)
-        self.assertIn("parsehub set proxy xhs http://127.0.0.1:7890", stderr)
+        self.assertIn("示例: parsehub set proxy xhs http://127.0.0.1:7890", stderr)
+        self.assertIn("\n  示例:", stderr)
 
     def test_unknown_platform_error_lists_next_step(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
@@ -441,7 +442,17 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(stdout, "")
         self.assertIn("未知平台: unknown", stderr)
+        self.assertIn("可用平台示例:", stderr)
         self.assertIn("查看全部平台: parsehub platforms", stderr)
+        self.assertIn("\n  可用平台示例:", stderr)
+
+    def test_set_missing_subcommand_hint_is_multiline(self):
+        code, stdout, stderr = self.run_cli(["set"])
+
+        self.assertEqual(code, 2)
+        self.assertEqual(stdout, "")
+        self.assertIn("可用命令有 list、show、proxy、cookie", stderr)
+        self.assertIn("\n示例: parsehub set show xhs", stderr)
 
 
 if __name__ == "__main__":

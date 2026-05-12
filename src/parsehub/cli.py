@@ -57,13 +57,13 @@ def main(argv: list[str] | None = None) -> int:
     except SystemExit as e:
         return _normalize_exit_code(e.code)
     except (ParseHubError, ValueError) as e:
-        print(f"错误: {e}", file=sys.stderr)
+        _print_error(e)
         return 1
     except KeyboardInterrupt:
         print("已中断", file=sys.stderr)
         return 130
     except Exception as e:
-        print(f"错误: {e}", file=sys.stderr)
+        _print_error(e)
         return 1
 
 
@@ -297,7 +297,7 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
     platform = _validate_platform(args.platform)
     if args.clear:
         if args.proxy:
-            raise ValueError("清除代理时不需要填写代理地址。示例: parsehub set proxy xhs --clear")
+            raise ValueError("清除代理时不需要填写代理地址。\n示例: parsehub set proxy xhs --clear")
         changed = ConfigStore().clear_proxy(platform, args.proxy_target)
         if changed:
             print(f"已清除 {platform} 的{_proxy_target_label(args.proxy_target)}。")
@@ -305,7 +305,7 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
             print(f"{platform} 还没有配置{_proxy_target_label(args.proxy_target)}，无需清除。")
         return 0
     if not args.proxy:
-        raise ValueError("缺少代理地址。示例: parsehub set proxy xhs http://127.0.0.1:7890")
+        raise ValueError("缺少代理地址。\n示例: parsehub set proxy xhs http://127.0.0.1:7890")
     ConfigStore().set_proxy(platform, args.proxy, args.proxy_target)
     print(f"已设置 {platform} 的{_proxy_target_label(args.proxy_target)}。")
     print(f"代理地址: {args.proxy}")
@@ -320,9 +320,17 @@ def _cmd_platform_cookie(args: argparse.Namespace) -> int:
         return 0
     storage = store.set(platform, CookiePrompt().read(platform))
     if storage == "file":
-        print("系统密钥库不可用，Cookie 已保存到本地 cookies.toml。请不要把该文件提交到 git。", file=sys.stderr)
+        print("提示: 系统密钥库不可用，Cookie 已保存到本地 cookies.toml。", file=sys.stderr)
+        print("      请不要把该文件提交到 git。", file=sys.stderr)
     print(f"已保存 {platform} Cookie。之后解析或下载该平台内容时会自动使用。")
     return 0
+
+
+def _print_error(error: Exception) -> None:
+    lines = str(error).splitlines() or [error.__class__.__name__]
+    print(f"错误: {lines[0]}", file=sys.stderr)
+    for line in lines[1:]:
+        print(f"  {line}", file=sys.stderr)
 
 
 def _load_platform_config(platform_id: str | None) -> PlatformConfig:
@@ -359,7 +367,7 @@ def _validate_platform(platform: str) -> str:
     platform_ids = set(_supported_platform_ids())
     if platform_ids and platform not in platform_ids:
         sample = "、".join(sorted(platform_ids)[:8])
-        raise ValueError(f"未知平台: {platform}。可用平台示例: {sample}。查看全部平台: parsehub platforms")
+        raise ValueError(f"未知平台: {platform}\n可用平台示例: {sample}\n查看全部平台: parsehub platforms")
     return platform
 
 
@@ -567,11 +575,11 @@ def _translate_argparse_error(message: str) -> str:
 
 def _usage_hint(prog: str) -> str:
     if prog.endswith(" set"):
-        return "\n提示: 可用命令有 list、show、proxy、cookie。示例: parsehub set show xhs"
+        return "\n提示: 可用命令有 list、show、proxy、cookie。\n示例: parsehub set show xhs"
     if prog.endswith(" proxy"):
-        return "\n提示: 设置代理示例: parsehub set proxy xhs http://127.0.0.1:7890"
+        return "\n提示: 设置代理需要平台和代理地址。\n示例: parsehub set proxy xhs http://127.0.0.1:7890"
     if prog.endswith(" cookie"):
-        return "\n提示: 保存 Cookie 示例: parsehub set cookie xhs"
+        return "\n提示: 保存 Cookie 需要指定平台。\n示例: parsehub set cookie xhs"
     return "\n提示: 查看帮助请运行 parsehub --help"
 
 
