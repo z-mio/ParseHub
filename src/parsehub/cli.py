@@ -580,7 +580,7 @@ def _proxy_target_label(target: str) -> str:
 
 
 def _status_text(value: bool) -> str:
-    return "已设置" if value else "未设置"
+    return "✓" if value else "✗"
 
 
 def _complete_platforms(prefix: str, **_: Any) -> list[str]:

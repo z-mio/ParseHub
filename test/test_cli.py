@@ -321,7 +321,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(list_code, 0)
         self.assertEqual(list_stderr, "")
         self.assertIn("xhs", list_stdout)
-        self.assertIn("已设置", list_stdout)
+        self.assertIn("✓", list_stdout)
         self.assertEqual(clear_code, 0)
         self.assertEqual(clear_stderr, "")
         self.assertIn("已清除 xhs Cookie。", clear_stdout)
