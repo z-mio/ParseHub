@@ -23,7 +23,6 @@
 - 🧹 **链接清理** — 自动提取分享文案中的链接，并清除可移除的跟踪参数
 - 🎬 **多媒体解析** — 支持视频、图文、动图、实况照片和富文本文章
 - 📦 **同步 / 异步 API** — 同时提供 `async/await` 与 `*_sync` 调用方式
-- ⬇️ **媒体下载** — 支持下载进度回调、自定义保存路径和 `metadata.json`
 - 🤖 **Telegram Bot** — 基于本项目的 Bot 已上线 → [@ParsehuBot](https://t.me/ParsehuBot)
 
 ## 📦 安装
@@ -50,7 +49,6 @@ result = ph.parse_sync("https://www.xiaoheihe.cn/app/bbs/link/174972336")
 
 print(result.title)
 print(result.raw_url)
-print(result.to_dict())
 ```
 
 ### 异步解析
