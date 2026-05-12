@@ -274,10 +274,10 @@ class TestCli(unittest.TestCase):
             ],
         )
 
-    def test_platform_proxy_sets_and_shows_parse_and_download_proxy(self):
+    def test_set_proxy_sets_and_shows_parse_and_download_proxy(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
-            set_code, set_stdout, set_stderr = self.run_cli(["plat", "proxy", "xhs", "http://proxy"])
-            show_code, show_stdout, show_stderr = self.run_cli(["platform", "show", "xhs"])
+            set_code, set_stdout, set_stderr = self.run_cli(["set", "proxy", "xhs", "http://proxy"])
+            show_code, show_stdout, show_stderr = self.run_cli(["set", "show", "xhs"])
 
         self.assertEqual(set_code, 0)
         self.assertEqual(set_stderr, "")
@@ -290,12 +290,12 @@ class TestCli(unittest.TestCase):
         self.assertIn('parse_proxy = "http://proxy"', self.config_path.read_text())
         self.assertIn('download_proxy = "http://proxy"', self.config_path.read_text())
 
-    def test_platform_proxy_supports_targeted_clear(self):
+    def test_set_proxy_supports_targeted_clear(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
-            self.run_cli(["plat", "proxy", "xhs", "http://parse", "--for", "parse"])
-            self.run_cli(["plat", "proxy", "xhs", "http://download", "--for", "download"])
-            code, stdout, stderr = self.run_cli(["plat", "proxy", "xhs", "--clear", "--for", "parse"])
-            show_code, show_stdout, show_stderr = self.run_cli(["plat", "show", "xhs"])
+            self.run_cli(["set", "proxy", "xhs", "http://parse", "--for", "parse"])
+            self.run_cli(["set", "proxy", "xhs", "http://download", "--for", "download"])
+            code, stdout, stderr = self.run_cli(["set", "proxy", "xhs", "--clear", "--for", "parse"])
+            show_code, show_stdout, show_stderr = self.run_cli(["set", "show", "xhs"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
@@ -305,14 +305,14 @@ class TestCli(unittest.TestCase):
         self.assertIn("解析代理: 未设置", show_stdout)
         self.assertIn("下载代理: http://download", show_stdout)
 
-    def test_platform_cookie_sets_lists_and_clears_cookie_without_printing_value(self):
+    def test_set_cookie_sets_lists_and_clears_cookie_without_printing_value(self):
         with (
             patch.object(cli, "ParseHub", FakeParseHub),
             patch.object(cli.CookiePrompt, "read", return_value="a=b; token=secret"),
         ):
-            set_code, set_stdout, set_stderr = self.run_cli(["plat", "cookie", "xhs"])
-            list_code, list_stdout, list_stderr = self.run_cli(["plat", "list"])
-            clear_code, clear_stdout, clear_stderr = self.run_cli(["plat", "cookie", "xhs", "--clear"])
+            set_code, set_stdout, set_stderr = self.run_cli(["set", "cookie", "xhs"])
+            list_code, list_stdout, list_stderr = self.run_cli(["set", "list"])
+            clear_code, clear_stdout, clear_stderr = self.run_cli(["set", "cookie", "xhs", "--clear"])
 
         self.assertEqual(set_code, 0)
         self.assertEqual(set_stderr, "")
@@ -423,20 +423,20 @@ class TestCli(unittest.TestCase):
         self.assertIn("用法:", stdout)
         self.assertIn("位置参数", stdout)
         self.assertIn("常用示例", stdout)
-        self.assertIn("parsehub plat proxy xhs", stdout)
+        self.assertIn("parsehub set proxy xhs", stdout)
 
-    def test_platform_proxy_missing_value_shows_actionable_example(self):
+    def test_set_proxy_missing_value_shows_actionable_example(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
-            code, stdout, stderr = self.run_cli(["plat", "proxy", "xhs"])
+            code, stdout, stderr = self.run_cli(["set", "proxy", "xhs"])
 
         self.assertEqual(code, 1)
         self.assertEqual(stdout, "")
         self.assertIn("缺少代理地址", stderr)
-        self.assertIn("parsehub plat proxy xhs http://127.0.0.1:7890", stderr)
+        self.assertIn("parsehub set proxy xhs http://127.0.0.1:7890", stderr)
 
     def test_unknown_platform_error_lists_next_step(self):
         with patch.object(cli, "ParseHub", FakeParseHub):
-            code, stdout, stderr = self.run_cli(["plat", "show", "unknown"])
+            code, stdout, stderr = self.run_cli(["set", "show", "unknown"])
 
         self.assertEqual(code, 1)
         self.assertEqual(stdout, "")

@@ -12,7 +12,7 @@ from . import ParseHub
 from .cli_config import AutoCookieStore, ConfigStore, CookiePrompt, PlatformConfig
 from .errors import ParseHubError
 
-_COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls", "platform", "plat"}
+_COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls", "set"}
 
 
 class _ChineseHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -75,8 +75,8 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
             "常用示例:\n"
             "  parsehub \"分享文案或链接\"\n"
             "  parsehub d \"分享文案或链接\" -o ./downloads\n"
-            "  parsehub plat proxy xhs http://127.0.0.1:7890\n"
-            "  parsehub plat cookie xhs"
+            "  parsehub set proxy xhs http://127.0.0.1:7890\n"
+            "  parsehub set cookie xhs"
         ),
     )
     subparsers = parser.add_subparsers(dest="command", metavar="命令", required=True)
@@ -127,34 +127,33 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
         "platforms",
         aliases=["ls"],
         help="列出支持的平台",
-        description="列出 ParseHub 当前可识别的平台。配置平台代理和 Cookie 请使用 parsehub plat。",
+        description="列出 ParseHub 当前可识别的平台。配置平台代理和 Cookie 请使用 parsehub set。",
     )
     _add_json_options(platforms_parser)
     platforms_parser.set_defaults(func=_cmd_platforms)
 
-    _add_platform_commands(subparsers)
+    _add_set_commands(subparsers)
 
     return parser
 
 
-def _add_platform_commands(subparsers: argparse._SubParsersAction) -> None:
-    platform_parser = subparsers.add_parser(
-        "platform",
-        aliases=["plat"],
-        help="管理平台代理和 Cookie",
+def _add_set_commands(subparsers: argparse._SubParsersAction) -> None:
+    set_parser = subparsers.add_parser(
+        "set",
+        help="设置平台代理和 Cookie",
         description=(
-            "管理每个平台的解析代理、下载代理和 Cookie。\n\n"
+            "设置每个平台的解析代理、下载代理和 Cookie。\n\n"
             "常用示例:\n"
-            "  parsehub plat list\n"
-            "  parsehub plat show xhs\n"
-            "  parsehub plat proxy xhs http://127.0.0.1:7890\n"
-            "  parsehub plat proxy xhs http://127.0.0.1:7891 --for download\n"
-            "  parsehub plat cookie xhs"
+            "  parsehub set list\n"
+            "  parsehub set show xhs\n"
+            "  parsehub set proxy xhs http://127.0.0.1:7890\n"
+            "  parsehub set proxy xhs http://127.0.0.1:7891 --for download\n"
+            "  parsehub set cookie xhs"
         ),
     )
-    platform_subparsers = platform_parser.add_subparsers(dest="platform_command", metavar="平台命令", required=True)
+    set_subparsers = set_parser.add_subparsers(dest="set_command", metavar="设置命令", required=True)
 
-    list_parser = platform_subparsers.add_parser(
+    list_parser = set_subparsers.add_parser(
         "list",
         help="列出平台代理和 Cookie 状态",
         description="列出所有平台的解析代理、下载代理和 Cookie 保存状态。",
@@ -162,24 +161,24 @@ def _add_platform_commands(subparsers: argparse._SubParsersAction) -> None:
     _add_json_options(list_parser)
     list_parser.set_defaults(func=_cmd_platform_list)
 
-    show_parser = platform_subparsers.add_parser(
+    show_parser = set_subparsers.add_parser(
         "show",
         help="查看平台配置",
-        description="查看某个平台当前保存的解析代理、下载代理和 Cookie 状态。\n\n示例: parsehub plat show xhs",
+        description="查看某个平台当前保存的解析代理、下载代理和 Cookie 状态。\n\n示例: parsehub set show xhs",
     )
     _add_platform_argument(show_parser)
     _add_json_options(show_parser)
     show_parser.set_defaults(func=_cmd_platform_show)
 
-    proxy_parser = platform_subparsers.add_parser(
+    proxy_parser = set_subparsers.add_parser(
         "proxy",
         help="设置或清除平台代理",
         description=(
             "设置或清除平台代理。默认同时作用于解析代理和下载代理。\n\n"
             "示例:\n"
-            "  parsehub plat proxy xhs http://127.0.0.1:7890\n"
-            "  parsehub plat proxy xhs http://127.0.0.1:7891 --for download\n"
-            "  parsehub plat proxy xhs --clear"
+            "  parsehub set proxy xhs http://127.0.0.1:7890\n"
+            "  parsehub set proxy xhs http://127.0.0.1:7891 --for download\n"
+            "  parsehub set proxy xhs --clear"
         ),
     )
     _add_platform_argument(proxy_parser)
@@ -194,14 +193,14 @@ def _add_platform_commands(subparsers: argparse._SubParsersAction) -> None:
     proxy_parser.add_argument("--clear", action="store_true", help="清除代理")
     proxy_parser.set_defaults(func=_cmd_platform_proxy)
 
-    cookie_parser = platform_subparsers.add_parser(
+    cookie_parser = set_subparsers.add_parser(
         "cookie",
         help="设置或清除平台 Cookie",
         description=(
             "保存或清除某个平台的 Cookie。设置时会隐藏输入，避免 Cookie 留在 shell 历史里。\n\n"
             "示例:\n"
-            "  parsehub plat cookie xhs\n"
-            "  parsehub plat cookie xhs --clear"
+            "  parsehub set cookie xhs\n"
+            "  parsehub set cookie xhs --clear"
         ),
     )
     _add_platform_argument(cookie_parser)
@@ -298,7 +297,7 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
     platform = _validate_platform(args.platform)
     if args.clear:
         if args.proxy:
-            raise ValueError("清除代理时不需要填写代理地址。示例: parsehub plat proxy xhs --clear")
+            raise ValueError("清除代理时不需要填写代理地址。示例: parsehub set proxy xhs --clear")
         changed = ConfigStore().clear_proxy(platform, args.proxy_target)
         if changed:
             print(f"已清除 {platform} 的{_proxy_target_label(args.proxy_target)}。")
@@ -306,7 +305,7 @@ def _cmd_platform_proxy(args: argparse.Namespace) -> int:
             print(f"{platform} 还没有配置{_proxy_target_label(args.proxy_target)}，无需清除。")
         return 0
     if not args.proxy:
-        raise ValueError("缺少代理地址。示例: parsehub plat proxy xhs http://127.0.0.1:7890")
+        raise ValueError("缺少代理地址。示例: parsehub set proxy xhs http://127.0.0.1:7890")
     ConfigStore().set_proxy(platform, args.proxy, args.proxy_target)
     print(f"已设置 {platform} 的{_proxy_target_label(args.proxy_target)}。")
     print(f"代理地址: {args.proxy}")
@@ -559,7 +558,7 @@ def _translate_argparse_error(message: str) -> str:
         "invalid choice:": "无效选择:",
         "expected one argument": "需要一个参数",
         "argument 命令: invalid choice:": "未知命令:",
-        "argument 平台命令: invalid choice:": "未知平台命令:",
+        "argument 设置命令: invalid choice:": "未知设置命令:",
     }
     for source, target in replacements.items():
         message = message.replace(source, target)
@@ -567,12 +566,12 @@ def _translate_argparse_error(message: str) -> str:
 
 
 def _usage_hint(prog: str) -> str:
-    if prog.endswith(" platform") or prog.endswith(" plat"):
-        return "\n提示: 可用命令有 list、show、proxy、cookie。示例: parsehub plat show xhs"
+    if prog.endswith(" set"):
+        return "\n提示: 可用命令有 list、show、proxy、cookie。示例: parsehub set show xhs"
     if prog.endswith(" proxy"):
-        return "\n提示: 设置代理示例: parsehub plat proxy xhs http://127.0.0.1:7890"
+        return "\n提示: 设置代理示例: parsehub set proxy xhs http://127.0.0.1:7890"
     if prog.endswith(" cookie"):
-        return "\n提示: 保存 Cookie 示例: parsehub plat cookie xhs"
+        return "\n提示: 保存 Cookie 示例: parsehub set cookie xhs"
     return "\n提示: 查看帮助请运行 parsehub --help"
 
 
