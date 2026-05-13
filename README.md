@@ -122,8 +122,7 @@ from parsehub import ParseHub
 ph = ParseHub()
 result = ph.parse_sync("https://www.xiaoheihe.cn/app/bbs/link/174972336")
 
-print(result.title)
-print(result.raw_url)
+print(result)
 ```
 
 ### 异步解析
@@ -154,23 +153,7 @@ result = ph.download_sync(
     save_metadata=True,
 )
 
-print(result.output_dir)
-print(result.media)
-```
-
-需要 Cookie 登录或解析代理时，可以直接在下载时传入解析参数：
-
-```python
-from parsehub import ParseHub
-
-ph = ParseHub()
-downloaded = ph.download_sync(
-    "https://example.com",
-    path="./downloads",
-    parse_cookie="key1=value1; key2=value2",
-    parse_proxy="http://127.0.0.1:7890",
-    save_metadata=True,
-)
+print(result)
 ```
 
 ## 🌐 支持平台
