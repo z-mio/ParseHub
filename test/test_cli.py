@@ -160,7 +160,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
         self.assertIn("ParseHub 命令行工具", stdout)
-        self.assertIn("用法:", stdout)
+        self.assertIn("usage:", stdout)
 
     def test_parse_defaults_to_human_readable_chinese_summary(self):
         with patch.object(cli, "_new_parsehub", FakeParseHub):
@@ -447,13 +447,14 @@ class TestCli(unittest.TestCase):
         self.assertIn("错误", stderr)
         self.assertIn("提示", stderr)
 
-    def test_top_level_help_uses_chinese_labels_and_examples(self):
+    def test_top_level_help_uses_english_cli_terms_and_chinese_examples(self):
         code, stdout, stderr = self.run_cli(["--help"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
-        self.assertIn("用法:", stdout)
-        self.assertIn("位置参数", stdout)
+        self.assertIn("usage:", stdout)
+        self.assertIn("positional arguments", stdout)
+        self.assertIn("options", stdout)
         self.assertIn("常用示例", stdout)
         self.assertIn("parsehub set proxy xhs", stdout)
 
