@@ -10,7 +10,7 @@ from urllib.parse import quote, urlencode
 import httpx
 from gmssl import func, sm3
 
-from parsehub import ParseError
+from ..errors import ParseError
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -765,10 +765,11 @@ class DouyinWebCrawler:
                     response = await client.get(endpoint)
                     response.raise_for_status()
                     return response.json()
-                except Exception:
+                except Exception as e:
                     if attempt + 1 < 3:
                         await asyncio.sleep(1)
-            raise ParseError("获取抖音作品失败, 请检查 cookie")
+                    else:
+                        raise ParseError("获取抖音作品失败, 请检查 cookie") from e
 
     async def parse(self, url: str) -> dict:
         aweme_id = await self.get_aweme_id(url)
