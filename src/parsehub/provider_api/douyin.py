@@ -10,7 +10,7 @@ from urllib.parse import quote, urlencode
 import httpx
 from gmssl import func, sm3
 
-from parsehub import ParseError
+from ..errors import ParseError
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
