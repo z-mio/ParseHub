@@ -23,7 +23,7 @@ class _ChineseArgumentParser(argparse.ArgumentParser):
         add_help = kwargs.pop("add_help", True)
         super().__init__(*args, add_help=False, **kwargs)
         if add_help:
-            self.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="显示帮助信息并退出")
+            self.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="显示帮助信息")
 
     def error(self, message: str) -> None:
         self.print_usage(sys.stderr)
@@ -71,7 +71,7 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
             "  parsehub set cookie xhs"
         ),
     )
-    parser.add_argument("-v", "--version", action="version", version=f"parsehub {_package_version()}")
+    parser.add_argument("-v", "--version", action="version", version=f"parsehub {_package_version()}", help="显示当前版本")
     subparsers = parser.add_subparsers(dest="command", metavar="command", required=True)
 
     parse_parser = subparsers.add_parser(
