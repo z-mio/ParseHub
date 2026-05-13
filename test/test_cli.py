@@ -154,13 +154,45 @@ class TestCli(unittest.TestCase):
         self.assertIn('pip install "parsehub[cli]"', stderr.getvalue())
         build_parser.assert_not_called()
 
+    def test_missing_cli_extra_blocks_version_option(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            patch.object(cli, "_has_cli_extra_dependencies", return_value=False),
+            patch.object(cli, "_build_parser") as build_parser,
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            code = cli.main(["--version"])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertIn("未安装 ParseHub CLI 扩展依赖", stderr.getvalue())
+        build_parser.assert_not_called()
+
+    def test_version_option_prints_package_version(self):
+        with patch.object(cli, "_package_version", return_value="9.9.9"):
+            code, stdout, stderr = self.run_cli(["--version"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stdout, "parsehub 9.9.9\n")
+        self.assertEqual(stderr, "")
+
+    def test_short_version_option_prints_package_version(self):
+        with patch.object(cli, "_package_version", return_value="9.9.9"):
+            code, stdout, stderr = self.run_cli(["-v"])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(stdout, "parsehub 9.9.9\n")
+        self.assertEqual(stderr, "")
+
     def test_empty_args_print_help(self):
         code, stdout, stderr = self.run_cli([])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
         self.assertIn("ParseHub 命令行工具", stdout)
-        self.assertIn("用法:", stdout)
+        self.assertIn("usage:", stdout)
 
     def test_parse_defaults_to_human_readable_chinese_summary(self):
         with patch.object(cli, "_new_parsehub", FakeParseHub):
@@ -447,13 +479,14 @@ class TestCli(unittest.TestCase):
         self.assertIn("错误", stderr)
         self.assertIn("提示", stderr)
 
-    def test_top_level_help_uses_chinese_labels_and_examples(self):
+    def test_top_level_help_uses_english_cli_terms_and_chinese_examples(self):
         code, stdout, stderr = self.run_cli(["--help"])
 
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
-        self.assertIn("用法:", stdout)
-        self.assertIn("位置参数", stdout)
+        self.assertIn("usage:", stdout)
+        self.assertIn("positional arguments", stdout)
+        self.assertIn("options", stdout)
         self.assertIn("常用示例", stdout)
         self.assertIn("parsehub set proxy xhs", stdout)
 

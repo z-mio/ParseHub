@@ -6,6 +6,7 @@ import json
 import sys
 import unicodedata
 from dataclasses import asdict, is_dataclass
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -16,29 +17,13 @@ _COMMANDS = {"parse", "p", "download", "d", "dl", "platforms", "ls", "set"}
 _CLI_EXTRA_MODULES = ("argcomplete", "platformdirs")
 
 
-class _ChineseHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def start_section(self, heading: str | None) -> None:
-        headings = {
-            "positional arguments": "位置参数",
-            "options": "选项",
-            "optional arguments": "选项",
-        }
-        super().start_section(headings.get(heading, heading))
-
-
 class _ChineseArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any):
-        kwargs.setdefault("formatter_class", _ChineseHelpFormatter)
+        kwargs.setdefault("formatter_class", argparse.RawDescriptionHelpFormatter)
         add_help = kwargs.pop("add_help", True)
         super().__init__(*args, add_help=False, **kwargs)
         if add_help:
-            self.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="显示帮助信息并退出")
-
-    def format_usage(self) -> str:
-        return super().format_usage().replace("usage:", "用法:", 1)
-
-    def format_help(self) -> str:
-        return super().format_help().replace("usage:", "用法:", 1)
+            self.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="显示帮助信息")
 
     def error(self, message: str) -> None:
         self.print_usage(sys.stderr)
@@ -86,7 +71,10 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
             "  parsehub set cookie xhs"
         ),
     )
-    subparsers = parser.add_subparsers(dest="command", metavar="命令", required=True)
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"parsehub {_package_version()}", help="显示当前版本"
+    )
+    subparsers = parser.add_subparsers(dest="command", metavar="command", required=True)
 
     parse_parser = subparsers.add_parser(
         "parse",
@@ -144,6 +132,13 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
     return parser
 
 
+def _package_version() -> str:
+    try:
+        return version("parsehub")
+    except PackageNotFoundError:
+        return "unknown"
+
+
 def _add_set_commands(subparsers: argparse._SubParsersAction) -> None:
     set_parser = subparsers.add_parser(
         "set",
@@ -158,7 +153,7 @@ def _add_set_commands(subparsers: argparse._SubParsersAction) -> None:
             "  parsehub set cookie xhs"
         ),
     )
-    set_subparsers = set_parser.add_subparsers(dest="set_command", metavar="设置命令", required=True)
+    set_subparsers = set_parser.add_subparsers(dest="set_command", metavar="command", required=True)
 
     list_parser = set_subparsers.add_parser(
         "list",
@@ -599,8 +594,6 @@ def _translate_argparse_error(message: str) -> str:
         "unrecognized arguments:": "无法识别的参数:",
         "invalid choice:": "无效选择:",
         "expected one argument": "需要一个参数",
-        "argument 命令: invalid choice:": "未知命令:",
-        "argument 设置命令: invalid choice:": "未知设置命令:",
     }
     for source, target in replacements.items():
         message = message.replace(source, target)
