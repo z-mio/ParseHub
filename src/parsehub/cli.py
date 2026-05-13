@@ -6,6 +6,7 @@ import json
 import sys
 import unicodedata
 from dataclasses import asdict, is_dataclass
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -86,6 +87,7 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
             "  parsehub set cookie xhs"
         ),
     )
+    parser.add_argument("-v", "--version", action="version", version=f"parsehub {_package_version()}")
     subparsers = parser.add_subparsers(dest="command", metavar="命令", required=True)
 
     parse_parser = subparsers.add_parser(
@@ -142,6 +144,13 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
     _add_set_commands(subparsers)
 
     return parser
+
+
+def _package_version() -> str:
+    try:
+        return version("parsehub")
+    except PackageNotFoundError:
+        return "unknown"
 
 
 def _add_set_commands(subparsers: argparse._SubParsersAction) -> None:
