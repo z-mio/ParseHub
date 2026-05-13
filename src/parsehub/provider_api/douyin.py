@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import random
@@ -8,6 +9,8 @@ from urllib.parse import quote, urlencode
 
 import httpx
 from gmssl import func, sm3
+
+from parsehub import ParseError
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -755,11 +758,17 @@ class DouyinWebCrawler:
                 "effective_type": "4g",
                 "aweme_id": aweme_id,
             }
-            a_bogus = ABogus().get_value(params)
-            endpoint = f"{POST_DETAIL}?{urlencode(params)}&a_bogus={quote(a_bogus, safe='')}"
-            response = await client.get(endpoint)
-            response.raise_for_status()
-            return response.json()
+            for attempt in range(3):
+                try:
+                    a_bogus = ABogus().get_value(params)
+                    endpoint = f"{POST_DETAIL}?{urlencode(params)}&a_bogus={quote(a_bogus, safe='')}"
+                    response = await client.get(endpoint)
+                    response.raise_for_status()
+                    return response.json()
+                except Exception:
+                    if attempt + 1 < 3:
+                        await asyncio.sleep(1)
+            raise ParseError("获取抖音作品失败, 请检查 cookie")
 
     async def parse(self, url: str) -> dict:
         aweme_id = await self.get_aweme_id(url)
