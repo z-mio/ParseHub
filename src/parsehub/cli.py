@@ -71,7 +71,9 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
             "  parsehub set cookie xhs"
         ),
     )
-    parser.add_argument("-v", "--version", action="version", version=f"parsehub {_package_version()}", help="显示当前版本")
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"parsehub {_package_version()}", help="显示当前版本"
+    )
     subparsers = parser.add_subparsers(dest="command", metavar="command", required=True)
 
     parse_parser = subparsers.add_parser(

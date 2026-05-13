@@ -3,3 +3,6 @@
 .env
 __pycache__/
 *.egg-info/
+.claude
+.claude-flow
+.swarm
