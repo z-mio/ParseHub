@@ -17,11 +17,26 @@ from ...types import (
 from .base import BaseParser
 
 
-def download_video(yto_params: dict, urls: list[str]) -> None:
-    """在独立进程中下载视频"""
+def switch_ytdlp_proxy(ydl: YoutubeDL, proxy: str | None) -> None:
+    """切换同一个 YoutubeDL 实例后续请求使用的代理。"""
+    ydl.params["proxy"] = proxy or ""
+
+    # proxies 是 cached_property，必须清掉，否则仍会使用解析阶段的 proxy map
+    ydl.__dict__.pop("proxies", None)
+
+    # _request_director 也是 cached_property，内部 handler 初始化时已经绑定旧 proxies
+    director = ydl.__dict__.pop("_request_director", None)
+    if director is not None:
+        director.close()
+
+
+def download_video(yto_params: dict, url: str, proxy: str | None = None) -> None:
+    """在独立线程中下载视频"""
     try:
         with YoutubeDL(yto_params) as ydl:
-            return ydl.download(urls)
+            info = ydl.extract_info(url, download=False, process=True)
+            switch_ytdlp_proxy(ydl, proxy)
+            ydl.process_ie_result(info, download=True)
     except Exception as e:
         error_msg = f"{type(e).__name__}: {str(e)}"
         raise RuntimeError(error_msg) from None
@@ -81,6 +96,7 @@ class YtParser(BaseParser, register=False):
             width=width,
             height=height,
             paramss=self.params,
+            proxy=self.proxy,
         )
 
     def _extract_info(self, url):
@@ -140,8 +156,8 @@ class YtVideoParseResult(VideoParseResult):
             callback_kwargs = {}
 
         paramss = self.dl.paramss.copy()
-        if proxy:
-            paramss["proxy"] = proxy
+        if self.dl.proxy:
+            paramss["proxy"] = self.dl.proxy
 
         paramss["outtmpl"] = f"{output_dir.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
@@ -178,7 +194,7 @@ class YtVideoParseResult(VideoParseResult):
             #
             # paramss["progress_hooks"] = [_progress_hook]
 
-        await self._run_download(paramss)
+        await self._run_download(paramss, proxy=proxy)
 
         v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
         if not v:
@@ -198,12 +214,12 @@ class YtVideoParseResult(VideoParseResult):
             output_dir,
         )
 
-    async def _run_download(self, paramss: dict, count: int = 0) -> None:
+    async def _run_download(self, paramss: dict, count: int = 0, *, proxy: str | None = None) -> None:
         if count > 2:
             raise DownloadError("下载失败 -2")
 
         try:
-            await asyncio.to_thread(download_video, paramss, [self.dl.url])
+            await asyncio.to_thread(download_video, paramss, self.dl.url, proxy=proxy)
         except RuntimeError as e:
             error = str(e)
             if any(
@@ -214,7 +230,7 @@ class YtVideoParseResult(VideoParseResult):
                 )
             ):
                 paramss.pop("writeautomaticsub", None)
-                await self._run_download(paramss, count + 1)
+                await self._run_download(paramss, count + 1, proxy=proxy)
 
         except Exception as e:
             raise DownloadError(f"下载失败: {str(e)}") from e
@@ -234,3 +250,5 @@ class YtVideoInfo:
     duration: int = 0
     width: int = 0
     height: int = 0
+    proxy: str | None = None
+    """解析时用的代理"""
