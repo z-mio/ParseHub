@@ -25,7 +25,7 @@ class XHSParser(BaseParser):
     __after_clean_parameters__ = ["xsec_token"]
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        xhs = XHSAPI(proxy=self.proxy)
+        xhs = XHSAPI(proxy=self.proxy, cookie=self.cookie)
         result = await xhs.extract(raw_url)
 
         desc = self.hashtag_handler(result.desc)
@@ -79,7 +79,7 @@ class XHSParser(BaseParser):
     @staticmethod
     def hashtag_handler(desc: str | None):
         if not desc:
-            return None
+            return ""
         hashtags = re.findall(r" ?#[^#\[\]]+\[话题]# ?", desc)
         for hashtag in hashtags:
             desc = desc.replace(hashtag, f"{hashtag.strip().replace('[话题]#', '')} ")
