@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import httpx
 
+from .. import ParseError
 from ..config.config import GlobalConfig
 
 
@@ -20,7 +21,7 @@ class KuaiShouAPI:
         }
 
     async def get_video_info(self, url: str) -> "KuaiShouVideo":
-        data = {
+        body = {
             "operationName": "visionVideoDetail",
             "variables": {"photoId": self.get_video_id(url), "page": "search"},
             "query": """query visionVideoDetail($photoId: String, $type: String, $page: String, $webPageArea: String) {
@@ -106,22 +107,26 @@ class KuaiShouAPI:
         """,
         }
         async with httpx.AsyncClient(proxy=self.proxy, headers=self.headers, cookies=self.cookie) as client:
-            response = await client.post(self.api_url, json=data)
+            response = await client.post(self.api_url, json=body)
             response.raise_for_status()
-            data = response.json()
-
-            if not data.get("data"):
+            raw_data = response.json()
+            if not (data := raw_data.get("data")):
                 raise Exception("did 未填")
-
-            if err := data.get("errors"):
+            if err := raw_data.get("errors"):
                 match err[0]["message"]:
                     case "Need captcha":
-                        raise Exception("-1 账号风控")
+                        raise Exception("-1 账号风控, 需要验证")
+            elif err_code := data.get("result"):
+                match err_code:
+                    case 400002:
+                        raise Exception("400002 账号风控, 需要验证")
 
-            return KuaiShouVideo.parse(data["data"])
+            return KuaiShouVideo.parse(data)
 
     @staticmethod
     def get_video_id(url: str):
+        if "/photo/" in url:
+            raise ValueError("暂不支持图文解析")
         return url.split("/")[-1]
 
 
@@ -136,18 +141,33 @@ class KuaiShouVideo:
 
     @classmethod
     def parse(cls, data: dict):
-        vision_video_detail = data.get("visionVideoDetail")
+        vision_video_detail = data.get("visionVideoDetail", {})
         photo = vision_video_detail.get("photo")
         if not photo:
             raise Exception("-2 账号风控")
-        manifest_h265 = photo.get("manifestH265")
-        adaptation_set = manifest_h265["adaptationSet"][0]
-        representation = adaptation_set.get("representation")[0]
+        vi = cls._get_video(photo)
         return cls(
             title=photo.get("caption"),
-            video_url=representation.get("url"),
+            video_url=vi["url"],
             thumb_url=photo.get("coverUrl"),
-            duration=adaptation_set.get("duration"),
-            height=representation.get("height"),
-            width=representation.get("width"),
+            duration=vi["duration"],
+            height=vi["height"],
+            width=vi["width"],
         )
+
+    @staticmethod
+    def _get_video(photo: dict) -> dict:
+        if not (vr := photo.get("manifestH265")):
+            vr = photo.get("videoResource", {}).get("h264")
+        if not vr:
+            raise ParseError("未提取到视频信息")
+
+        adaptation_set = (vr.get("adaptationSet") or [{}])[0]
+        representation = (adaptation_set.get("representation") or [{}])[0]
+
+        return {
+            "url": representation.get("url"),
+            "width": representation.get("width"),
+            "height": representation.get("height"),
+            "duration": adaptation_set.get("duration"),
+        }
