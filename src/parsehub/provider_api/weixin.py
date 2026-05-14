@@ -29,7 +29,7 @@ class WX:
     text_content: str
 
     @staticmethod
-    async def parse(url: str, proxy: str):
+    async def parse(url: str, proxy: str | None = None):
         async with httpx.AsyncClient(proxy=proxy) as client:
             response = await client.get(url, headers={"User-Agent": GlobalConfig.ua})
             html = response.text
