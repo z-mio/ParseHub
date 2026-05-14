@@ -9,11 +9,12 @@ from bs4 import BeautifulSoup
 
 
 class XHSAPI:
-    def __init__(self, proxy: str | None = None):
+    def __init__(self, proxy: str | None = None, cookie: dict | None = None):
         self.proxy = proxy
+        self.cookie = cookie
 
     async def __fetch_html(self, url: str):
-        async with httpx.AsyncClient(proxy=self.proxy) as client:
+        async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie) as client:
             return (await client.get(url, timeout=30)).text
 
     @staticmethod
@@ -130,7 +131,7 @@ class XHSMedia:
     thumb_url: str | None = None
     width: int = 0
     height: int = 0
-    duration: int | None = None
+    duration: int = 0
 
 
 @dataclass
