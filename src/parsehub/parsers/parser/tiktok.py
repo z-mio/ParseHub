@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Self, Union
@@ -44,6 +44,8 @@ class TikTokParser(BaseParser):
 
     @staticmethod
     def _build_video_result(result: "TikTokApiResult") -> VideoParseResult:
+        if result.video is None:
+            raise ParseError("TikTok 解析失败: 未获取到视频")
         return TikTokVideoParseResult(
             title=result.desc,
             video=result.video,
@@ -199,9 +201,9 @@ class TikTokMediaType(Enum):
 @dataclass
 class TikTokApiResult:
     type: TikTokMediaType
-    video: VideoRef = None
+    video: VideoRef | None = None
     desc: str = ""
-    image_list: list[ImageRef] = None
+    image_list: list[ImageRef] = field(default_factory=list)
 
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
@@ -216,7 +218,7 @@ class TikTokApiResult:
 
     @classmethod
     def _parse_image_post(cls, image_post_info: dict, desc: str) -> Self:
-        image_list = []
+        image_list: list[ImageRef] = []
 
         for image in image_post_info.get("images", []):
             display_image = (

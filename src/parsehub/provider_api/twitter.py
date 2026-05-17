@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal, NamedTuple, Union
 
@@ -80,7 +81,7 @@ class Twitter:
 
         if tweet := result.get("tweet"):
             tweet_id = tweet.get("rest_id", {})
-            legacy: dict = tweet.get("legacy")
+            legacy: dict | None = tweet.get("legacy")
         else:
             tweet_id = result.get("rest_id", {})
             legacy = result.get("legacy")
@@ -102,7 +103,7 @@ class Twitter:
             full_text = legacy.get("full_text", "")
 
         media = legacy["entities"].get("media", [])
-        media_list = []
+        media_list: list[TwitterVideo | TwitterPhoto | TwitterAni] = []
         for i in media:
             original_info = i.get("original_info", {})
             height = original_info.get("height", 0)
@@ -148,8 +149,11 @@ class Twitter:
         return f"{url}{p}name={size}"
 
     @staticmethod
-    def get_id_by_url(url: str):
-        return re.search(r"status/(\d+)", url)[1]
+    def get_id_by_url(url: str) -> str:
+        match = re.search(r"status/(\d+)", url)
+        if not match:
+            raise ValueError(f"Invalid tweet url: {url}")
+        return match[1]
 
     async def get_guest_token(self, url: str):
         async with httpx.AsyncClient(proxy=self.proxy) as client:
@@ -179,7 +183,7 @@ class TwitterTweet:
         article: Union["TwitterArticle"] = None,
     ):
         self.tweet_id = tweet_id
-        self.full_text = re.sub(r"https://t\.co/[^\s,]+$", "", full_text) if media else full_text
+        self.full_text = re.sub(r"https://t\.co/[^\s,]+$", "", full_text or "") if media else full_text
         self.media = media
         self.article = article
 
@@ -236,7 +240,7 @@ class ArticleRenderer:
     }
 
     # 块级类型 → 格式化函数
-    _BLOCK_FORMATTERS: dict[str, callable] = {
+    _BLOCK_FORMATTERS: dict[str, Callable[[str], str]] = {
         "header-one": lambda t: f"# {t}",
         "header-two": lambda t: f"## {t}",
         "header-three": lambda t: f"### {t}",

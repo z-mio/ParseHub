@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Self, Union
@@ -47,6 +47,8 @@ class DouyinParser(BaseParser):
     @staticmethod
     def _build_video_result(result: "DouyinApiResult") -> VideoParseResult:
         """构建视频解析结果"""
+        if result.video is None:
+            raise ParseError("抖音解析失败: 未获取到视频")
         return DouyinVideoParseResult(
             title=result.desc,
             video=result.video,
@@ -134,9 +136,9 @@ class DouyinApiResult:
     """抖音 API 解析结果"""
 
     type: DouyinMediaType
-    video: VideoRef = None
+    video: VideoRef | None = None
     desc: str = ""
-    image_list: list[ImageRef | LivePhotoRef] = None
+    image_list: list[ImageRef | LivePhotoRef] = field(default_factory=list)
 
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
@@ -162,7 +164,7 @@ class DouyinApiResult:
         has_live_photos = any(img.get("video") for img in images)
 
         if has_live_photos:
-            image_list = []
+            image_list: list[ImageRef | LivePhotoRef] = []
             for image in images:
                 if video := image.get("video"):
                     video_info = parse_video_info(video)
@@ -206,7 +208,7 @@ class DouyinApiResult:
     def _parse_image_post_info(cls, image_post_info: dict, desc: str) -> Self:
         """解析新版图片格式 (image_post_info 字段)"""
         images = image_post_info.get("images", [])
-        image_list = []
+        image_list: list[ImageRef | LivePhotoRef] = []
 
         for image in images:
             display_image = image.get("display_image", {})

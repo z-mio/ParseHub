@@ -34,7 +34,7 @@ class BaseParser(ABC):
         self.proxy = proxy
         self.cookie = normalize_cookie(cookie)
 
-    def __init_subclass__(cls, /, register=True, **kwargs):
+    def __init_subclass__(cls, /, register: bool = True, **kwargs):
         super().__init_subclass__(**kwargs)
         if register:
             if not cls.__platform__:
@@ -56,7 +56,7 @@ class BaseParser(ABC):
     def match(cls, text: str) -> bool:
         """判断是否匹配该解析器"""
         url = match_url(text)
-        return bool(re.match(cls.__match__, url))
+        return bool(cls.__match__ and re.match(cls.__match__, url))
 
     async def parse(self, url: str) -> AnyParseResult:
         """解析
@@ -66,7 +66,8 @@ class BaseParser(ABC):
         raw_url = await self.get_raw_url(url, clean_all=False)
         result = await self._do_parse(raw_url)
         result.platform = self.__platform__
-        result.raw_url = self._clean_params(raw_url, self.__after_clean_parameters__)
+        raw_url_clean = self._clean_params(raw_url, self.__after_clean_parameters__)
+        result.raw_url = raw_url_clean
         return result
 
     @abstractmethod
@@ -104,7 +105,8 @@ class BaseParser(ABC):
 
         :return:
         """
-        url = match_url(url)
+        matched_url = match_url(url)
+        url = matched_url or url
         if not url.startswith("http"):
             url = f"https://{url}"
         if any(x in url for x in self.__redirect_keywords__):

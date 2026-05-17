@@ -52,6 +52,8 @@ cli = [
 
 [dependency-groups]
 dev = [
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
     "ruff>=0.14.14",
 ]
 
@@ -79,3 +81,18 @@ ignore = [
     "B008", # 不在参数默认值中执行函数调用
     "C901", # 函数复杂度过高
 ]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["./"]
+ignore_missing_imports = true
+warn_return_any = false
+warn_unused_ignores = true
+check_untyped_defs = false
+disallow_untyped_defs = false
+no_implicit_optional = false
+
+[tool.pytest.ini_options]
+testpaths =  ["test"]
+pythonpath = ["src"]
+python_files = ["test_*.py"]

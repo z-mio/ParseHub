@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import re
 from pathlib import Path
-from typing import Union
+from typing import cast
 from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
@@ -29,11 +31,11 @@ class BiliParse(YtParser):
     __reserved_parameters__ = ["p"]
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
-    async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult", "BiliVideoParseResult", ImageParseResult]:
+    async def _do_parse(self, raw_url: str) -> YtVideoParseResult | BiliVideoParseResult | ImageParseResult:
         if await self.is_dynamic(raw_url):
             dynamic = await self.get_dynamic_info(raw_url)
             content = self.hashtag_handler(dynamic.content)
-            photos = []
+            photos: list[LivePhotoRef | ImageRef] = []
             if dynamic.images:
                 for i in dynamic.images:
                     if i.live_url:
@@ -93,7 +95,7 @@ class BiliParse(YtParser):
                 raise ParseError(str(e)) from e
         return dynamic_info
 
-    async def bili_api_parse(self, url) -> Union["BiliVideoParseResult", "ImageParseResult"]:
+    async def bili_api_parse(self, url) -> BiliVideoParseResult | ImageParseResult:
         async with BiliAPI(proxy=self.proxy) as bili:
             video_info = await bili.get_video_info(url)
 
@@ -136,8 +138,8 @@ class BiliParse(YtParser):
             ),
         )
 
-    async def ytp_parse(self, url) -> Union["YtVideoParseResult"]:
-        result = await super()._do_parse(url)
+    async def ytp_parse(self, url) -> YtVideoParseResult:
+        result = cast(YtVideoParseResult, await super()._do_parse(url))
         return YtVideoParseResult(
             title=result.title,
             dl=result.dl,
@@ -172,7 +174,7 @@ class BiliVideoParseResult(VideoParseResult):
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
-    ) -> "DownloadResult":
+    ) -> DownloadResult:
         headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
         return await super()._do_download(
             output_dir=output_dir,

@@ -15,7 +15,7 @@ class MyPostSidecarNode(NamedTuple):
 
 
 class MyPost(Post):
-    def get_sidecar_nodes(self, start=0, end=-1) -> Iterator[MyPostSidecarNode]:
+    def get_sidecar_nodes(self, start=0, end=-1) -> Iterator[MyPostSidecarNode]:  # type: ignore[override]
         if self.typename == "GraphSidecar":
             edges = self._field("edge_sidecar_to_children", "edges")
             if end < 0:
@@ -56,21 +56,21 @@ class MyInstaloaderContext(InstaloaderContext):
     """
 
     def __init__(self, proxy: str | None = None, cookie: dict = None):
-        self.proxy = {"http": proxy, "https": proxy}
+        self.proxy: dict[str, str | None] = {"http": proxy, "https": proxy}
         self.cookie = cookie
         super().__init__()
 
     def get_anonymous_session(self) -> requests.Session:
         session = super().get_anonymous_session()
         if self.proxy:
-            session.proxies = self.proxy
+            session.proxies = {k: v for k, v in self.proxy.items() if v is not None}
             session.trust_env = False
         return session
 
     def get_json(self, *args, **kwargs):
         session: requests.Session = kwargs.get("session")
         if self.proxy:
-            session.proxies = self.proxy
+            session.proxies = {k: v for k, v in self.proxy.items() if v is not None}
             session.trust_env = False
         if self.cookie:
             session.cookies.update(self.cookie)

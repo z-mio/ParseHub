@@ -2,6 +2,7 @@ import json
 import shutil
 import time
 from abc import ABC
+from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import ClassVar
@@ -29,9 +30,9 @@ class ParseResult(ABC):  # noqa: B024
 
     def __init__(
         self,
-        title: str = "",
-        content: str = "",
-        media: list[AnyMediaRef] | AnyMediaRef | None = None,
+        title: str | None = "",
+        content: str | None = "",
+        media: Sequence[AnyMediaRef] | AnyMediaRef | None = None,
         platform: Platform | None = None,
     ):
         """
@@ -40,14 +41,15 @@ class ParseResult(ABC):  # noqa: B024
         :param content: 正文 (纯文本)
         :param platform: 平台
         """
-        self.raw_url = None
+        self.raw_url: str | None = None
         self.title = (title or "").strip()
         self.content = (content or "").strip()
         self.media = media
         self.platform = platform
 
     def __repr__(self):
-        media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None
+        media_items = self.media if isinstance(self.media, Sequence) else [self.media]
+        media_count = f"[{len(media_items)}]" if self.media else None
         return (
             f"{self.__class__.__name__}(platform={self.platform}, title={self.title or ''},"
             f" content={self.content or ''}, media={media_count}, "
@@ -56,8 +58,8 @@ class ParseResult(ABC):  # noqa: B024
 
     def to_dict(self) -> dict:
         """转换为字典"""
-        media = None
-        if isinstance(self.media, list):
+        media: list[dict] | dict | None = None
+        if isinstance(self.media, Sequence):
             media = [asdict(m) for m in self.media]
         elif self.media:
             media = asdict(self.media)
@@ -91,15 +93,17 @@ class ParseResult(ABC):  # noqa: B024
         :param headers: 请求头
         :return: DownloadResult
         """
-        media_list = self.media if isinstance(self.media, list) else [self.media]
-        is_single = not isinstance(self.media, list)
+        if self.media is None:
+            raise DownloadError("没有可下载的媒体")
+        media_list = list(self.media) if isinstance(self.media, Sequence) else [self.media]
+        is_single = not isinstance(self.media, Sequence)
 
         result_list: list[AnyMediaFile] = []
 
         for i, media in enumerate(media_list):
             dl_progress = None
             dl_progress_args = ()
-            dl_progress_kwargs = {}
+            dl_progress_kwargs: dict = {}
             if callback and is_single:
 
                 async def _byte_callback(current, total, *args, **kwargs):
@@ -107,14 +111,14 @@ class ParseResult(ABC):  # noqa: B024
 
                 dl_progress = _byte_callback
                 dl_progress_args = callback_args
-                dl_progress_kwargs = callback_kwargs
+                dl_progress_kwargs = callback_kwargs or {}
 
             try:
                 f = await download(
                     media.url,
                     f"{output_dir}/{i}.{media.ext}",
                     headers=headers,
-                    proxies=proxy,
+                    proxy=proxy,
                     progress=dl_progress,
                     progress_args=dl_progress_args,
                     progress_kwargs=dl_progress_kwargs,
@@ -123,6 +127,7 @@ class ParseResult(ABC):  # noqa: B024
                 shutil.rmtree(output_dir, ignore_errors=True)
                 raise DownloadError(f"下载失败: {e}") from e
 
+            mf: AnyMediaFile
             match media:
                 case ImageRef():
                     mf = ImageFile(path=f, width=media.width, height=media.height)
@@ -138,7 +143,7 @@ class ParseResult(ABC):  # noqa: B024
                                 media.video_url,
                                 f"{output_dir}/{i}_video.{media.video_ext}",
                                 headers=headers,
-                                proxies=proxy,
+                                proxy=proxy,
                             )
                         except Exception as e:
                             shutil.rmtree(output_dir, ignore_errors=True)
@@ -265,9 +270,9 @@ class VideoParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str = "",
+        title: str | None = "",
         video: str | VideoRef | None = None,
-        content: str = "",
+        content: str | None = "",
     ):
         video = VideoRef(url=video) if isinstance(video, str) else video
         super().__init__(
@@ -284,13 +289,12 @@ class ImageParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str = "",
-        photo: list[str | ImageRef | LivePhotoRef] | None = None,
-        content: str = "",
+        title: str | None = "",
+        photo: Sequence[str | ImageRef | AniRef | LivePhotoRef] | None = None,
+        content: str | None = "",
     ):
-        if photo:
-            photo = [ImageRef(url=p) if isinstance(p, str) else p for p in photo]
-        super().__init__(title=title, media=photo, content=content)
+        media = [ImageRef(url=p) if isinstance(p, str) else p for p in photo] if photo else None
+        super().__init__(title=title, media=media, content=content)
 
 
 class MultimediaParseResult(ParseResult):
@@ -300,9 +304,9 @@ class MultimediaParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str = "",
-        media: list[AnyMediaRef] | None = None,
-        content: str = "",
+        title: str | None = "",
+        media: Sequence[AnyMediaRef] | None = None,
+        content: str | None = "",
     ):
         super().__init__(title=title, media=media, content=content)
 
@@ -314,20 +318,21 @@ class RichTextParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str = "",
-        media: list[AnyMediaRef] | None = None,
-        markdown_content: str = "",
+        title: str | None = "",
+        media: Sequence[AnyMediaRef] | None = None,
+        markdown_content: str | None = "",
     ):
         """
         :param title: 标题
         :param media: 文章中的媒体
         :param markdown_content: markdown 格式正文
         """
-        self.markdown_content = markdown_content
+        self.markdown_content = markdown_content or ""
         super().__init__(title=title, media=media, content=self.plaintext_content)
 
     def __repr__(self):
-        media_count = f"[{len(self.media if isinstance(self.media, list) else [self.media])}]" if self.media else None
+        media_items = self.media if isinstance(self.media, Sequence) else [self.media]
+        media_count = f"[{len(media_items)}]" if self.media else None
         return (
             f"{self.__class__.__name__}(title={self.title or ''},"
             f" markdown_content={self.markdown_content or ''}, media={media_count} raw_url={self.raw_url})"

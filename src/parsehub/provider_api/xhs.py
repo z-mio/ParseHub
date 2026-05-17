@@ -69,12 +69,15 @@ class XHSAPI:
 
     def __parse_media(self, note: dict):
         media_list = []
-        il = note.get("imageList")
+        il = note.get("imageList") or []
         video = note.get("video")
         if video:
             media = video["media"]
             stream = media["stream"]
-            stream = self.__select_stream(stream)[0]
+            selected_stream = self.__select_stream(stream)
+            if not selected_stream:
+                raise ValueError("未获取到视频流")
+            stream = selected_stream[0]
             media_list.append(
                 XHSMedia(
                     XHSMediaType.VIDEO,
@@ -88,7 +91,10 @@ class XHSAPI:
         else:
             for i in il:
                 if i["livePhoto"]:
-                    stream = self.__select_stream(i["stream"])[0]
+                    selected_stream = self.__select_stream(i["stream"])
+                    if not selected_stream:
+                        continue
+                    stream = selected_stream[0]
                     image = XHSMedia(
                         XHSMediaType.LIVE_PHOTO,
                         thumb_url=i["urlDefault"],
@@ -139,7 +145,7 @@ class XHSPost:
     type: XHSPostType
     title: str
     desc: str
-    media: list[XHSMedia] = None
+    media: list[XHSMedia] | None = None
 
 
 if __name__ == "__main__":

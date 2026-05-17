@@ -23,11 +23,14 @@ class Pipix:
     @staticmethod
     def _parse_data(data: str) -> "PipixPost":
         soup = BeautifulSoup(data, "lxml")
-        raw_data = soup.find("script", {"id": "RENDER_DATA"}).text
+        script = soup.find("script", {"id": "RENDER_DATA"})
+        if script is None:
+            raise Exception("皮皮虾数据解析失败")
+        raw_data = script.text
         json_data = unquote(raw_data)
-        data = json.loads(json_data)
+        json_dict = json.loads(json_data)
 
-        item = data.get("ppxItemDetail", {}).get("item")
+        item = json_dict.get("ppxItemDetail", {}).get("item")
         if not item:
             raise Exception("皮皮虾数据解析失败")
         ppt = PipixPostType(item["item_type"])

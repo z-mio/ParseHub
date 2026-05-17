@@ -41,7 +41,10 @@ class BiliAPI:
 
     async def get_dynamic_info(self, url: str, cookie: dict | None = None) -> "BiliDynamic":
         """获取动态信息"""
-        dyn_id = re.search(r"\b\d{18,19}\b", url).group(0)
+        match = re.search(r"\b\d{18,19}\b", url)
+        if not match:
+            raise ValueError(f"Invalid dynamic url: {url}")
+        dyn_id = match.group(0)
         params = {
             "timezone_offset": "-480",
             "id": dyn_id,
@@ -160,9 +163,9 @@ class BiliAPI:
     def av2bv(aid: str) -> str:
         if aid.upper().startswith("BV"):
             return aid
-        aid = int(aid.removeprefix("av"))
+        aid_num = int(aid.removeprefix("av"))
         bvid = [""] * 9
-        tmp = (MAX_AID | aid) ^ XOR_CODE
+        tmp = (MAX_AID | aid_num) ^ XOR_CODE
         for i in range(CODE_LEN):
             bvid[ENCODE_MAP[i]] = ALPHABET[tmp % BASE]
             tmp //= BASE
@@ -363,9 +366,9 @@ class BiliDynamic:
         return None
 
     @staticmethod
-    def _get_major_cover(major_content: dict) -> BiliImage | None:
+    def _get_major_cover(major_content: dict) -> list[BiliImage] | None:
         if major_content["cover"]:
-            return BiliImage(url=major_content["cover"])
+            return [BiliImage(url=major_content["cover"])]
         return None
 
 
@@ -399,8 +402,7 @@ class ModelResult:
 
     @staticmethod
     def parse(data: dict[str, Any]) -> "ModelResult":
-        if outline := data.get("outline"):
-            outline = [Outline.parse(item) for item in outline]
+        outline = [Outline.parse(item) for item in data.get("outline") or []]
         return ModelResult(result_type=data["result_type"], summary=data["summary"], outline=outline)
 
 

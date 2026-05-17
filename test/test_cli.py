@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.parsehub import cli
-from src.parsehub.cli_config import ConfigStore, FileCookieStore
-from src.parsehub.errors import ParseError
+from parsehub import cli
+from parsehub.cli_config import ConfigStore, FileCookieStore
+from parsehub.errors import ParseError
 
 
 class FakeParseResult:
@@ -39,7 +39,7 @@ class FakeDownloadResult:
 
 
 class FakeParseHub:
-    instances = []
+    instances: list["FakeParseHub"] = []
 
     def __init__(self):
         self.parse_calls = []

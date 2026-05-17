@@ -45,8 +45,8 @@ class XiaoHeiHeMedia:
 class XiaoHeiHePost:
     type: XiaoHeiHePostType
     title: str
-    content: str = None
-    media: list[XiaoHeiHeMedia] = None
+    content: str | None = None
+    media: list[XiaoHeiHeMedia] | None = None
 
 
 class XiaoHeiHeAPI:
@@ -444,7 +444,8 @@ class SecuritySm:
                 rule = cls.DES_RULE[i]
                 res = o[i]
                 if rule["is_encrypt"] == 1:
-                    c = Cipher(TripleDES(rule["key"].encode("utf-8")), ECB())
+                    key = str(rule["key"])
+                    c = Cipher(TripleDES(key.encode("utf-8")), ECB())
                     data = str(res).encode("utf-8")
                     # 补足字节
                     data += b"\x00" * 8

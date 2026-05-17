@@ -31,14 +31,14 @@ class CoolapkParser(BaseParser):
             coolapk = await Coolapk.parse(raw_url, proxy=self.proxy)
         except Exception as e:
             raise ParseError(str(e)) from e
-        media = [AniRef(url=i) if ".gif" in i else ImageRef(url=i) for i in coolapk.imgs]
+        media = [AniRef(url=i) if ".gif" in i else ImageRef(url=i) for i in coolapk.imgs or []]
         if coolapk.markdown_content:
             return CoolapkRichTextParseResult(
                 title=coolapk.title,
                 media=media,
                 markdown_content=coolapk.markdown_content,
             )
-        content = self.hashtag_handler(coolapk.text_content)
+        content = self.hashtag_handler(coolapk.text_content or "")
         if any(isinstance(m, AniRef) for m in media):
             return CoolapkMultimediaParseResult(
                 title=coolapk.title,

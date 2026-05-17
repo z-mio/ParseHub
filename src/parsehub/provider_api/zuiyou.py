@@ -56,4 +56,7 @@ class ZuiYou:
 
     @staticmethod
     def get_id_by_url(url: str) -> int:
-        return (pid := dict(qc.split("=") for qc in urlparse(url).query.split("&")).get("pid")) and int(pid)
+        pid = dict(qc.split("=") for qc in urlparse(url).query.split("&") if "=" in qc).get("pid")
+        if not pid:
+            raise ValueError(f"无法从 URL 中提取 pid: {url}")
+        return int(pid)

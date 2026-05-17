@@ -47,12 +47,12 @@ class MediaType(Enum):
 class Info(abc.ABC):
     @property
     @abstractmethod
-    def media_url(self):
+    def media_url(self) -> str | None:
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def thumb_url(self):
+    def thumb_url(self) -> str | None:
         raise NotImplementedError()
 
 
@@ -79,12 +79,12 @@ class Playback:
 
 @dataclass
 class MediaInfo:
-    format: str = None
-    mp4_hd_url: str = None
-    mp4_sd_url: str = None
+    format: str | None = None
+    mp4_hd_url: str | None = None
+    mp4_sd_url: str | None = None
     duration: int = 0
-    prefetch_size: int = None
-    playback: Playback = None
+    prefetch_size: int | None = None
+    playback: Playback | None = None
 
     @staticmethod
     def parse(media_dict: dict) -> "MediaInfo":
@@ -93,16 +93,17 @@ class MediaInfo:
         mp4_sd_url = media_dict.get("mp4_sd_url")
         duration = media_dict["duration"]
         prefetch_size = media_dict["prefetch_size"]
-        playback = Playback.parse(p[0]) if (p := media_dict.get("playback_list", [])) else []
+        playback_list = media_dict.get("playback_list", [])
+        playback = Playback.parse(playback_list[0]) if playback_list else None
         return MediaInfo(format_, mp4_hd_url, mp4_sd_url, duration, prefetch_size, playback)
 
 
 @dataclass
 class PageInfo(Info):
-    object_type: MediaType = None
-    media_info: MediaInfo = None
-    page_pic: str = None
-    short_url: str = None
+    object_type: MediaType | None = None
+    media_info: MediaInfo | None = None
+    page_pic: str | None = None
+    short_url: str | None = None
 
     @staticmethod
     def parse(page_info_dict: dict) -> "PageInfo":
@@ -113,38 +114,40 @@ class PageInfo(Info):
         return PageInfo(object_type, media_info, page_pic, short_url)
 
     @property
-    def media_url(self):
-        if self.media_info.playback:
+    def media_url(self) -> str | None:
+        if self.media_info and self.media_info.playback:
             return self.media_info.playback.url
-        return self.media_info.mp4_hd_url or self.media_info.mp4_sd_url
+        if self.media_info:
+            return self.media_info.mp4_hd_url or self.media_info.mp4_sd_url
+        return None
 
     @property
-    def thumb_url(self):
+    def thumb_url(self) -> str | None:
         return self.page_pic
 
     @property
-    def height(self):
-        if self.media_info.playback:
+    def height(self) -> int:
+        if self.media_info and self.media_info.playback:
             return self.media_info.playback.height
         return 0
 
     @property
-    def width(self):
-        if self.media_info.playback:
+    def width(self) -> int:
+        if self.media_info and self.media_info.playback:
             return self.media_info.playback.width
         return 0
 
     @property
-    def duration(self):
-        return self.media_info.duration
+    def duration(self) -> int:
+        return self.media_info.duration if self.media_info else 0
 
 
 @dataclass
 class Pic:
-    url: str = None
-    width: int = None
-    height: int = None
-    cut_type: int = None
+    url: str | None = None
+    width: int | None = None
+    height: int | None = None
+    cut_type: int | None = None
     type: str | None = None
 
 
@@ -154,11 +157,11 @@ class PicInfo(Info):
     video为livephoto和gif视频
     """
 
-    pic_id: str = None
-    type: MediaType = None
-    thumbnail: Pic = None
-    largest: Pic = None
-    video: str = None
+    pic_id: str | None = None
+    type: MediaType | None = None
+    thumbnail: Pic | None = None
+    largest: Pic | None = None
+    video: str | None = None
 
     @staticmethod
     def parse(pic_dict: dict) -> "PicInfo":
@@ -171,61 +174,62 @@ class PicInfo(Info):
         )
 
     @property
-    def media_url(self):
-        return self.largest.url if self.type == MediaType.PHOTO else self.video
+    def media_url(self) -> str | None:
+        return self.largest.url if self.type == MediaType.PHOTO and self.largest else self.video
 
     @property
-    def thumb_url(self):
-        return self.thumbnail.url
+    def thumb_url(self) -> str | None:
+        return self.thumbnail.url if self.thumbnail else None
 
     @property
-    def height(self):
-        return self.largest.height
+    def height(self) -> int:
+        return self.largest.height if self.largest and self.largest.height is not None else 0
 
     @property
-    def width(self):
-        return self.largest.width
+    def width(self) -> int:
+        return self.largest.width if self.largest and self.largest.width is not None else 0
 
     @property
-    def duration(self):
+    def duration(self) -> int:
         return 0
 
 
 @dataclass
 class MixMediaInfoItem(Info):
-    type: MediaType = None
-    data: PageInfo | PicInfo = None
+    type: MediaType | None = None
+    data: PageInfo | PicInfo | None = None
 
     @property
-    def media_url(self):
-        return self.data.media_url
+    def media_url(self) -> str | None:
+        return self.data.media_url if self.data else None
 
     @property
-    def thumb_url(self):
-        return self.data.thumb_url
+    def thumb_url(self) -> str | None:
+        return self.data.thumb_url if self.data else None
 
     @property
-    def height(self):
-        return self.data.height
+    def height(self) -> int:
+        return self.data.height if self.data else 0
 
     @property
-    def width(self):
-        return self.data.width
+    def width(self) -> int:
+        return self.data.width if self.data else 0
 
     @property
-    def duration(self):
-        return self.data.duration
+    def duration(self) -> int:
+        return self.data.duration if self.data else 0
 
 
 @dataclass
 class MixMediaInfo:
-    items: list[MixMediaInfoItem] = None
+    items: list[MixMediaInfoItem] | None = None
 
     @staticmethod
     def parse(mix_media_info_dict: dict) -> "MixMediaInfo":
-        items = []
+        items: list[MixMediaInfoItem] = []
         for item_dict in mix_media_info_dict["items"]:
             type_ = MediaType(item_dict["type"])
+            data: PageInfo | PicInfo | None
             if type_ == MediaType.PHOTO:
                 data = PicInfo.parse(item_dict["data"])
             elif type_ == MediaType.VIDEO:
@@ -238,14 +242,14 @@ class MixMediaInfo:
 
 @dataclass
 class Data:
-    id: str = None
-    mid: str = None
-    text: str = None  # 带html标签
-    text_raw: str = None  # 纯文本
-    pic_infos: list[PicInfo] = None
-    page_info: PageInfo = None
-    mix_media_info: MixMediaInfo = None
-    retweeted_status: "Data" = None
+    id: str | None = None
+    mid: str | None = None
+    text: str | None = None  # 带html标签
+    text_raw: str | None = None  # 纯文本
+    pic_infos: list[PicInfo] | None = None
+    page_info: PageInfo | None = None
+    mix_media_info: MixMediaInfo | None = None
+    retweeted_status: "Data | None" = None
 
     @staticmethod
     def parse(data_dict: dict) -> "Data":
@@ -277,9 +281,9 @@ class Data:
         return ret
 
     @property
-    def content(self):
+    def content(self) -> str:
         """干净的正文"""
-        text = self.text_raw
+        text = self.text_raw or ""
         if short_url := (self.page_info and self.page_info.short_url):
             text = text.replace(short_url, "")
         return text.strip()

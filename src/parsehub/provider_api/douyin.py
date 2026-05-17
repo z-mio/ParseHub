@@ -285,7 +285,7 @@ class ABogus:
     }
 
     def __init__(self, platform: str = None):
-        self.chunk = []
+        self.chunk: list[int] = []
         self.size = 0
         self.reg = self.__reg[:]
         self.ua_code = [
@@ -770,6 +770,7 @@ class DouyinWebCrawler:
                         await asyncio.sleep(1)
                     else:
                         raise ParseError("获取抖音作品失败, 请检查 cookie") from e
+            raise ParseError("获取抖音作品失败, 请检查 cookie")
 
     async def parse(self, url: str) -> dict:
         aweme_id = await self.get_aweme_id(url)

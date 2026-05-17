@@ -1,6 +1,6 @@
 import re
 
-from ...provider_api.weibo import MediaType, WeiboAPI
+from ...provider_api.weibo import MediaType, MixMediaInfoItem, PicInfo, WeiboAPI
 from ...types import (
     AniRef,
     ImageParseResult,
@@ -23,59 +23,71 @@ class WeiboParser(BaseParser):
         weibo = await WeiboAPI(self.proxy).parse(raw_url)
         data = weibo.data
         text = self.f_text(data.content)
-        media = []
+        media: list[VideoRef | ImageRef | LivePhotoRef | AniRef] = []
 
-        if not data.pic_infos and data.page_info:
-            if data.page_info.object_type == MediaType.VIDEO:
+        if not data.pic_infos and data.page_info and data.page_info.object_type == MediaType.VIDEO:
+            playback = data.page_info.media_info and data.page_info.media_info.playback
+            if playback:
                 return VideoParseResult(
                     content=text,
                     video=VideoRef(
-                        url=data.page_info.media_info.playback.url,
+                        url=playback.url,
                         thumb_url=data.page_info.page_pic,
-                        width=data.page_info.media_info.playback.width,
-                        height=data.page_info.media_info.playback.height,
-                        duration=int(data.page_info.media_info.playback.duration),
+                        width=playback.width,
+                        height=playback.height,
+                        duration=int(playback.duration),
                     ),
                 )
 
-        media_info = (
-            ((rs := data.retweeted_status) and rs.pic_infos)
-            or data.pic_infos
-            or (data.mix_media_info and data.mix_media_info.items)
-        )
+        media_info: list[PicInfo | MixMediaInfoItem] | None = None
+        if data.retweeted_status and data.retweeted_status.pic_infos:
+            media_info = list(data.retweeted_status.pic_infos)
+        elif data.pic_infos:
+            media_info = list(data.pic_infos)
+        elif data.mix_media_info and data.mix_media_info.items:
+            media_info = list(data.mix_media_info.items)
         if not media_info:
             return MultimediaParseResult(content=text, media=[])
 
         for i in media_info:
             match i.type:
                 case MediaType.VIDEO:
-                    media.append(
-                        VideoRef(
-                            url=i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height, duration=i.duration
+                    if i.media_url:
+                        media.append(
+                            VideoRef(
+                                url=i.media_url,
+                                thumb_url=i.thumb_url,
+                                width=i.width,
+                                height=i.height,
+                                duration=i.duration,
+                            )
                         )
-                    )
                 case MediaType.LIVE_PHOTO:
-                    media.append(
-                        LivePhotoRef(
-                            url=i.thumb_url,
-                            ext="mov",
-                            video_url=i.media_url,
-                            width=i.width,
-                            height=i.height,
+                    if i.thumb_url:
+                        media.append(
+                            LivePhotoRef(
+                                url=i.thumb_url,
+                                ext="mov",
+                                video_url=i.media_url,
+                                width=i.width,
+                                height=i.height,
+                            )
                         )
-                    )
                 case MediaType.GIF:
-                    media.append(AniRef(url=i.media_url, thumb_url=i.thumb_url))
+                    if i.media_url:
+                        media.append(AniRef(url=i.media_url, thumb_url=i.thumb_url))
                 case _:
-                    media.append(ImageRef(url=i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
+                    if i.media_url:
+                        media.append(ImageRef(url=i.media_url, thumb_url=i.thumb_url, width=i.width, height=i.height))
         if all((isinstance(m, ImageRef) or isinstance(m, LivePhotoRef)) for m in media):
-            return ImageParseResult(content=text, photo=media)
+            photos = [m for m in media if isinstance(m, ImageRef | LivePhotoRef)]
+            return ImageParseResult(content=text, photo=photos)
         return MultimediaParseResult(content=text, media=media)
 
-    def f_text(self, text: str) -> str:
+    def f_text(self, text: str | None) -> str:
         # text = re.sub(r'<a  href="https://video.weibo.com.*?>.*的微博视频.*</a>', "", text)
         # text = re.sub(r"<[^>]+>", " ", text)
-        text = self.hashtag_handler(text)
+        text = self.hashtag_handler(text or "")
         return text.strip()
 
     @staticmethod

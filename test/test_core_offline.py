@@ -1,11 +1,11 @@
 import unittest
 from urllib.parse import parse_qs, urlparse
 
-from src.parsehub import ParseHub
-from src.parsehub.errors import ParseError, UnknownPlatform
-from src.parsehub.parsers.base import BaseParser
-from src.parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
-from src.parsehub.utils.utils import match_url, normalize_cookie, run_sync
+from parsehub import ParseHub
+from parsehub.errors import ParseError, UnknownPlatform
+from parsehub.parsers.base import BaseParser
+from parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
+from parsehub.utils.utils import match_url, normalize_cookie, run_sync
 
 
 class DummyParser(BaseParser, register=False):

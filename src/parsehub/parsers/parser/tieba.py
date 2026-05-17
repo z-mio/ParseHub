@@ -2,7 +2,7 @@ from typing import Union
 
 import httpx
 
-from ...provider_api.tieba import TieBa, TieBaError, TieBaPostType
+from ...provider_api.tieba import TieBa, TieBaError, TieBaPostType, TieBaVideo
 from ...types import AniRef, ImageParseResult, ImageRef, ParseError, Platform, VideoParseResult, VideoRef
 from ..base.base import BaseParser
 
@@ -22,6 +22,8 @@ class TieBaParser(BaseParser):
 
         match tb.type:
             case TieBaPostType.VIDEO:
+                if not isinstance(tb.media, TieBaVideo):
+                    raise ParseError("贴吧解析失败: 未获取到视频")
                 return VideoParseResult(
                     title=tb.title,
                     video=VideoRef(
@@ -35,8 +37,8 @@ class TieBaParser(BaseParser):
                 )
 
             case TieBaPostType.PHOTO:
-                images = []
-                if tb.media:
+                images: list[ImageRef | AniRef] = []
+                if isinstance(tb.media, list):
                     for i in tb.media:
                         async with httpx.AsyncClient(proxy=self.proxy) as cli:
                             try:

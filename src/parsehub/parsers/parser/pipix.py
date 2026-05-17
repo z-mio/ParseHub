@@ -23,9 +23,9 @@ class PipixParser(BaseParser):
                 video=VideoRef(
                     url=ppx.video_url,
                     thumb_url=ppx.video_thumb,
-                    duration=ppx.video_duration,
-                    height=ppx.video_height,
-                    width=ppx.video_width,
+                    duration=ppx.video_duration or 0,
+                    height=ppx.video_height or 0,
+                    width=ppx.video_width or 0,
                 ),
             )
         else:

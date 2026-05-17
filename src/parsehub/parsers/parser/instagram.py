@@ -15,7 +15,7 @@ class InstagramParser(BaseParser):
     __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reel|share|.*/p|.*/reel)/.*"
     __redirect_keywords__ = ["share"]
 
-    async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult | None:
+    async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult:
         shortcode = self.get_short_code(raw_url)
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
@@ -32,7 +32,7 @@ class InstagramParser(BaseParser):
             case "GraphSidecar":
                 media = [
                     VideoRef(url=i.video_url, thumb_url=i.display_url, width=i.width, height=i.height)
-                    if i.is_video
+                    if i.is_video and i.video_url
                     else ImageRef(url=i.display_url, width=i.width, height=i.height)
                     for i in post.get_sidecar_nodes()
                 ]
@@ -44,9 +44,9 @@ class InstagramParser(BaseParser):
             case "GraphVideo":
                 return VideoParseResult(
                     video=VideoRef(
-                        url=post.video_url,
+                        url=post.video_url or post.url,
                         thumb_url=post.url,
-                        duration=int(post.video_duration),
+                        duration=int(post.video_duration or 0),
                         width=width,
                         height=height,
                     ),
@@ -81,7 +81,7 @@ class InstagramParser(BaseParser):
             if cookie:
                 text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(cookie)}"
             else:
-                text = e
+                text = str(e)
             raise ParseError(f"无法获取帖子内容: {text}") from e
         else:
             return post

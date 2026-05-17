@@ -75,7 +75,7 @@ class ThreadsMedia:
 @dataclass
 class ThreadsPost:
     content: str
-    media: ThreadsMedia | list[ThreadsMedia] = None
+    media: ThreadsMedia | list[ThreadsMedia] | None = None
 
     @classmethod
     def parse(cls, jsonp: list[dict]):
@@ -86,7 +86,7 @@ class ThreadsPost:
                 case "first_response":
                     content = cls._fetch_content(j)
                 case "preloader":
-                    if "BarcelonaLightboxDialogRootQueryRelayPreloader" in j.get("id"):
+                    if "BarcelonaLightboxDialogRootQueryRelayPreloader" in (j.get("id") or ""):
                         media = cls._fetch_media(j)
                 case "last_response":
                     ...

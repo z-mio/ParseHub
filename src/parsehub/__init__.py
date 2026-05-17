@@ -47,9 +47,9 @@ class ParseHub:
     async def download(
         self,
         url: str,
-        path: str | Path = None,
+        path: str | Path | None = None,
         *,
-        callback: ProgressCallback = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
@@ -169,6 +169,8 @@ class ParseHub:
         :return: 原始链接
         """
         parser = self.get_parser(url)
+        if not parser:
+            raise UnknownPlatform(url)
         try:
             return await parser(proxy=proxy).get_raw_url(url, clean_all=clean_all)
         except Exception as e:
@@ -210,9 +212,10 @@ class ParseHub:
         """
         return [
             {
-                "id": parser.__platform__.id,
-                "name": parser.__platform__.display_name,
+                "id": platform.id,
+                "name": platform.display_name,
                 "supported_types": parser.__supported_type__,
             }
             for parser in self.parsers
+            if (platform := parser.__platform__) is not None
         ]

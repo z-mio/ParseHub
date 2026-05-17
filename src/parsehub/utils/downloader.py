@@ -1,7 +1,7 @@
 import asyncio
 import os
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Literal
 from urllib.parse import unquote, urlparse
@@ -15,8 +15,8 @@ async def download(
     save_path: str | Path | None = None,
     *,
     headers: dict | None = None,
-    proxies: httpx.Proxy | None = None,
-    progress: Callable | None = None,
+    proxy: str | httpx.Proxy | None = None,
+    progress: Callable[..., Awaitable[None]] | None = None,
     progress_args: tuple = (),
     progress_kwargs: dict | None = None,
     max_retries: int = 3,
@@ -26,7 +26,7 @@ async def download(
     :param url: 下载链接
     :param save_path: 保存路径, 默认保存到downloads文件夹, 如果路径以/结尾，则自动获取文件名
     :param headers: 请求头
-    :param proxies: 代理
+    :param proxy: 代理
     :param progress: 下载进度回调函数
     :param progress_args: 下载进度回调函数的参数
     :param progress_kwargs: 下载进度回调函数的关键字参数
@@ -44,7 +44,7 @@ async def download(
 
     for attempt in range(max_retries + 1):
         # 每次重试都创建新的 client，避免复用异常状态的连接池
-        async with httpx.AsyncClient(proxy=proxies, headers=headers) as client:
+        async with httpx.AsyncClient(proxy=proxy, headers=headers) as client:
             try:
                 if not filename:
                     filename = await get_filename_by_url(url, client)
@@ -150,9 +150,9 @@ def _parse_save_path(save_path: str | Path | None) -> tuple[Path, str | None]:
     if not save_path:
         return Path.cwd().joinpath("downloads"), None
 
-    save_path = str(save_path)
-    save_dir, filename = os.path.split(save_path)
-    save_dir = Path(os.path.abspath(save_dir)) if save_dir else Path.cwd().joinpath("downloads")
+    save_path_str = str(save_path)
+    save_dir_str, filename = os.path.split(save_path_str)
+    save_dir = Path(os.path.abspath(save_dir_str)) if save_dir_str else Path.cwd().joinpath("downloads")
 
     # 空文件名意味着需要自动获取
     return save_dir, filename if filename else None

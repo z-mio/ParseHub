@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.parsehub.cli_config import AutoCookieStore, ConfigStore, FileCookieStore
+from parsehub.cli_config import AutoCookieStore, ConfigStore, FileCookieStore
 
 
 class TestCliConfig(unittest.TestCase):

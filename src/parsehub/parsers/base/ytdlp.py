@@ -1,11 +1,11 @@
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
 
 from yt_dlp import YoutubeDL
 
 from ...types import (
+    AnyParseResult,
     DownloadError,
     DownloadResult,
     ParseError,
@@ -91,7 +91,7 @@ class MonotonicDownloadProgress:
 class YtParser(BaseParser, register=False):
     """yt-dlp解析器"""
 
-    async def _do_parse(self, raw_url: str) -> Union["YtVideoParseResult"]:
+    async def _do_parse(self, raw_url: str) -> AnyParseResult:
         video_info = await self._parse(raw_url)
         return YtVideoParseResult(
             dl=video_info,
@@ -114,8 +114,8 @@ class YtParser(BaseParser, register=False):
         except Exception as e:
             raise ParseError(f"解析视频信息失败: {str(e)}") from e
 
-        if dl.get("_type") and dl["_type"] == "playlist":  # type: ignore
-            dl = dl["entries"][0]  # type: ignore
+        if dl.get("_type") and dl["_type"] == "playlist":
+            dl = dl["entries"][0]
             url = dl["webpage_url"]
         title = dl["title"]
         duration = dl.get("duration", 0)
@@ -190,12 +190,13 @@ class YtVideoParseResult(VideoParseResult):
     ) -> "DownloadResult":
         if callback_kwargs is None:
             callback_kwargs = {}
+        output_dir_path = Path(output_dir)
 
         paramss = self.dl.paramss.copy()
         if self.dl.proxy:
             paramss["proxy"] = self.dl.proxy
 
-        paramss["outtmpl"] = f"{output_dir.joinpath('ytdlp_%(id)s')}.%(ext)s"
+        paramss["outtmpl"] = f"{output_dir_path.joinpath('ytdlp_%(id)s')}.%(ext)s"
 
         if callback:
             loop = asyncio.get_running_loop()
@@ -214,7 +215,11 @@ class YtVideoParseResult(VideoParseResult):
 
         await self._run_download(paramss, proxy=proxy)
 
-        v = list(output_dir.glob("*.mp4")) or list(output_dir.glob("*.mkv")) or list(output_dir.glob("*.webm"))
+        v = (
+            list(output_dir_path.glob("*.mp4"))
+            or list(output_dir_path.glob("*.mkv"))
+            or list(output_dir_path.glob("*.webm"))
+        )
         if not v:
             raise DownloadError("下载失败 -1")
 

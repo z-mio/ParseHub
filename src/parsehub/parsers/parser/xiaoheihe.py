@@ -36,13 +36,15 @@ class XiaoHeiHeParser(BaseParser):
     def __parse_media(xhh: XiaoHeiHePost):
         match xhh.type:
             case XiaoHeiHePostType.VIDEO:
+                if not xhh.media:
+                    return None
                 return VideoRef(url=xhh.media[0].url, thumb_url=xhh.media[0].thumb_url)
             case XiaoHeiHePostType.IMAGE | XiaoHeiHePostType.ARTICLE:
                 images: list[ImageRef | AniRef] = []
-                for i in xhh.media:
+                for i in xhh.media or []:
                     if i.type == XiaoHeiHeMediaType.IMAGE:
-                        images.append(ImageRef(url=i.url, width=i.width, height=i.height))
+                        images.append(ImageRef(url=i.url, width=i.width or 0, height=i.height or 0))
                     else:
-                        images.append(AniRef(url=i.url, width=i.width, height=i.height))
+                        images.append(AniRef(url=i.url, width=i.width or 0, height=i.height or 0))
 
                 return images

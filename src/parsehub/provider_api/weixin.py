@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import httpx
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from markdown import markdown
 from markdownify import MarkdownConverter
 
@@ -38,18 +38,22 @@ class WX:
     @classmethod
     def _parse_html(cls, html: str) -> "WX":
         soup = BeautifulSoup(html, "lxml")
-        title = (t := soup.find("h1", {"class": "rich_media_title"})) and t.text.strip()
+        title_tag = soup.find("h1", {"class": "rich_media_title"})
+        title = title_tag.text.strip() if isinstance(title_tag, Tag) else ""
         wxc = WXConverter(heading_style="ATX")
-        if rich_media_content := soup.find("div", {"class": "rich_media_content"}):
-            imgs = [i["data-src"] for i in rich_media_content.find_all("img", {"class": "rich_pages"})]
+        if isinstance(rich_media_content := soup.find("div", {"class": "rich_media_content"}), Tag):
+            imgs = [str(i.get("data-src") or "") for i in rich_media_content.find_all("img", {"class": "rich_pages"})]
 
             markdown_content = wxc.convert(str(rich_media_content))
             text_content = "".join(BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True))
             return cls(title, imgs, markdown_content, text_content)
-        elif share_content_page := soup.find("div", {"class": "share_content_page"}):
-            imgs = [i["data-src"] for i in share_content_page.find_all("div", {"class": "swiper_item"})]
+        elif isinstance(share_content_page := soup.find("div", {"class": "share_content_page"}), Tag):
+            imgs = [str(i.get("data-src") or "") for i in share_content_page.find_all("div", {"class": "swiper_item"})]
 
-            markdown_content = wxc.convert(soup.find("meta", {"name": "description"})["content"])
+            description = soup.find("meta", {"name": "description"})
+            if not isinstance(description, Tag):
+                raise ParseError("获取内容失败")
+            markdown_content = wxc.convert(str(description.get("content") or ""))
             text_content = "".join(BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True))
             return cls(title, imgs, markdown_content, text_content)
         else:

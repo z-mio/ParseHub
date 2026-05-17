@@ -8,7 +8,7 @@ import unicodedata
 from dataclasses import asdict, is_dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 if TYPE_CHECKING:
     from .cli_config import AutoCookieStore, PlatformConfig
@@ -20,12 +20,13 @@ _CLI_EXTRA_MODULES = ("argcomplete", "platformdirs")
 class _ChineseArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("formatter_class", argparse.RawDescriptionHelpFormatter)
-        add_help = kwargs.pop("add_help", True)
-        super().__init__(*args, add_help=False, **kwargs)
+        add_help = bool(kwargs.pop("add_help", True))
+        kwargs["add_help"] = False
+        super().__init__(*args, **kwargs)
         if add_help:
             self.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="显示帮助信息")
 
-    def error(self, message: str) -> None:
+    def error(self, message: str) -> NoReturn:
         self.print_usage(sys.stderr)
         translated = _translate_argparse_error(message)
         hint = _usage_hint(self.prog)
@@ -212,7 +213,7 @@ def _add_set_commands(subparsers: argparse._SubParsersAction) -> None:
 
 def _add_platform_argument(parser: argparse.ArgumentParser) -> None:
     action = parser.add_argument("platform", help="平台 ID，如 xhs")
-    action.completer = _complete_platforms
+    action.completer = _complete_platforms  # type: ignore[attr-defined]
 
 
 def _add_json_options(parser: argparse.ArgumentParser) -> None:
@@ -436,7 +437,7 @@ def _platform_config_row(
 
 
 def _print_json(data: Any, *, pretty: bool) -> None:
-    kwargs = {"ensure_ascii": False}
+    kwargs: dict[str, Any] = {"ensure_ascii": False}
     if pretty:
         kwargs["indent"] = 2
     else:
@@ -547,8 +548,8 @@ def _download_result_to_dict(result: Any) -> dict[str, Any]:
 def _jsonable(value: Any) -> Any:
     if isinstance(value, Path):
         return str(value)
-    if is_dataclass(value):
-        return _jsonable(asdict(value))
+    if is_dataclass(value) and not isinstance(value, type):
+        return _jsonable(asdict(cast(Any, value)))
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):

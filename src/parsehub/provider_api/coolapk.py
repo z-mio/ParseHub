@@ -12,8 +12,8 @@ from ..config import GlobalConfig
 class Coolapk:
     title: str | None = None
     markdown_content: str | None = None
-    text_content: str = None
-    imgs: list[str] = None
+    text_content: str | None = None
+    imgs: list[str] | None = None
 
     @classmethod
     async def parse(cls, url: str, proxy: str = None) -> "Coolapk":
@@ -24,6 +24,8 @@ class Coolapk:
         title_element = soup.find(class_="message-title")
         if title_element and (title := title_element.text.strip()):
             content = soup.find(class_="feed-article-message")
+            if content is None:
+                raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
             markdown_content = MarkdownConverter(heading_style="ATX").convert(str(content))
             text_content = "".join(BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True))
             imgs = [f"https:{i['src']}" for i in content.find_all("img", {"class": "message-image"})]

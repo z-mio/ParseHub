@@ -2,7 +2,6 @@ import hashlib
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Self
 
 import httpx
 
@@ -93,7 +92,7 @@ class TieBaPost:
     media: list[TieBaPhoto] | TieBaVideo | None = None
 
     @classmethod
-    def parse(cls, data: dict) -> Self:
+    def parse(cls, data: dict) -> "TieBaPost":
         thread = data["thread"]
         origin_thread_info = thread["origin_thread_info"]
 
@@ -111,7 +110,7 @@ class TieBaPost:
         content = "\n".join(content_list)
 
         # media
-        media = []
+        media: list[TieBaPhoto | TieBaVideo] = []
         if origin_media := origin_thread_info.get("media"):
             post_type = TieBaPostType.PHOTO
             for om in origin_media:
@@ -138,7 +137,11 @@ class TieBaPost:
         else:
             post_type = TieBaPostType.PHOTO
 
-        m = media[0] if post_type == TieBaPostType.VIDEO else media if media else None
+        m: list[TieBaPhoto] | TieBaVideo | None
+        if post_type == TieBaPostType.VIDEO:
+            m = media[0] if media and isinstance(media[0], TieBaVideo) else None
+        else:
+            m = [item for item in media if isinstance(item, TieBaPhoto)] or None
         return TieBaPost(
             type=post_type,
             title=title,
