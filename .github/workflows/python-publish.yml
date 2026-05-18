@@ -33,6 +33,9 @@ jobs:
       - name: Run ruff
         run: uv run --locked ruff check .
 
+      - name: Run mypy
+        run: uv run --locked mypy
+
       - name: Run offline unit tests
         run: uv run --locked pytest
 
