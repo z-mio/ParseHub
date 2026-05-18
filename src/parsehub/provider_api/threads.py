@@ -11,7 +11,7 @@ from ..config.config import GlobalConfig
 
 
 class ThreadsAPI:
-    def __init__(self, proxy: str = None):
+    def __init__(self, proxy: str | None = None):
         self.proxy = proxy
 
     async def parse(self, url: str):
@@ -54,7 +54,7 @@ class ThreadsAPI:
         return p[1]
 
     @staticmethod
-    def random_lsd():
+    def random_lsd() -> str:
         return "".join(random.sample(string.ascii_letters + string.digits, 11))
 
 
@@ -78,9 +78,9 @@ class ThreadsPost:
     media: ThreadsMedia | list[ThreadsMedia] | None = None
 
     @classmethod
-    def parse(cls, jsonp: list[dict]):
+    def parse(cls, jsonp: list[dict]) -> "ThreadsPost":
         content = ""
-        media = []
+        media: ThreadsMedia | list[ThreadsMedia] | None = []
         for j in jsonp:
             match j["__type"]:
                 case "first_response":
@@ -103,16 +103,16 @@ class ThreadsPost:
             meta = result.get("exports", {}).get("meta")
         if not meta:
             raise Exception("获取内容失败")
-        return meta["title"]
+        return str(meta["title"])
 
     @staticmethod
-    def _fetch_media(data: dict):
+    def _fetch_media(data: dict) -> ThreadsMedia | list[ThreadsMedia]:
         data = data.get("result", {}).get("result", {}).get("data", {}).get("data")
         if not data:
             return []
 
-        def fn(d):
-            media = []
+        def fn(d: dict) -> ThreadsMedia | list[ThreadsMedia]:
+            media: ThreadsMedia | list[ThreadsMedia]
             match d["media_type"]:
                 case 1:  # 单张图片
                     image = d["image_versions2"]["candidates"][0]

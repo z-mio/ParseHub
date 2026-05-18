@@ -64,11 +64,11 @@ class CoolapkParseResult(ParseResult):
         self,
         *,
         output_dir: str | Path,
-        callback: ProgressCallback = None,
+        callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
-        headers: dict = None,
+        headers: dict | None = None,
     ) -> "DownloadResult":
         headers = {
             "Accept": (

@@ -16,7 +16,7 @@ class Coolapk:
     imgs: list[str] | None = None
 
     @classmethod
-    async def parse(cls, url: str, proxy: str = None) -> "Coolapk":
+    async def parse(cls, url: str, proxy: str | None = None) -> "Coolapk":
         async with httpx.AsyncClient(headers={"User-Agent": GlobalConfig.ua}, proxy=proxy) as client:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "lxml")

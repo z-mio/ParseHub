@@ -82,8 +82,8 @@ class MonotonicDownloadProgress:
         # 分片下载有时没有稳定总大小，但有 frag 进度；作为兜底
         frag_index = d.get("fragment_index")
         frag_count = d.get("fragment_count")
-        if frag_index is not None and frag_count:
-            return min(frag_index / frag_count * 100, 100)
+        if isinstance(frag_index, int | float) and isinstance(frag_count, int | float) and frag_count:
+            return min(float(frag_index) / float(frag_count) * 100, 100.0)
 
         return None
 

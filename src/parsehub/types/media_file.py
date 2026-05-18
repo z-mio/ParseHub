@@ -94,7 +94,7 @@ class LivePhotoFile(MediaFile):
 
     def __post_init__(self):
         if not self.width or not self.duration:
-            info = MediaInfoReader.read(path=self.video_path)
+            info = MediaInfoReader.read(path=self.video_path or self.path)
             self.width = info.width
             self.height = info.height
             self.duration = info.duration

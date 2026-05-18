@@ -8,12 +8,14 @@ import time
 import uuid
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.base import Cipher
 from cryptography.hazmat.primitives.ciphers.modes import CBC, ECB
@@ -108,7 +110,7 @@ class XiaoHeiHeAPI:
             return match.group(1)
         raise ValueError(f"获取 link_id 失败: {url}")
 
-    async def link_tree(self, link_id: str) -> dict:
+    async def link_tree(self, link_id: str) -> dict[str, Any]:
         sig_params = XiaoHeiHeSign().sign("/bbs/app/link/tree")
         # sig_params = HeyBoxSigner().generate_signature("/bbs/app/link/tree")
         params = {
@@ -140,7 +142,7 @@ class XiaoHeiHeAPI:
         msg = data.get("msg")
         match status:
             case "ok":
-                return data["result"]
+                return cast(dict[str, Any], data["result"])
             case "login":
                 raise Exception(f"需要登录: {msg}")
             case "show_captcha":
@@ -354,7 +356,8 @@ class XHHConverter(MarkdownConverter):
         src = el.attrs.get("data-original", None) or ""
         title = el.attrs.get("title", None) or ""
         title_part = ' "{}"'.format(title.replace('"', r"\"")) if title else ""
-        if "_inline" in parent_tags and el.parent.name not in self.options["keep_inline_images_in"]:
+        options = cast(dict[str, Any], self.options)
+        if "_inline" in parent_tags and el.parent.name not in options["keep_inline_images_in"]:
             return alt
 
         return f"![{alt}]({src}{title_part})"
@@ -379,7 +382,7 @@ class SecuritySm:
         "apiHost": "fp-it.portal101.cn",
     }
 
-    PK = serialization.load_der_public_key(base64.b64decode(SM_CONFIG["publicKey"]))
+    PK: RSAPublicKey = cast(RSAPublicKey, serialization.load_der_public_key(base64.b64decode(SM_CONFIG["publicKey"])))
 
     DES_RULE = {
         "appId": {"cipher": "DES", "is_encrypt": 1, "key": "uy7mzc4h", "obfuscated_name": "xx"},
@@ -503,8 +506,8 @@ class SecuritySm:
     async def get_d_id(cls):
         uid = str(uuid.uuid4()).encode("utf-8")
         priId = hashlib.md5(uid).hexdigest()[0:16]
-        ep = cls.PK.encrypt(uid, padding.PKCS1v15())
-        ep = base64.b64encode(ep).decode("utf-8")
+        encrypted_uid = cls.PK.encrypt(uid, padding.PKCS1v15())
+        ep = base64.b64encode(encrypted_uid).decode("utf-8")
 
         browser = cls.BROWSER_ENV.copy()
         current_time = int(time.time() * 1000)

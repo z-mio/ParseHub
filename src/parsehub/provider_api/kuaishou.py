@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any, cast
 
 import httpx
 
@@ -9,8 +10,8 @@ from ..config.config import GlobalConfig
 class KuaiShouAPI:
     def __init__(
         self,
-        cookie: dict,
-        proxy: str = None,
+        cookie: dict | None,
+        proxy: str | None = None,
     ):
         self.api_url = "https://www.kuaishou.com/graphql"
         self.proxy = proxy
@@ -121,7 +122,7 @@ class KuaiShouAPI:
                     case 400002:
                         raise Exception("400002 账号风控, 需要验证")
 
-            return KuaiShouVideo.parse(data)
+            return KuaiShouVideo.parse(cast(dict[str, Any], data))
 
     @staticmethod
     def get_video_id(url: str):
@@ -140,7 +141,7 @@ class KuaiShouVideo:
     width: int
 
     @classmethod
-    def parse(cls, data: dict):
+    def parse(cls, data: dict) -> "KuaiShouVideo":
         vision_video_detail = data.get("visionVideoDetail", {})
         photo = vision_video_detail.get("photo")
         if not photo:

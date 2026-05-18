@@ -24,12 +24,12 @@ class ZuiYouPost:
     raw: dict
 
     @classmethod
-    def parse(cls, json: dict):
+    def parse(cls, json: dict) -> "ZuiYouPost":
         post = json["data"]["post"]
-        content = post.get("content")
-        videos = post.get("videos")
-        imgs = post.get("imgs")
-        media = []
+        content = post.get("content") or ""
+        videos = post.get("videos") or {}
+        imgs = post.get("imgs") or []
+        media: list[Media] = []
         for img in imgs:
             id_ = img["id"]
             img_url = list(img["urls"].values())[-1]["urls"][-1]
@@ -44,7 +44,7 @@ class ZuiYouPost:
 
 @dataclass
 class ZuiYou:
-    def __init__(self, proxy: str = None):
+    def __init__(self, proxy: str | None = None):
         self.proxy = proxy
         self.api_url = "https://share.xiaochuankeji.cn/planck/share/post/detail_h5"
 

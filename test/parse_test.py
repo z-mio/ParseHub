@@ -2,6 +2,7 @@ import asyncio
 import os
 import unittest
 from pathlib import Path
+from typing import cast
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -66,12 +67,12 @@ class TestParse(unittest.IsolatedAsyncioTestCase):
         tasks = [ph.parse(u, cookie=self.cookie, proxy=self.proxy) for u in urls]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for r in results:
-            if isinstance(r, Exception):
-                raise r
-            r: ParseResult
-            logger.debug("解析结果: {}", r)
-            logger.debug("解析结果媒体: {}", r.media)
+        for result in results:
+            if isinstance(result, Exception):
+                raise result
+            parsed = cast(ParseResult, result)
+            logger.debug("解析结果: {}", parsed)
+            logger.debug("解析结果媒体: {}", parsed.media)
 
     @logger.catch
     async def test_parse_and_download(self):

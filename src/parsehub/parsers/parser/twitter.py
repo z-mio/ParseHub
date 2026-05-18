@@ -26,7 +26,7 @@ class TwitterParser(BaseParser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(twitter|fixupx|x).com/.*/status/\d+"
 
-    async def _do_parse(self, raw_url: str) -> "MultimediaParseResult":
+    async def _do_parse(self, raw_url: str) -> MultimediaParseResult | RichTextParseResult:
         tweet = await self._parse(raw_url)
         return await self.media_parse(tweet)
 
@@ -34,7 +34,7 @@ class TwitterParser(BaseParser):
         url = await super().get_raw_url(url, clean_all=clean_all)
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
-    async def _parse(self, url: str):
+    async def _parse(self, url: str) -> TwitterTweet:
         x = Twitter(self.proxy, cookie=None)
         try:
             tweet = await x.fetch_tweet(url)
@@ -55,7 +55,7 @@ class TwitterParser(BaseParser):
         return tweet
 
     @staticmethod
-    async def media_parse(tweet: TwitterTweet):
+    async def media_parse(tweet: TwitterTweet) -> MultimediaParseResult | RichTextParseResult:
         media: list[AnyMediaRef] = []
         if tweet.media:
             for m in tweet.media:

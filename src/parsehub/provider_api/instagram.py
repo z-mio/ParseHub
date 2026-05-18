@@ -55,7 +55,7 @@ class MyInstaloaderContext(InstaloaderContext):
     支持自定义代理
     """
 
-    def __init__(self, proxy: str | None = None, cookie: dict = None):
+    def __init__(self, proxy: str | None = None, cookie: dict | None = None):
         self.proxy: dict[str, str | None] = {"http": proxy, "https": proxy}
         self.cookie = cookie
         super().__init__()
@@ -68,11 +68,12 @@ class MyInstaloaderContext(InstaloaderContext):
         return session
 
     def get_json(self, *args, **kwargs):
-        session: requests.Session = kwargs.get("session")
-        if self.proxy:
-            session.proxies = {k: v for k, v in self.proxy.items() if v is not None}
-            session.trust_env = False
-        if self.cookie:
-            session.cookies.update(self.cookie)
+        session = kwargs.get("session")
+        if isinstance(session, requests.Session):
+            if self.proxy:
+                session.proxies = {k: v for k, v in self.proxy.items() if v is not None}
+                session.trust_env = False
+            if self.cookie:
+                session.cookies.update(self.cookie)
 
         return super().get_json(*args, **kwargs)

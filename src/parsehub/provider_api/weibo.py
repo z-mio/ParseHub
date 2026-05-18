@@ -264,7 +264,7 @@ class Data:
         return Data.from_kwargs(**data_dict)
 
     @classmethod
-    def from_kwargs(cls, **kwargs):
+    def from_kwargs(cls, **kwargs) -> "Data":
         cls_fields = set(signature(cls).parameters)
 
         native_args, new_args = {}, {}

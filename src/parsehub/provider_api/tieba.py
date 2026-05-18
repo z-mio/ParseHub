@@ -2,6 +2,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, cast
 
 import httpx
 
@@ -27,7 +28,7 @@ class TieBa:
             result.raise_for_status()
         result = result.json()
         if tbs := result.get("tbs"):
-            return tbs
+            return str(tbs)
         raise TieBaError("获取 tbs 失败")
 
     @staticmethod
@@ -59,7 +60,7 @@ class TieBa:
             result = result.json()
         if result["error_code"]:
             raise TieBaError(em if (em := result["error_msg"]) else "获取帖子内容失败")
-        return result
+        return cast(dict[str, Any], result)
 
 
 class TieBaPostType(Enum):

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
 from hashlib import md5
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -70,7 +70,7 @@ class BiliAPI:
                     raise Exception("动态不可见")
                 case _:
                     raise Exception(f"获取动态信息失败: {mj}")
-        return BiliDynamic.parse(data)
+        return BiliDynamic.parse(cast(dict[str, Any], data))
 
     async def get_video_info(self, url: str):
         """获取视频详细信息"""
@@ -117,7 +117,7 @@ class BiliAPI:
             params=params,
             cookies=cookies,
         )
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
     async def get_buvid(self):
         """获取 buvid"""
@@ -135,7 +135,7 @@ class BiliAPI:
         wbi = await BiliWbiSigner().wbi(bvid=bvid, cid=cid, up_mid=up_mid)
         return await self.get_ai_summary(bvid, cid, up_mid, wbi["w_rid"], wbi["wts"])
 
-    async def get_ai_summary(self, bvid: str, cid: int, up_mid: int, w_rid: str, wts: int):
+    async def get_ai_summary(self, bvid: str, cid: int, up_mid: int, w_rid: str, wts: int) -> "AISummaryResult":
         url = "https://api.bilibili.com/x/web-interface/view/conclusion/get"
         result = await self._get_client().get(
             url,
@@ -249,7 +249,7 @@ class BiliDynamic:
     images: list[BiliImage] | None = None
 
     @classmethod
-    def parse(cls, data: dict):
+    def parse(cls, data: dict) -> "BiliDynamic":
         module_dynamic: dict = data["item"]["modules"]["module_dynamic"]
         major: dict | None = module_dynamic.get("major", None)
         if not major:
@@ -258,7 +258,7 @@ class BiliDynamic:
             return cls._parse_major(module_dynamic, major)
 
     @classmethod
-    def _parse_major(cls, module_dynamic: dict, major: dict):
+    def _parse_major(cls, module_dynamic: dict, major: dict) -> "BiliDynamic":
         major_type = major["type"]
         major_parsers: dict[MajorType, Callable[[dict, dict], BiliDynamic]] = {
             MajorType.MAJOR_TYPE_MEDIALIST: cls._parse_medialist,
@@ -278,12 +278,12 @@ class BiliDynamic:
         return major_parser(module_dynamic, major)
 
     @classmethod
-    def _parse_pgc_union(cls, _, major: dict):
+    def _parse_pgc_union(cls, _: dict, major: dict) -> "BiliDynamic":
         pgc = major["pgc"]
         return cls(title=pgc["title"], images=[BiliImage(url=pgc["cover"])])
 
     @classmethod
-    def _parse_forward(cls, module_dynamic: dict):
+    def _parse_forward(cls, module_dynamic: dict) -> "BiliDynamic":
         return cls(content=cls._get_desc_text(module_dynamic))
 
     @classmethod
@@ -301,7 +301,7 @@ class BiliDynamic:
         return cls(title=music["title"], images=cls._get_major_cover(music))
 
     @classmethod
-    def _parse_opus(cls, _, major: dict):
+    def _parse_opus(cls, _: dict, major: dict) -> "BiliDynamic":
         opus = major["opus"]
         images = None
         if pics := opus["pics"]:
@@ -362,7 +362,7 @@ class BiliDynamic:
     @staticmethod
     def _get_desc_text(module_dynamic: dict) -> str | None:
         if desc := module_dynamic["desc"]:
-            return desc["text"].strip()
+            return str(desc["text"]).strip()
         return None
 
     @staticmethod

@@ -2,7 +2,7 @@ import asyncio
 import html
 import json
 import re
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 from urllib.parse import urlencode, urlparse
 
 import httpx
@@ -159,7 +159,7 @@ class TikTokWebCrawler:
                 aweme_list = payload.get("aweme_list") or []
                 for item in aweme_list:
                     if str(item.get("aweme_id")) == str(aweme_id):
-                        return item
+                        return cast(dict[str, Any], item)
 
                 if aweme_list:
                     first_id = aweme_list[0].get("aweme_id")

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any, cast
 
 import httpx
 from bs4 import BeautifulSoup, Tag
@@ -15,7 +16,8 @@ class WXConverter(MarkdownConverter):
         src = el.attrs.get("data-src", None) or ""
         title = el.attrs.get("title", None) or ""
         title_part = ' "{}"'.format(title.replace('"', r"\"")) if title else ""
-        if "_inline" in parent_tags and el.parent.name not in self.options["keep_inline_images_in"]:
+        options = cast(dict[str, Any], self.options)
+        if "_inline" in parent_tags and el.parent.name not in options["keep_inline_images_in"]:
             return alt
 
         return f"![{alt}]({src}{title_part})"

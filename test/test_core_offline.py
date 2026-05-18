@@ -8,7 +8,7 @@ from parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResul
 from parsehub.utils.utils import match_url, normalize_cookie, run_sync
 
 
-class DummyParser(BaseParser, register=False):
+class DummyParser(BaseParser):
     __platform__ = Platform.TIEBA
     __supported_type__ = ["测试"]
     __match__ = r"^(https?://)?dummy\.com/items/\d+"
@@ -24,7 +24,7 @@ class DummyParser(BaseParser, register=False):
         return VideoParseResult(title=" Dummy title ", content=" Dummy content ", video="https://cdn.example/video.mp4")
 
 
-class BrokenParser(BaseParser, register=False):
+class BrokenParser(BaseParser):
     __platform__ = Platform.XHS
     __supported_type__ = ["测试"]
     __match__ = r"^(https?://)?broken\.example\.com/items/\d+"
@@ -33,13 +33,18 @@ class BrokenParser(BaseParser, register=False):
         raise ValueError("provider exploded")
 
 
-class ParseErrorParser(BaseParser, register=False):
+class ParseErrorParser(BaseParser):
     __platform__ = Platform.XHS
     __supported_type__ = ["测试"]
     __match__ = r"^(https?://)?parse-error\.example\.com/items/\d+"
 
     async def _do_parse(self, raw_url: str) -> VideoParseResult:
         raise ParseError("already normalized")
+
+
+for _parser in (DummyParser, BrokenParser, ParseErrorParser):
+    if _parser in BaseParser._registry:
+        BaseParser._registry.remove(_parser)
 
 
 class TestCoreUtilities(unittest.TestCase):

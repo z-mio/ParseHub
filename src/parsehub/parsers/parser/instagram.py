@@ -1,5 +1,6 @@
 import asyncio
 import re
+from typing import cast
 
 from instaloader import BadResponseException
 
@@ -84,7 +85,7 @@ class InstagramParser(BaseParser):
                 text = str(e)
             raise ParseError(f"无法获取帖子内容: {text}") from e
         else:
-            return post
+            return cast(MyPost, post)
 
     @staticmethod
     def get_short_code(url: str):

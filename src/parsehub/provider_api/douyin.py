@@ -5,6 +5,7 @@ import random
 import re
 import time
 from random import choice, randint
+from typing import Any, cast
 from urllib.parse import quote, urlencode
 
 import httpx
@@ -21,8 +22,8 @@ POST_DETAIL = "https://www.douyin.com/aweme/v1/web/aweme/detail/"
 
 
 class XBogus:
-    def __init__(self, user_agent: str = None) -> None:
-        self.Array = [
+    def __init__(self, user_agent: str | None = None) -> None:
+        self.Array: list[int | None] = [
             None,
             None,
             None,
@@ -137,7 +138,11 @@ class XBogus:
         array = []
         idx = 0
         while idx < len(md5_str):
-            array.append((self.Array[ord(md5_str[idx])] << 4) | self.Array[ord(md5_str[idx + 1])])
+            high = self.Array[ord(md5_str[idx])]
+            low = self.Array[ord(md5_str[idx + 1])]
+            if high is None or low is None:
+                raise ValueError("Invalid md5 character")
+            array.append((high << 4) | low)
             idx += 2
         return array
 
@@ -284,7 +289,7 @@ class ABogus:
         "s4": "Dkdpgh2ZmsQB80/MfvV36XI1R45-WUAlEixNLwoqYTOPuzKFjJnry79HbGcaStCe",
     }
 
-    def __init__(self, platform: str = None):
+    def __init__(self, platform: str | None = None):
         self.chunk: list[int] = []
         self.size = 0
         self.reg = self.__reg[:]
@@ -609,7 +614,7 @@ class ABogus:
             a.append(cls.__arguments[0] >> j)
         a.extend(
             [
-                cls.__arguments[1] / 256,
+                cls.__arguments[1] // 256,
                 cls.__arguments[1] % 256,
                 cls.__arguments[1] >> 24,
                 cls.__arguments[1] >> 16,
@@ -700,7 +705,7 @@ class ABogus:
 
 
 class DouyinWebCrawler:
-    def __init__(self, cookie: dict, proxy: str | None = None, user_agent: str = None):
+    def __init__(self, cookie: dict, proxy: str | None = None, user_agent: str | None = None):
         self.cookie = cookie
         self.proxy = proxy
         self.user_agent = user_agent or DEFAULT_USER_AGENT
@@ -764,7 +769,7 @@ class DouyinWebCrawler:
                     endpoint = f"{POST_DETAIL}?{urlencode(params)}&a_bogus={quote(a_bogus, safe='')}"
                     response = await client.get(endpoint)
                     response.raise_for_status()
-                    return response.json()
+                    return cast(dict[str, Any], response.json())
                 except Exception as e:
                     if attempt + 1 < 3:
                         await asyncio.sleep(1)

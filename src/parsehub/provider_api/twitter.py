@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal, NamedTuple, Union
+from typing import Literal, NamedTuple
 
 import httpx
 from loguru import logger
@@ -11,7 +13,7 @@ from ..types import ParseError
 
 
 class Twitter:
-    def __init__(self, proxy: str | None = None, cookie: dict = None):
+    def __init__(self, proxy: str | None = None, cookie: dict | None = None):
         self.proxy = proxy
         self.authorization = (
             "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOu"
@@ -19,7 +21,7 @@ class Twitter:
         )
         self.cookie = cookie
 
-    async def fetch_tweet(self, url: str) -> "TwitterTweet":
+    async def fetch_tweet(self, url: str) -> TwitterTweet:
         tweet_id = self.get_id_by_url(url)
         headers = {
             "accept-language": "zh-CN,zh;q=0.9",
@@ -71,7 +73,7 @@ class Twitter:
         response.raise_for_status()
         return self.parse(response.json())
 
-    def parse(self, result: dict):
+    def parse(self, result: dict) -> TwitterTweet:
         if e := result.get("errors"):
             raise Exception(f"error -1: {e[0]['message']}")
 
@@ -164,7 +166,9 @@ class Twitter:
             raise Exception("error -5: 获取 guest_token 失败")
         return guest_token[1]
 
-    def check_cookie(self):
+    def check_cookie(self) -> bool:
+        if not self.cookie:
+            return False
         if not self.cookie.get("ct0"):
             logger.warning("cookie 缺少必要参数: ct0")
             return False
@@ -179,8 +183,8 @@ class TwitterTweet:
         self,
         tweet_id: str,
         full_text: str | None = None,
-        media: list[Union["TwitterVideo", "TwitterPhoto", "TwitterAni"]] | None = None,
-        article: Union["TwitterArticle"] = None,
+        media: list[TwitterVideo | TwitterPhoto | TwitterAni] | None = None,
+        article: TwitterArticle | None = None,
     ):
         self.tweet_id = tweet_id
         self.full_text = re.sub(r"https://t\.co/[^\s,]+$", "", full_text or "") if media else full_text
@@ -192,7 +196,7 @@ class TwitterTweet:
 class TwitterArticle:
     title: str
     content: str
-    media: list[Union["TwitterVideo", "TwitterPhoto"]] | None = None
+    media: list[TwitterVideo | TwitterPhoto] | None = None
 
 
 @dataclass
@@ -256,7 +260,7 @@ class ArticleRenderer:
 
     # ── 公共入口 ──────────────────────────────
 
-    def render(self) -> "TwitterArticle":
+    def render(self) -> TwitterArticle:
         content_state = self._data.get("content_state", {})
         blocks = content_state.get("blocks", [])
         entity_map = {str(item["key"]): item["value"] for item in content_state.get("entityMap", [])}
@@ -329,7 +333,7 @@ class ArticleRenderer:
         mp4s = [v for v in variants if v.get("content_type") == "video/mp4"]
         if not mp4s:
             return ""
-        return max(mp4s, key=lambda v: v.get("bit_rate", 0)).get("url", "")
+        return str(max(mp4s, key=lambda v: v.get("bit_rate", 0)).get("url", ""))
 
     # ── Block 渲染 ────────────────────────────
 

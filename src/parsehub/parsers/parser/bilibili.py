@@ -79,7 +79,7 @@ class BiliParse(YtParser):
             return await super().get_raw_url(url, clean_all=clean_all)
 
     @staticmethod
-    async def is_dynamic(url) -> str | None:
+    async def is_dynamic(url: str) -> str | None:
         """是动态"""
         if re.search(r"\b\d{18,19}\b", url):
             return url
@@ -93,7 +93,7 @@ class BiliParse(YtParser):
                 if "风控" in str(e):
                     raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cookie)}") from e
                 raise ParseError(str(e)) from e
-        return dynamic_info
+        return cast(BiliDynamic, dynamic_info)
 
     async def bili_api_parse(self, url) -> BiliVideoParseResult | ImageParseResult:
         async with BiliAPI(proxy=self.proxy) as bili:

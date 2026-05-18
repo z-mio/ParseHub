@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         args = parser.parse_args(_normalize_argv(raw_argv))
         _finalize_output_args(args)
-        return args.func(args)
+        return int(args.func(args))
     except SystemExit as e:
         return _normalize_exit_code(e.code)
     except ValueError as e:
@@ -365,14 +365,15 @@ def _cookie_prompt() -> Any:
 
 def _load_platform_config(platform_id: str | None) -> PlatformConfig:
     if not platform_id:
-        return _platform_config_type()()
-    return _config_store().get_platform(platform_id)
+        return cast("PlatformConfig", _platform_config_type()())
+    return cast("PlatformConfig", _config_store().get_platform(platform_id))
 
 
 def _load_cookie(platform_id: str | None) -> str | None:
     if not platform_id:
         return None
-    return _cookie_store().get(platform_id)
+    value = _cookie_store().get(platform_id)
+    return value if isinstance(value, str) or value is None else str(value)
 
 
 def _detect_platform_id(hub: Any, url_or_text: str) -> str | None:
