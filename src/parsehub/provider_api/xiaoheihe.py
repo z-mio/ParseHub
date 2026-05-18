@@ -356,7 +356,7 @@ class XHHConverter(MarkdownConverter):
         src = el.attrs.get("data-original", None) or ""
         title = el.attrs.get("title", None) or ""
         title_part = ' "{}"'.format(title.replace('"', r"\"")) if title else ""
-        options = cast(dict[str, Any], self.options)
+        options = cast(dict[str, Any], getattr(self, "options"))
         if "_inline" in parent_tags and el.parent.name not in options["keep_inline_images_in"]:
             return alt
 
