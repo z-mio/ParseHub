@@ -11,7 +11,7 @@ from ..types import ParseError
 
 
 class WXConverter(MarkdownConverter):
-    def convert_img(self, el, text, parent_tags):
+    def convert_img(self, el: Any, text: Any, parent_tags: Any) -> str:
         alt = el.attrs.get("alt", None) or ""
         src = el.attrs.get("data-src", None) or ""
         title = el.attrs.get("title", None) or ""
@@ -31,7 +31,7 @@ class WX:
     text_content: str
 
     @staticmethod
-    async def parse(url: str, proxy: str | None = None):
+    async def parse(url: str, proxy: str | None = None) -> "WX":
         async with httpx.AsyncClient(proxy=proxy) as client:
             response = await client.get(url, headers={"User-Agent": GlobalConfig.ua})
             html = response.text

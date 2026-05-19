@@ -2,6 +2,7 @@ import importlib
 import pkgutil
 import re
 from abc import ABC, abstractmethod
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
@@ -34,7 +35,7 @@ class BaseParser(ABC):
         self.proxy = proxy
         self.cookie = normalize_cookie(cookie)
 
-    def __init_subclass__(cls, /, register: bool = True, **kwargs):
+    def __init_subclass__(cls, /, register: bool = True, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if register:
             if not cls.__platform__:

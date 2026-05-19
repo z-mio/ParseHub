@@ -1,6 +1,6 @@
 import re
 from collections.abc import Iterator
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import requests
 from instaloader import InstaloaderContext, InstaloaderException, Post
@@ -15,7 +15,7 @@ class MyPostSidecarNode(NamedTuple):
 
 
 class MyPost(Post):
-    def get_sidecar_nodes(self, start=0, end=-1) -> Iterator[MyPostSidecarNode]:  # type: ignore[override]
+    def get_sidecar_nodes(self, start: int = 0, end: int = -1) -> Iterator[MyPostSidecarNode]:  # type: ignore[override]
         if self.typename == "GraphSidecar":
             edges = self._field("edge_sidecar_to_children", "edges")
             if end < 0:
@@ -67,7 +67,7 @@ class MyInstaloaderContext(InstaloaderContext):
             session.trust_env = False
         return session
 
-    def get_json(self, *args, **kwargs):
+    def get_json(self, *args: Any, **kwargs: Any) -> Any:
         session = kwargs.get("session")
         if isinstance(session, requests.Session):
             if self.proxy:

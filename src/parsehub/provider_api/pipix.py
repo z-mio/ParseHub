@@ -14,7 +14,7 @@ class Pipix:
     def __init__(self, proxy: str | None = None):
         self.proxy = proxy
 
-    async def parse(self, t_url) -> "PipixPost":
+    async def parse(self, t_url: str) -> "PipixPost":
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             resp = await client.get(t_url, headers={"User-Agent": GlobalConfig.ua})
             resp.raise_for_status()

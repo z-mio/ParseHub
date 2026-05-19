@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, cast
 
 import httpx
 from bs4 import BeautifulSoup
@@ -13,12 +16,12 @@ class XHSAPI:
         self.proxy = proxy
         self.cookie = cookie
 
-    async def __fetch_html(self, url: str):
+    async def __fetch_html(self, url: str) -> str:
         async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie) as client:
             return (await client.get(url, timeout=30)).text
 
     @staticmethod
-    async def __extract_data(html: str):
+    async def __extract_data(html: str) -> dict[str, Any]:
         soup = BeautifulSoup(html, "lxml")
         scripts = [
             script for script in soup.find_all("script") if script.text.lstrip().startswith("window.__INITIAL_STATE__")
@@ -29,9 +32,9 @@ class XHSAPI:
         json_data = script.replace("window.__INITIAL_STATE__=", "")
         json_data = re.sub(r"\bundefined\b", "null", json_data)  # 清理js对象
         data = json.loads(json_data)
-        return data
+        return cast(dict[str, Any], data)
 
-    def __parse(self, data: dict):
+    def __parse(self, data: dict[str, Any]) -> XHSPost:
         if not data.get("note"):
             raise ValueError("该帖子需要登录后查看")
         first_note_id = data["note"]["firstNoteId"]
@@ -44,7 +47,7 @@ class XHSAPI:
         return XHSPost(type=self.__get_post_type(note), title=title, desc=desc, media=self.__parse_media(note))
 
     @staticmethod
-    def __get_post_type(note: dict):
+    def __get_post_type(note: dict[str, Any]) -> XHSPostType:
         type_ = note["type"]
 
         match type_:
@@ -56,18 +59,18 @@ class XHSAPI:
                 return XHSPostType.UNKNOWN
 
     @staticmethod
-    def __select_stream(stream: dict):
+    def __select_stream(stream: dict[str, Any]) -> list[dict[str, Any]] | None:
         if stream["h264"]:
-            return stream["h264"]
+            return cast(list[dict[str, Any]], stream["h264"])
         elif stream["av1"]:
-            return stream["av1"]
+            return cast(list[dict[str, Any]], stream["av1"])
         elif stream["h265"]:
-            return stream["h265"]
+            return cast(list[dict[str, Any]], stream["h265"])
         elif stream["h266"]:
-            return stream["h266"]
+            return cast(list[dict[str, Any]], stream["h266"])
         return None
 
-    def __parse_media(self, note: dict):
+    def __parse_media(self, note: dict[str, Any]) -> list[XHSMedia]:
         media_list = []
         il = note.get("imageList") or []
         video = note.get("video")
@@ -113,7 +116,7 @@ class XHSAPI:
                 media_list.append(image)
         return media_list
 
-    async def extract(self, url: str):
+    async def extract(self, url: str) -> XHSPost:
         html = await self.__fetch_html(url)
         return self.__parse(await self.__extract_data(html))
 
@@ -150,7 +153,7 @@ class XHSPost:
 
 if __name__ == "__main__":
 
-    async def main():
+    async def main() -> None:
         url = "https://www.xiaohongshu.com/explore/68fe2018000000000303a844?xsec_token=ABgAb-5vt3L-aTqeEjdxJP_ylf02hY5n2f-y75yMQWrUo=&xsec_source=pc_search&source=web_explore_feed"
         xhs = XHSAPI()
         print(await xhs.extract(url))

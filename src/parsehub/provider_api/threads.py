@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import random
 import re
@@ -14,7 +16,7 @@ class ThreadsAPI:
     def __init__(self, proxy: str | None = None):
         self.proxy = proxy
 
-    async def parse(self, url: str):
+    async def parse(self, url: str) -> ThreadsPost:
         lsd = self.random_lsd()
         headers = {
             "content-type": "application/x-www-form-urlencoded",
@@ -78,7 +80,7 @@ class ThreadsPost:
     media: ThreadsMedia | list[ThreadsMedia] | None = None
 
     @classmethod
-    def parse(cls, jsonp: list[dict]) -> "ThreadsPost":
+    def parse(cls, jsonp: list[dict]) -> ThreadsPost:
         content = ""
         media: ThreadsMedia | list[ThreadsMedia] | None = []
         for j in jsonp:

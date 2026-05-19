@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import cast
+from typing import Any, cast
 
 from instaloader import BadResponseException
 
@@ -57,7 +57,7 @@ class InstagramParser(BaseParser):
             case _:
                 raise ParseError("不支持的类型")
 
-    async def _parse(self, url, shortcode, cookie=None) -> MyPost:
+    async def _parse(self, url: str, shortcode: str, cookie: dict[str, Any] | None = None) -> MyPost:
         try:
             post = await asyncio.wait_for(
                 asyncio.to_thread(
@@ -88,7 +88,7 @@ class InstagramParser(BaseParser):
             return cast(MyPost, post)
 
     @staticmethod
-    def get_short_code(url: str):
+    def get_short_code(url: str) -> str | None:
         url = url.removesuffix("/")
         shortcode = re.search(r"/(share|p|reel|.*/p|.*/reel)/(.*)", url)
         return shortcode.group(2).split("/")[0] if shortcode else None

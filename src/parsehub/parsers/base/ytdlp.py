@@ -1,6 +1,8 @@
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 from yt_dlp import YoutubeDL
 
@@ -30,7 +32,7 @@ def switch_ytdlp_proxy(ydl: YoutubeDL, proxy: str | None) -> None:
         director.close()
 
 
-def download_video(yto_params: dict, url: str, proxy: str | None = None) -> None:
+def download_video(yto_params: dict[str, Any], url: str, proxy: str | None = None) -> None:
     """在独立线程中下载视频"""
     try:
         with YoutubeDL(yto_params) as ydl:
@@ -43,14 +45,16 @@ def download_video(yto_params: dict, url: str, proxy: str | None = None) -> None
 
 
 class MonotonicDownloadProgress:
-    def __init__(self, emit, *, start: float = 0.0, end: float = 100.0, min_step: float = 0.1):
+    def __init__(
+        self, emit: Callable[[float], None], *, start: float = 0.0, end: float = 100.0, min_step: float = 0.1
+    ) -> None:
         self.emit = emit
         self.start = start
         self.end = end
         self.min_step = min_step
         self.current = start
 
-    def __call__(self, d: dict):
+    def __call__(self, d: dict[str, Any]) -> None:
         status = d.get("status")
 
         if status == "downloading":
@@ -106,7 +110,7 @@ class YtParser(BaseParser, register=False):
             ),
         )
 
-    async def _parse(self, url) -> "YtVideoInfo":
+    async def _parse(self, url: str) -> "YtVideoInfo":
         try:
             dl = await asyncio.wait_for(asyncio.to_thread(self._extract_info, url), timeout=30)
         except TimeoutError as e:
@@ -136,20 +140,20 @@ class YtParser(BaseParser, register=False):
             proxy=self.proxy,
         )
 
-    def _extract_info(self, url):
+    def _extract_info(self, url: str) -> dict[str, Any]:
         params = self.params.copy()
         if self.proxy:
             params["proxy"] = self.proxy
 
         try:
             with YoutubeDL(params) as ydl:
-                return ydl.extract_info(url, download=False)
+                return cast(dict[str, Any], ydl.extract_info(url, download=False))
         except Exception as e:
             error_msg = f"{type(e).__name__}: {str(e)}"
             raise RuntimeError(error_msg) from None
 
     @property
-    def params(self) -> dict:
+    def params(self) -> dict[str, Any]:
         params = {
             "format": "mp4+bestvideo[height<=1080]+bestaudio",
             "quiet": True,  # 不输出日志
@@ -170,9 +174,9 @@ class YtVideoParseResult(VideoParseResult):
     def __init__(
         self,
         dl: "YtVideoInfo",
-        title,
-        video=None,
-        content=None,
+        title: str | None,
+        video: VideoRef | None = None,
+        content: str | None = None,
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl
@@ -201,7 +205,7 @@ class YtVideoParseResult(VideoParseResult):
         if callback:
             loop = asyncio.get_running_loop()
 
-            def _callback(count: float):
+            def _callback(count: float) -> None:
                 asyncio.run_coroutine_threadsafe(
                     callback(int(count), 100, "bytes", *callback_args, **callback_kwargs), loop
                 )
@@ -237,7 +241,7 @@ class YtVideoParseResult(VideoParseResult):
             output_dir,
         )
 
-    async def _run_download(self, paramss: dict, count: int = 0, *, proxy: str | None = None) -> None:
+    async def _run_download(self, paramss: dict[str, Any], count: int = 0, *, proxy: str | None = None) -> None:
         if count > 2:
             raise DownloadError("下载失败 -2")
 

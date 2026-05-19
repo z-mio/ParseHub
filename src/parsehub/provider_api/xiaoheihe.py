@@ -1,3 +1,4 @@
+# mypy: disable-error-code=no-untyped-def
 import base64
 import gzip
 import hashlib
@@ -447,8 +448,8 @@ class SecuritySm:
                 rule = cls.DES_RULE[i]
                 res = o[i]
                 if rule["is_encrypt"] == 1:
-                    key = str(rule["key"])
-                    c = Cipher(TripleDES(key.encode("utf-8")), ECB())
+                    key = str(rule["key"]).encode("utf-8")
+                    c = Cipher(TripleDES(key * 3), ECB())
                     data = str(res).encode("utf-8")
                     # 补足字节
                     data += b"\x00" * 8

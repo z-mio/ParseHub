@@ -31,6 +31,8 @@ class XHSParser(BaseParser):
         desc = self.hashtag_handler(result.desc)
         match result.type:
             case XHSPostType.VIDEO:
+                if not result.media:
+                    raise ParseError("未获取到视频")
                 v: XHSMedia = result.media[0]
                 return VideoParseResult(
                     video=VideoRef(
@@ -40,10 +42,13 @@ class XHSParser(BaseParser):
                     content=desc,
                 )
             case XHSPostType.IMAGE:
+                media_list = result.media or []
                 photos: list[ImageRef | LivePhotoRef] = []
-                for i in result.media:
+                for i in media_list:
                     if i.type == XHSMediaType.LIVE_PHOTO:
-                        photos.append(LivePhotoRef(url=i.thumb_url, video_url=i.url, width=i.width, height=i.height))
+                        photos.append(
+                            LivePhotoRef(url=i.thumb_url or "", video_url=i.url, width=i.width, height=i.height)
+                        )
                     else:
                         # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"
                         ext = await self.get_ext_by_url(i.url)
@@ -61,7 +66,7 @@ class XHSParser(BaseParser):
             case _:
                 raise ParseError("不支持的类型")
 
-    async def get_ext_by_url(self, url: str):
+    async def get_ext_by_url(self, url: str) -> str:
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             try:
                 response = await client.head(url, follow_redirects=True)
@@ -72,12 +77,12 @@ class XHSParser(BaseParser):
                 media_type = content_type.split(";")[0].strip()
                 if "/" in media_type:
                     extension = media_type.split("/")[-1]
-                    return extension
+                    return str(extension)
 
             return ""
 
     @staticmethod
-    def hashtag_handler(desc: str | None):
+    def hashtag_handler(desc: str | None) -> str:
         if not desc:
             return ""
         hashtags = re.findall(r" ?#[^#\[\]]+\[话题]# ?", desc)

@@ -13,7 +13,7 @@ logger.disable(__name__)
 
 
 class ParseHub:
-    def __init__(self):
+    def __init__(self) -> None:
         self.parsers: list[type[BaseParser]] = BaseParser.get_registry()
 
     async def parse(self, url: str, *, proxy: str | None = None, cookie: str | dict | None = None) -> AnyParseResult:
@@ -185,7 +185,7 @@ class ParseHub:
                 return parser
         return None
 
-    def get_parser(self, url) -> type[BaseParser] | None:
+    def get_parser(self, url: str) -> type[BaseParser] | None:
         """获取解析器
         :param url: 分享文案 / 分享链接
         """
@@ -193,7 +193,7 @@ class ParseHub:
             return parser
         return None
 
-    def get_platform(self, url) -> Platform | None:
+    def get_platform(self, url: str) -> Platform | None:
         """获取平台
         :param url: 分享文案 / 分享链接
         """

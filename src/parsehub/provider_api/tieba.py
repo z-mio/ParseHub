@@ -16,7 +16,7 @@ class TieBa:
         return TieBaPost.parse(data)
 
     @staticmethod
-    def gen_sign(params: dict):
+    def gen_sign(params: dict[str, Any]) -> str:
         items = sorted(params.items())
         base_str = "".join([f"{k}={v}" for k, v in items])
         salt = "36770b1f34c9bbf2e7d1a99d2b82fa9e"

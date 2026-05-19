@@ -91,7 +91,7 @@ class WeiboParser(BaseParser):
         return text.strip()
 
     @staticmethod
-    def hashtag_handler(desc: str):
+    def hashtag_handler(desc: str) -> str:
         hashtags = re.findall(r" ?#[^#]+# ?", desc)
         for hashtag in hashtags:
             desc = desc.replace(hashtag, f" {hashtag.strip().removesuffix('#')} ")

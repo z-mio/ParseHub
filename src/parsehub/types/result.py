@@ -5,7 +5,7 @@ from abc import ABC
 from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import aiofiles
 from bs4 import BeautifulSoup
@@ -47,7 +47,7 @@ class ParseResult(ABC):  # noqa: B024
         self.media = media
         self.platform = platform
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         media_items = self.media if isinstance(self.media, Sequence) else [self.media]
         media_count = f"[{len(media_items)}]" if self.media else None
         return (
@@ -106,7 +106,7 @@ class ParseResult(ABC):  # noqa: B024
             dl_progress_kwargs: dict = {}
             if callback and is_single:
 
-                async def _byte_callback(current, total, *args, **kwargs):
+                async def _byte_callback(current: int, total: int, *args: Any, **kwargs: Any) -> None:
                     await callback(current, total, "bytes", *args, **kwargs)
 
                 dl_progress = _byte_callback
@@ -330,7 +330,7 @@ class RichTextParseResult(ParseResult):
         self.markdown_content = markdown_content or ""
         super().__init__(title=title, media=media, content=self.plaintext_content)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         media_items = self.media if isinstance(self.media, Sequence) else [self.media]
         media_count = f"[{len(media_items)}]" if self.media else None
         return (
@@ -365,13 +365,13 @@ class DownloadResult:
         self.media = media
         self.output_dir = Path(output_dir).resolve()
 
-    def delete(self):
+    def delete(self) -> None:
         try:
             shutil.rmtree(self.output_dir)
         except Exception as e:
             raise DeleteError(f"目录删除失败: {self.output_dir}") from e
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(media={self.media}, output_dir={self.output_dir})"
 
 

@@ -125,7 +125,7 @@ class KuaiShouAPI:
             return KuaiShouVideo.parse(cast(dict[str, Any], data))
 
     @staticmethod
-    def get_video_id(url: str):
+    def get_video_id(url: str) -> str:
         if "/photo/" in url:
             raise ValueError("暂不支持图文解析")
         return url.split("/")[-1]

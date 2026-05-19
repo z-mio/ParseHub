@@ -58,7 +58,7 @@ class BiliParse(YtParser):
                     raise ParseError("Bilibili 解析失败") from e
 
     @staticmethod
-    def _is_bvid(url: str):
+    def _is_bvid(url: str) -> bool:
         if url.lower().startswith("bv"):
             return True
         else:
@@ -95,7 +95,7 @@ class BiliParse(YtParser):
                 raise ParseError(str(e)) from e
         return cast(BiliDynamic, dynamic_info)
 
-    async def bili_api_parse(self, url) -> BiliVideoParseResult | ImageParseResult:
+    async def bili_api_parse(self, url: str) -> BiliVideoParseResult | ImageParseResult:
         async with BiliAPI(proxy=self.proxy) as bili:
             video_info = await bili.get_video_info(url)
 
@@ -138,16 +138,16 @@ class BiliParse(YtParser):
             ),
         )
 
-    async def ytp_parse(self, url) -> YtVideoParseResult:
+    async def ytp_parse(self, url: str) -> YtVideoParseResult:
         result = cast(YtVideoParseResult, await super()._do_parse(url))
         return YtVideoParseResult(
             title=result.title,
             dl=result.dl,
-            video=result.media,
+            video=cast(VideoRef | None, result.media),
         )
 
     @staticmethod
-    def change_source(url: str):
+    def change_source(url: str) -> str:
         return re.sub(
             r"upos-.*.(bilivideo.com|mirrorakam.akamaized.net)",
             "upos-sz-upcdnbda2.bilivideo.com",

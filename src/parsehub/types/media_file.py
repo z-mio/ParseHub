@@ -17,7 +17,7 @@ class MediaFile:
     width: int = 0
     height: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.width:
             info = MediaInfoReader.read(path=self.path)
             self.width = info.width
@@ -40,7 +40,7 @@ class VideoFile(MediaFile):
 
     duration: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.width or not self.duration:
             info = MediaInfoReader.read(path=self.path)
             self.width = info.width
@@ -70,7 +70,7 @@ class AniFile(MediaFile):
 
     duration: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.width or not self.duration:
             info = MediaInfoReader.read(path=self.path)
             self.width = info.width
@@ -92,7 +92,7 @@ class LivePhotoFile(MediaFile):
     video_path: str | Path | None = None
     duration: int = 3
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.width or not self.duration:
             info = MediaInfoReader.read(path=self.video_path or self.path)
             self.width = info.width

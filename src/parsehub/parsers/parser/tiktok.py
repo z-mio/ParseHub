@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Self, Union
+from typing import Any, Self, Union
 
 from ... import ProgressCallback
 from ...provider_api.tiktok import TikTokWebCrawler
@@ -110,7 +110,7 @@ def preferred_video_url(data: dict | str | list | None) -> str | None:
     return next((url for url in urls if "aweme" in url), None) or (urls[0] if urls else None)
 
 
-def as_int(value) -> int:
+def as_int(value: Any) -> int:
     try:
         return int(value or 0)
     except (TypeError, ValueError):

@@ -29,7 +29,7 @@ def match_url(text: str) -> str:
     return url[0] if url else ""
 
 
-def cookie_ellipsis(cookie: dict) -> str:
+def cookie_ellipsis(cookie: dict[str, Any] | None) -> str:
     if not cookie:
         return ""
     text = "; ".join([f"{k}={v}" for k, v in cookie.items()])
@@ -37,7 +37,7 @@ def cookie_ellipsis(cookie: dict) -> str:
     return f"{text[:c]}......{text[-c:]}"
 
 
-def normalize_cookie(v):
+def normalize_cookie(v: str | dict[str, Any] | None) -> dict[str, Any] | None:
     if v is None or isinstance(v, dict):
         return v
     if isinstance(v, str):

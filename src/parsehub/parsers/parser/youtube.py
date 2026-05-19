@@ -13,7 +13,7 @@ class YtbParse(YtParser):
     __reserved_parameters__ = ["v", "list", "index"]
 
     @property
-    def params(self):
+    def params(self) -> dict[str, Any]:
         sub: dict[str, Any] = {
             # "writesubtitles": True, # 下载字幕
             # "writeautomaticsub": True, # 下载自动生成的字幕

@@ -4,6 +4,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from inspect import signature
+from typing import Any
 
 import httpx
 
@@ -264,7 +265,7 @@ class Data:
         return Data.from_kwargs(**data_dict)
 
     @classmethod
-    def from_kwargs(cls, **kwargs) -> "Data":
+    def from_kwargs(cls, **kwargs: Any) -> "Data":
         cls_fields = set(signature(cls).parameters)
 
         native_args, new_args = {}, {}

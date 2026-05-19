@@ -22,9 +22,9 @@ class Platform(Enum):
     YOUTUBE = ("youtube", "Youtube")
     ZUIYOU = ("zuiyou", "最右")
 
-    def __init__(self, platform_id: str, platform_name: str):
+    def __init__(self, platform_id: str, platform_name: str) -> None:
         self.id = platform_id
         self.display_name = platform_name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.display_name

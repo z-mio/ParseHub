@@ -1,4 +1,4 @@
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 ProgressUnit = Literal["bytes", "count"]
 
@@ -6,7 +6,7 @@ ProgressUnit = Literal["bytes", "count"]
 class ProgressCallback(Protocol):
     """下载进度回调: (current, total, unit, *args) -> None"""
 
-    async def __call__(self, current: int, total: int, unit: ProgressUnit, *args, **kwargs) -> None:
+    async def __call__(self, current: int, total: int, unit: ProgressUnit, *args: Any, **kwargs: Any) -> None:
         """
         下载进度回调
         Args:
