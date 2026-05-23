@@ -17,7 +17,7 @@ from ..base.base import BaseParser
 class WeiboParser(BaseParser):
     __platform__ = Platform.WEIBO
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)(m\.|)weibo.(com|cn)/(?!(u/)).+"
+    __match__ = r"^(http(s)?://)((m\.|)weibo\.(com|cn)/(?!(u/)).+|mapp\.api\.weibo\.cn/fx/.+)"
 
     async def _do_parse(self, raw_url: str) -> MultimediaParseResult | VideoParseResult | ImageParseResult:
         weibo = await WeiboAPI(self.proxy).parse(raw_url)
