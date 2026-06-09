@@ -48,8 +48,9 @@ class ParseResult(ABC):  # noqa: B024
         self.platform = platform
 
     def __repr__(self) -> str:
-        media_items = self.media if isinstance(self.media, Sequence) else [self.media]
-        media_count = f"[{len(media_items)}]" if self.media else None
+        media_count = (
+            f"[{len(self.media if isinstance(self.media, Sequence) else [self.media])}]" if self.media else None
+        )
         return (
             f"{self.__class__.__name__}(platform={self.platform}, title={self.title or ''},"
             f" content={self.content or ''}, media={media_count}, "
@@ -356,7 +357,7 @@ class RichTextParseResult(ParseResult):
 
 
 class DownloadResult:
-    def __init__(self, media: AnyMediaFile | list[AnyMediaFile], output_dir: str | Path):
+    def __init__(self, media: AnyMediaFile | Sequence[AnyMediaFile], output_dir: str | Path):
         """
         下载结果
         :param media: 本地媒体路径
@@ -372,7 +373,10 @@ class DownloadResult:
             raise DeleteError(f"目录删除失败: {self.output_dir}") from e
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(media={self.media}, output_dir={self.output_dir})"
+        media_count = (
+            f"[{len(self.media if isinstance(self.media, Sequence) else [self.media])}]" if self.media else None
+        )
+        return f"{self.__class__.__name__}(media={media_count}, output_dir={self.output_dir})"
 
 
 AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult
