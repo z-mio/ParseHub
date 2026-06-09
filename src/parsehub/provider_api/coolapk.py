@@ -32,9 +32,9 @@ class Coolapk:
             return cls(title, markdown_content, text_content, imgs)
 
         feed_element = soup.find(class_="feed-message")
-        if feed_element and (content := feed_element.text.strip()):
+        if feed_element and (feed_content := feed_element.text.strip()):
             message_image_group = soup.find(class_="message-image-group")
             imgs = [f"https:{i['src']}" for i in message_image_group.find_all("img")] if message_image_group else []
-            return cls(None, None, content, imgs)
+            return cls(None, None, feed_content, imgs)
 
         raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
