@@ -53,7 +53,7 @@
 ### CLI 安装
 
 ```bash
-pipx install "parsehub[cli]"
+uv tool install "parsehub[cli]"
 ph -v
 ```
 
@@ -63,12 +63,8 @@ ph -v
 # uv
 uv add parsehub
 
-# pip
-pip install parsehub
-
 # 需要完整 CLI 能力时，可安装 `cli` 扩展
 uv add "parsehub[cli]"
-pip install "parsehub[cli]"
 ```
 
 ## 🚀 快速开始
