@@ -29,7 +29,6 @@ class Twitter:
             "authorization": self.authorization,
             "content-type": "application/json",
             "user-agent": GlobalConfig.ua,
-            "x-guest-token": await self.get_guest_token(url),
             "x-twitter-active-user": "yes",
             "x-twitter-client-language": "zh-cn",
         }
@@ -157,15 +156,6 @@ class Twitter:
         if not match:
             raise ValueError(f"Invalid tweet url: {url}")
         return match[1]
-
-    async def get_guest_token(self, url: str):
-        async with httpx.AsyncClient(proxy=self.proxy) as client:
-            response = await client.post(url)
-            response.raise_for_status()
-        guest_token = re.search(r'cookie="gt=(\d+);', response.text)
-        if not guest_token:
-            raise Exception("error -5: 获取 guest_token 失败")
-        return guest_token[1]
 
     def check_cookie(self) -> bool:
         if not self.cookie:
