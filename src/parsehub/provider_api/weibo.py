@@ -12,9 +12,6 @@ import httpx
 
 
 class WeiboAPI:
-    _MAPP_FX_NETLOC = "mapp.api.weibo.cn"
-    _STATUS_PATH_PATTERN = re.compile(r"^/status/([^/?#]+)")
-
     def __init__(self, proxy: str | None = None):
         self.proxy = proxy
 
@@ -27,7 +24,7 @@ class WeiboAPI:
 
     async def resolve_url(self, url: str) -> str:
         parsed = urlparse(url)
-        if parsed.hostname != self._MAPP_FX_NETLOC or not parsed.path.startswith("/fx/"):
+        if parsed.hostname != "mapp.api.weibo.cn" or not parsed.path.startswith("/fx/"):
             return url
 
         async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=False, timeout=30) as client:
@@ -39,7 +36,7 @@ class WeiboAPI:
     async def get_id_by_url_async(self, url: str) -> str | None:
         url = await self.resolve_url(url)
         parsed = urlparse(url)
-        if match := self._STATUS_PATH_PATTERN.match(parsed.path):
+        if match := re.compile(r"^/status/([^/?#]+)").match(parsed.path):
             return match.group(1)
         return self.get_id_by_url(url)
 
