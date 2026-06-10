@@ -297,7 +297,8 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://weibo.com/1234567890/Nexample",
                 "https://weibo.com/detail/1234567890123456",
                 "https://m.weibo.cn/status/Nexample",
-                "https://weibo.cn/status/Nexample",
+                "https://video.weibo.com/show?fid=1034:5307969483767845",
+                "https://weibo.com/tv/show/1034:5307969483767845",
             ],
             Platform.WEIXIN: [
                 "https://mp.weixin.qq.com/s/example",

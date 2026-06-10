@@ -1,6 +1,6 @@
 import re
 
-from ...provider_api.weibo import MediaType, MixMediaInfoItem, PicInfo, WeiboAPI
+from ...provider_api.weibo import MediaType, MixMediaInfoItem, PicInfo, WeiboAPI, WeiboTVContent
 from ...types import (
     AniRef,
     ImageParseResult,
@@ -17,10 +17,21 @@ from ..base.base import BaseParser
 class WeiboParser(BaseParser):
     __platform__ = Platform.WEIBO
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)((m\.|)weibo\.(com|cn)/(?!(u/)).+|mapp\.api\.weibo\.cn/fx/.+)"
+    __match__ = r"^(http(s)?://)((m\.|video\.|)weibo\.(com|cn)/(?!(u/)).+|mapp\.api\.weibo\.cn/fx/.+)"
+    __reserved_parameters__ = ["fid"]
 
     async def _do_parse(self, raw_url: str) -> MultimediaParseResult | VideoParseResult | ImageParseResult:
         weibo = await WeiboAPI(self.proxy).parse(raw_url)
+        if isinstance(weibo, WeiboTVContent):
+            return VideoParseResult(
+                content=self.f_text(weibo.text),
+                video=VideoRef(
+                    url=weibo.video_url,
+                    thumb_url=weibo.cover_image,
+                    duration=int(weibo.video_duration),
+                ),
+            )
+
         data = weibo.data
         text = self.f_text(data.content)
         media: list[VideoRef | ImageRef | LivePhotoRef | AniRef] = []

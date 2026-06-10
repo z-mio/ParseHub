@@ -5,7 +5,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from inspect import signature
-from typing import Any
+from typing import Any, Self, Union
 from urllib.parse import urlparse
 
 import httpx
@@ -14,43 +14,83 @@ import httpx
 class WeiboAPI:
     def __init__(self, proxy: str | None = None):
         self.proxy = proxy
+        self._cookies = {
+            "SUB": "_2AkMR47Mlf8NxqwFRmfocxG_lbox2wg7EieKnv0L-JRMxHRl-yT9yqhFdtRB6OmOdyoia9pKPkqoHRRmSBA_WNPaHuybH",
+        }
+
+    @staticmethod
+    def is_tv(url: str) -> bool:
+        if "/tv/show" in url:
+            return True
+        return False
 
     async def resolve_url(self, url: str) -> str:
         parsed = urlparse(url)
-        if parsed.hostname != "mapp.api.weibo.cn" or not parsed.path.startswith("/fx/"):
-            return url
 
-        async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=False, timeout=30) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-        return response.headers.get("location") or url
+        async def fn() -> str:
+            async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=False, timeout=30) as client:
+                response = await client.get(url)
+                if response.is_error:
+                    response.raise_for_status()
+            return response.headers.get("location") or url
+
+        if parsed.hostname == "mapp.api.weibo.cn" and parsed.path.startswith("/fx/"):
+            return await fn()
+        if parsed.hostname == "video.weibo.com" and parsed.path.startswith("/show"):
+            return await fn()
+        return url
 
     async def get_id_by_url(self, url: str) -> str | None:
-        url = await self.resolve_url(url)
         parsed = urlparse(url)
         if match := re.compile(r"^/status/([^/?#]+)").match(parsed.path):
             return match[1]
 
-        bid = url.split("/")[-1]
-        if bid.isdigit() or len(bid) == 9:
-            return bid
+        id_ = parsed.path.split("/")[-1]
+
+        if self.is_tv(url) and len(id_) == 21:
+            return id_
+
+        if id_.isdigit() or len(id_) == 9:
+            return id_
         return None
 
-    async def parse(self, url: str) -> "WeiboContent":
-        bid = await self.get_id_by_url(url)
-        if not bid:
-            raise ValueError("Invalid URL")
+    async def statuses_show(self, bid: str) -> dict:
         headers = {
             "referer": "https://weibo.com",
         }
-        cookies = {
-            "SUB": "_2AkMR47Mlf8NxqwFRmfocxG_lbox2wg7EieKnv0L-JRMxHRl-yT9yqhFdtRB6OmOdyoia9pKPkqoHRRmSBA_WNPaHuybH",
-        }
         api = f"https://weibo.com/ajax/statuses/show?id={bid}&isGetLongText=true"
         async with httpx.AsyncClient(proxy=self.proxy) as client:
-            response = await client.get(api, cookies=cookies, headers=headers)
+            response = await client.get(api, cookies=self._cookies, headers=headers)
             response.raise_for_status()
-            result = response.json()
+            result: dict = response.json()
+            return result
+
+    async def tv_show(self, oid: str) -> dict:
+        headers = {
+            "content-type": "application/x-www-form-urlencoded",
+            "referer": "https://weibo.com/tv/home",
+        }
+        params = {
+            "page": f"/tv/show/{oid}",
+        }
+        data = {"data": f'{{"Component_Play_Playinfo":{{"oid":"{oid}"}}}}'}
+        async with httpx.AsyncClient(proxy=self.proxy) as client:
+            response = await client.post(
+                "https://weibo.com/tv/api/component", cookies=self._cookies, headers=headers, data=data, params=params
+            )
+            response.raise_for_status()
+            result: dict = response.json()
+            return result
+
+    async def parse(self, url: str) -> Union["WeiboContent", "WeiboTVContent"]:
+        resolve_url = await self.resolve_url(url)
+        id_ = await self.get_id_by_url(resolve_url)
+        if not id_:
+            raise ValueError("Invalid URL")
+        if self.is_tv(resolve_url):
+            result = await self.tv_show(id_)
+            return WeiboTVContent.parse(result)
+        result = await self.statuses_show(id_)
         return WeiboContent.parse(result)
 
 
@@ -310,11 +350,31 @@ class Data:
 class WeiboContent:
     data: Data
 
-    @staticmethod
-    def parse(json_dict: dict) -> "WeiboContent":
+    @classmethod
+    def parse(cls, json_dict: dict) -> Self:
         data = Data.parse(json_dict)
-        return WeiboContent(data=data)
+        return cls(data=data)
+
+
+@dataclass
+class WeiboTVContent:
+    text: str
+    video_url: str
+    video_duration: float
+    cover_image: str
+
+    @classmethod
+    def parse(cls, json_dict: dict) -> Self:
+        data = json_dict["data"]
+        cpp = data["Component_Play_Playinfo"]
+
+        cover_image = f"https:{cpp['cover_image']}"
+        duration_time = cpp["duration_time"]
+        text = cpp["text"]
+        urls: dict[str, str] = cpp["urls"]
+        video_url = f"https:{list(urls.values())[0]}"
+        return cls(text=text, video_url=video_url, video_duration=duration_time, cover_image=cover_image)
 
 
 if __name__ == "__main__":
-    print(asyncio.run(WeiboAPI().parse("https://weibo.com/6576374129/Qv0n8sXum")))
+    print(asyncio.run(WeiboAPI().parse("https://weibo.com/tv/show/1034:5306598453608528")))
