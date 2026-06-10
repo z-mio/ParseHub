@@ -15,13 +15,6 @@ class WeiboAPI:
     def __init__(self, proxy: str | None = None):
         self.proxy = proxy
 
-    @staticmethod
-    def get_id_by_url(url: str) -> str | None:
-        bid = url.split("/")[-1]
-        if bid.isdigit() or len(bid) == 9:
-            return bid
-        return None
-
     async def resolve_url(self, url: str) -> str:
         parsed = urlparse(url)
         if parsed.hostname != "mapp.api.weibo.cn" or not parsed.path.startswith("/fx/"):
@@ -29,19 +22,22 @@ class WeiboAPI:
 
         async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=False, timeout=30) as client:
             response = await client.get(url)
-            if response.is_error:
-                response.raise_for_status()
+            response.raise_for_status()
         return response.headers.get("location") or url
 
-    async def get_id_by_url_async(self, url: str) -> str | None:
+    async def get_id_by_url(self, url: str) -> str | None:
         url = await self.resolve_url(url)
         parsed = urlparse(url)
         if match := re.compile(r"^/status/([^/?#]+)").match(parsed.path):
-            return match.group(1)
-        return self.get_id_by_url(url)
+            return match[1]
+
+        bid = url.split("/")[-1]
+        if bid.isdigit() or len(bid) == 9:
+            return bid
+        return None
 
     async def parse(self, url: str) -> "WeiboContent":
-        bid = await self.get_id_by_url_async(url)
+        bid = await self.get_id_by_url(url)
         if not bid:
             raise ValueError("Invalid URL")
         headers = {
