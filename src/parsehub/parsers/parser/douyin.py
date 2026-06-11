@@ -12,6 +12,7 @@ from ...types import (
     LivePhotoRef,
     MultimediaParseResult,
     ParseError,
+    ParseResult,
     Platform,
     VideoParseResult,
     VideoRef,
@@ -57,13 +58,13 @@ class DouyinParser(BaseParser):
     @staticmethod
     def _build_image_result(result: "DouyinApiResult") -> ImageParseResult:
         """构建图片解析结果"""
-        return ImageParseResult(
+        return DouyinImageParseResult(
             title=result.desc,
             photo=result.image_list,
         )
 
 
-class DouyinVideoParseResult(VideoParseResult):
+class DouyinParseResult(ParseResult):
     async def _do_download(
         self,
         *,
@@ -85,6 +86,12 @@ class DouyinVideoParseResult(VideoParseResult):
             proxy=proxy,
             headers=headers,
         )
+
+
+class DouyinVideoParseResult(DouyinParseResult, VideoParseResult): ...
+
+
+class DouyinImageParseResult(DouyinParseResult, ImageParseResult): ...
 
 
 def remove_video_watermark(url: str) -> str:

@@ -35,7 +35,7 @@ class Twitter:
 
         cookie = None
         if self.cookie and self.check_cookie():
-            headers["x-csrf-token"] = self.cookie.get("ct0", '')
+            headers["x-csrf-token"] = self.cookie.get("ct0", "")
             cookie = self.cookie
 
         params = {
