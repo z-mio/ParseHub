@@ -227,7 +227,7 @@ class PicInfo(Info):
             type=MediaType(pic_dict["type"]),
             thumbnail=Pic(**pic_dict["thumbnail"]),
             largest=Pic(**pic_dict["largest"]),
-            video=pic_dict.get("video_hd") or pic_dict.get("video"),
+            video=pic_dict.get("video"),
         )
 
     @property
