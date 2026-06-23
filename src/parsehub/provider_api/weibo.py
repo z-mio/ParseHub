@@ -99,6 +99,7 @@ class MediaType(Enum):
     PHOTO = "pic"
     LIVE_PHOTO = "livephoto"
     GIF = "gif"
+    ARTICLE = "article"
 
 
 class Info(abc.ABC):
@@ -123,7 +124,7 @@ class Playback:
     size: int = 0
 
     @classmethod
-    def parse(cls, playback: dict) -> "Playback":
+    def parse(cls, playback: dict) -> Self:
         pi = playback["play_info"]
         url = pi["url"]
         width = pi["width"]
@@ -143,8 +144,8 @@ class MediaInfo:
     prefetch_size: int | None = None
     playback: Playback | None = None
 
-    @staticmethod
-    def parse(media_dict: dict) -> "MediaInfo":
+    @classmethod
+    def parse(cls, media_dict: dict) -> Self:
         format_ = media_dict["format"]
         mp4_hd_url = media_dict.get("mp4_hd_url")
         mp4_sd_url = media_dict.get("mp4_sd_url")
@@ -152,7 +153,7 @@ class MediaInfo:
         prefetch_size = media_dict["prefetch_size"]
         playback_list = media_dict.get("playback_list", [])
         playback = Playback.parse(playback_list[0]) if playback_list else None
-        return MediaInfo(format_, mp4_hd_url, mp4_sd_url, duration, prefetch_size, playback)
+        return cls(format_, mp4_hd_url, mp4_sd_url, duration, prefetch_size, playback)
 
 
 @dataclass
@@ -162,13 +163,16 @@ class PageInfo(Info):
     page_pic: str | None = None
     short_url: str | None = None
 
-    @staticmethod
-    def parse(page_info_dict: dict) -> "PageInfo":
+    @classmethod
+    def parse(cls, page_info_dict: dict) -> Self:
         object_type = MediaType(page_info_dict["object_type"])
-        media_info = MediaInfo.parse(page_info_dict["media_info"])
+        if object_type != MediaType.ARTICLE:
+            media_info = MediaInfo.parse(page_info_dict["media_info"])
+        else:
+            media_info = None
         page_pic = page_info_dict.get("page_pic")
         short_url = page_info_dict.get("short_url")
-        return PageInfo(object_type, media_info, page_pic, short_url)
+        return cls(object_type, media_info, page_pic, short_url)
 
     @property
     def media_url(self) -> str | None:
@@ -220,9 +224,9 @@ class PicInfo(Info):
     largest: Pic | None = None
     video: str | None = None
 
-    @staticmethod
-    def parse(pic_dict: dict) -> "PicInfo":
-        return PicInfo(
+    @classmethod
+    def parse(cls, pic_dict: dict) -> Self:
+        return cls(
             pic_id=pic_dict["pic_id"],
             type=MediaType(pic_dict["type"]),
             thumbnail=Pic(**pic_dict["thumbnail"]),
@@ -281,8 +285,8 @@ class MixMediaInfoItem(Info):
 class MixMediaInfo:
     items: list[MixMediaInfoItem] | None = None
 
-    @staticmethod
-    def parse(mix_media_info_dict: dict) -> "MixMediaInfo":
+    @classmethod
+    def parse(cls, mix_media_info_dict: dict) -> Self:
         items: list[MixMediaInfoItem] = []
         for item_dict in mix_media_info_dict["items"]:
             type_ = MediaType(item_dict["type"])
@@ -294,7 +298,7 @@ class MixMediaInfo:
             else:
                 data = None
             items.append(MixMediaInfoItem(type_, data))
-        return MixMediaInfo(items)
+        return cls(items)
 
 
 @dataclass
@@ -308,8 +312,8 @@ class Data:
     mix_media_info: MixMediaInfo | None = None
     retweeted_status: "Data | None" = None
 
-    @staticmethod
-    def parse(data_dict: dict) -> "Data":
+    @classmethod
+    def parse(cls, data_dict: dict) -> Self:
         if page_info := data_dict.get("page_info"):
             data_dict["page_info"] = PageInfo.parse(page_info)
         if pic_infos := data_dict.get("pic_infos"):
@@ -318,10 +322,10 @@ class Data:
             data_dict["mix_media_info"] = MixMediaInfo.parse(mix_media_info)
         if retweeted_status := data_dict.get("retweeted_status"):
             data_dict["retweeted_status"] = Data.parse(retweeted_status)
-        return Data.from_kwargs(**data_dict)
+        return cls.from_kwargs(**data_dict)
 
     @classmethod
-    def from_kwargs(cls, **kwargs: Any) -> "Data":
+    def from_kwargs(cls, **kwargs: Any) -> Self:
         cls_fields = set(signature(cls).parameters)
 
         native_args, new_args = {}, {}
@@ -377,4 +381,4 @@ class WeiboTVContent:
 
 
 if __name__ == "__main__":
-    print(asyncio.run(WeiboAPI().parse("https://weibo.com/tv/show/1034:5306598453608528")))
+    print(asyncio.run(WeiboAPI().parse("https://weibo.com/ttarticle/p/show?id=2309405312350592041114")))
