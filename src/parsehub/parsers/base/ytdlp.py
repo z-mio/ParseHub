@@ -185,7 +185,7 @@ class YtVideoParseResult(VideoParseResult):
     async def _do_download(
         self,
         *,
-        output_dir: str | Path,
+        output_dir: Path,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
@@ -200,7 +200,7 @@ class YtVideoParseResult(VideoParseResult):
         if self.dl.proxy:
             paramss["proxy"] = self.dl.proxy
 
-        paramss["outtmpl"] = f"{output_dir_path.joinpath('ytdlp_%(id)s')}.%(ext)s"
+        paramss["outtmpl"] = f"{output_dir_path.joinpath(self.name)}.%(ext)s"
 
         if callback:
             loop = asyncio.get_running_loop()

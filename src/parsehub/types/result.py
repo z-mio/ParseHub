@@ -41,11 +41,15 @@ class ParseResult(ABC):  # noqa: B024
         :param content: 正文 (纯文本)
         :param platform: 平台
         """
-        self.raw_url: str | None = None
+        self.raw_url: str = ""
         self.title = (title or "").strip()
         self.content = (content or "").strip()
         self.media = media
         self.platform = platform
+        self.name = slugify(
+            self.title or self.content or str(time.time_ns()), allow_unicode=True, max_length=50, lowercase=False
+        )
+        """符合路径命名规范的名称, 可用于目录和文件名"""
 
     def __repr__(self) -> str:
         media_count = (
@@ -77,7 +81,7 @@ class ParseResult(ABC):  # noqa: B024
     async def _do_download(
         self,
         *,
-        output_dir: str | Path,
+        output_dir: Path,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
@@ -114,10 +118,17 @@ class ParseResult(ABC):  # noqa: B024
                 dl_progress_args = callback_args
                 dl_progress_kwargs = callback_kwargs or {}
 
+            index = i + 1
+
             try:
+                save_path = (
+                    output_dir.joinpath(f"{self.name}.{media.ext}")
+                    if is_single
+                    else output_dir.joinpath(f"{index:03d}_{self.name}.{media.ext}")
+                )
                 f = await download(
                     media.url,
-                    f"{output_dir}/{i}.{media.ext}",
+                    save_path,
                     headers=headers,
                     proxy=proxy,
                     progress=dl_progress,
@@ -140,9 +151,14 @@ class ParseResult(ABC):  # noqa: B024
                     mf = LivePhotoFile(path=f, width=media.width, height=media.height, duration=media.duration)
                     if media.video_url:
                         try:
+                            save_path = (
+                                output_dir.joinpath(f"{self.name}_video.{media.video_ext}")
+                                if is_single
+                                else output_dir.joinpath(f"{index:03d}_{self.name}_video.{media.video_ext}")
+                            )
                             vf = await download(
                                 media.video_url,
-                                f"{output_dir}/{i}_video.{media.video_ext}",
+                                save_path,
                                 headers=headers,
                                 proxy=proxy,
                             )
@@ -196,13 +212,10 @@ class ParseResult(ABC):  # noqa: B024
                 - ``count``: 计数进度，用于多文件下载时报告已完成/总文件数
         """
         save_dir = Path(path) if path else GlobalConfig.default_save_dir
-        r = slugify(
-            self.title or self.content or str(time.time_ns()), allow_unicode=True, max_length=20, lowercase=False
-        )
-        output_dir = save_dir.joinpath(r)
+        output_dir = save_dir.joinpath(self.name)
         counter = 2
         while output_dir.exists():
-            output_dir = save_dir.joinpath(f"{r}_{counter}")
+            output_dir = save_dir.joinpath(f"{self.name}_{counter}")
             counter += 1
         output_dir.mkdir(parents=True, exist_ok=True)
 
