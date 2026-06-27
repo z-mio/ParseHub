@@ -6,7 +6,7 @@ from ..base.base import BaseParser
 class KuaiShouParser(BaseParser):
     __platform__ = Platform.KUAISHOU
     __supported_type__ = ["视频"]
-    __match__ = r"^(http(s)?://)?(www|v)\.kuaishou.com/.+"
+    __match__ = r"^(http(s)?://)?(www|v|live)\.kuaishou.com/.+"
     __redirect_keywords__ = ["v.kuaishou", "/f/"]
 
     async def _do_parse(self, raw_url: str) -> VideoParseResult:
