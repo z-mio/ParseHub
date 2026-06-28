@@ -36,7 +36,7 @@ dependencies = [
     "pillow>=12.1.0",
     "python-slugify[unidecode]>=8.0.4",
     "opencv-python-headless>=4.13.0.92",
-    "cryptography>=46.0.6",
+    "cryptography>=49.0.0",
     "gmssl>=3.2.2",
 ]
 
