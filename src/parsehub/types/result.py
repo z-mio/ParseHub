@@ -47,8 +47,8 @@ class ParseResult(ABC):  # noqa: B024
         self.media = media
         self.platform = platform
         self.name = slugify(
-            self.title or self.content or str(time.time_ns()), allow_unicode=True, max_length=50, lowercase=False
-        )
+            self.title or self.content, allow_unicode=True, max_length=50, lowercase=False
+        ).strip() or str(time.time_ns())
         """符合路径命名规范的名称, 可用于目录和文件名"""
 
     def __repr__(self) -> str:
