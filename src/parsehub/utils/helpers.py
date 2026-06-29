@@ -4,6 +4,7 @@ import re
 from collections.abc import Coroutine
 from typing import Any
 
+from pydantic import SecretStr
 from urlextract import URLExtract
 
 
@@ -37,7 +38,25 @@ def mask_cookie(cookie: dict[str, str] | None) -> str:
     return f"{text[:c]}******{text[-c:]}"
 
 
-def normalize_cookie(v: str | dict[str, Any] | None) -> dict[str, Any] | None:
+class SecretCookie:
+    def __init__(self, cookie: str | dict[str, Any] | None = None) -> None:
+        self._cookie = normalize_cookie(cookie)
+
+    def __bool__(self) -> bool:
+        return bool(self._cookie)
+
+    def __str__(self) -> str:
+        if self._cookie is None:
+            return ""
+        return "; ".join([f"{k}={v}" for k, v in self._cookie.items()])
+
+    def get_value(self) -> dict[str, str] | None:
+        if self._cookie is None:
+            return None
+        return {key: value.get_secret_value() for key, value in self._cookie.items()}
+
+
+def normalize_cookie(v: str | dict[str, Any] | None) -> dict[str, SecretStr] | None:
     if v is None or isinstance(v, dict):
         return v
     if isinstance(v, str):
@@ -52,21 +71,21 @@ def normalize_cookie(v: str | dict[str, Any] | None) -> dict[str, Any] | None:
                 raise ValueError(f"cookie JSON解析失败: {e}") from e
             if not isinstance(data, dict):
                 raise ValueError("cookie JSON必须是对象类型")
-            return {str(k).strip(): "" if v is None else str(v).strip() for k, v in data.items()}
+            return {str(k).strip(): SecretStr("" if v is None else str(v).strip()) for k, v in data.items()}
 
         if s.lower().startswith("cookie:"):
             s = s[7:].strip()
 
         parts = [p.strip() for p in s.split(";") if p.strip()]
-        result: dict[str, str] = {}
+        result: dict[str, SecretStr] = {}
         for p in parts:
             if "=" not in p:
                 key = p.strip()
                 if key:
-                    result[key] = ""
+                    result[key] = SecretStr("")
                 continue
             k, val = p.split("=", 1)
-            result[k.strip()] = val.strip()
+            result[k.strip()] = SecretStr(val.strip())
         return result or None
 
     raise ValueError("cookie 必须是字符串、字典、JSON 或 None")

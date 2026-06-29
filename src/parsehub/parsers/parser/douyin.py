@@ -38,10 +38,10 @@ class DouyinParser(BaseParser):
 
     async def _fetch_api_result(self, url: str) -> "DouyinApiResult":
         """获取并解析抖音 API 结果"""
-        if not self.cookie:
+        if not (cookie := self.cookie.get_value()):
             raise ParseError("抖音 Cookie 未配置")
 
-        crawler = DouyinWebCrawler(proxy=self.proxy, cookie=self.cookie)
+        crawler = DouyinWebCrawler(proxy=self.proxy, cookie=cookie)
         response = await crawler.parse(url)
         return DouyinApiResult.parse(response)
 

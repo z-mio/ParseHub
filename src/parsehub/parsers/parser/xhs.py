@@ -25,7 +25,7 @@ class XHSParser(BaseParser):
     __after_clean_parameters__ = ["xsec_token"]
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        xhs = XHSAPI(proxy=self.proxy, cookie=self.cookie)
+        xhs = XHSAPI(proxy=self.proxy, cookie=self.cookie.get_value())
         result = await xhs.extract(raw_url)
 
         desc = self.hashtag_handler(result.desc)

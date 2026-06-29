@@ -11,7 +11,7 @@ from ... import parsers
 from ...config.config import GlobalConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
-from ...utils.helpers import match_url, normalize_cookie
+from ...utils.helpers import SecretCookie, match_url
 
 
 class BaseParser(ABC):
@@ -31,9 +31,9 @@ class BaseParser(ABC):
     __redirect_keywords__: list[str] = []
     """如果链接包含其中之一, 则遵循重定向规则"""
 
-    def __init__(self, *, proxy: str | None = None, cookie: str | dict | None = None):
+    def __init__(self, *, proxy: str | None = None, cookie: SecretCookie = SecretCookie()):
         self.proxy = proxy
-        self.cookie = normalize_cookie(cookie)
+        self.cookie = cookie
 
     def __init_subclass__(cls, /, register: bool = True, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

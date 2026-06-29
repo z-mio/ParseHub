@@ -33,7 +33,7 @@ class TikTokParser(BaseParser):
                 return self._build_image_result(result)
 
     async def _fetch_api_result(self, url: str) -> "TikTokApiResult":
-        crawler = TikTokWebCrawler(proxy=self.proxy, cookie=self.cookie)
+        crawler = TikTokWebCrawler(proxy=self.proxy, cookie=self.cookie.get_value())
         try:
             response = await crawler.parse(url)
             return TikTokApiResult.parse(response)

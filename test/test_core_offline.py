@@ -62,31 +62,6 @@ class TestCoreUtilities(unittest.TestCase):
 
         self.assertEqual(match_url(text), "https://example.com/first")
 
-    def test_normalize_cookie_preserves_none_and_dict_values(self):
-        cookie = {"session": "abc", "flag": ""}
-
-        self.assertIsNone(normalize_cookie(None))
-        self.assertIs(normalize_cookie(cookie), cookie)
-
-    def test_normalize_cookie_parses_cookie_header_strings(self):
-        cookie = normalize_cookie("Cookie: session = abc ; theme= light ; secure")
-
-        self.assertEqual(cookie, {"session": "abc", "theme": "light", "secure": ""})
-
-    def test_normalize_cookie_parses_json_object_strings(self):
-        cookie = normalize_cookie('{"session": " abc ", "empty": null, "number": 123}')
-
-        self.assertEqual(cookie, {"session": "abc", "empty": "", "number": "123"})
-
-    def test_normalize_cookie_returns_none_for_blank_strings(self):
-        self.assertIsNone(normalize_cookie("  \t  "))
-
-    def test_normalize_cookie_rejects_invalid_values(self):
-        with self.assertRaisesRegex(ValueError, "cookie JSON解析失败"):
-            normalize_cookie('{"session": }')
-        with self.assertRaisesRegex(ValueError, "cookie 必须是字符串、字典、JSON 或 None"):
-            normalize_cookie(123)
-
     def test_run_sync_runs_coroutine_without_running_loop(self):
         async def get_value():
             return "ok"

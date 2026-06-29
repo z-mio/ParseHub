@@ -1,12 +1,12 @@
 import asyncio
 import re
-from typing import Any, cast
+from typing import cast
 
 from instaloader import BadResponseException
 
 from ...provider_api.instagram import MyInstaloaderContext, MyPost
 from ...types import ImageParseResult, ImageRef, MultimediaParseResult, ParseError, Platform, VideoParseResult, VideoRef
-from ...utils.helpers import mask_cookie
+from ...utils.helpers import SecretCookie
 from ..base.base import BaseParser
 
 
@@ -57,12 +57,12 @@ class InstagramParser(BaseParser):
             case _:
                 raise ParseError("不支持的类型")
 
-    async def _parse(self, url: str, shortcode: str, cookie: dict[str, Any] | None = None) -> MyPost:
+    async def _parse(self, url: str, shortcode: str, cookie: SecretCookie | None = None) -> MyPost:
         try:
             post = await asyncio.wait_for(
                 asyncio.to_thread(
                     MyPost.from_shortcode,
-                    MyInstaloaderContext(self.proxy, cookie),
+                    MyInstaloaderContext(self.proxy, cookie.get_value() if cookie else None),
                     shortcode,
                 ),
                 30,
@@ -80,7 +80,7 @@ class InstagramParser(BaseParser):
                     raise ParseError("无法获取帖子内容") from e
         except Exception as e:
             if cookie:
-                text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {mask_cookie(cookie)}"
+                text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie}"
             else:
                 text = str(e)
             raise ParseError(f"无法获取帖子内容: {text}") from e

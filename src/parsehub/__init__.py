@@ -7,7 +7,7 @@ from .parsers.base import BaseParser
 from .types import Platform
 from .types.callback import ProgressCallback
 from .types.result import AnyParseResult, DownloadResult
-from .utils.helpers import run_sync
+from .utils.helpers import SecretCookie, run_sync
 
 logger.disable(__name__)
 
@@ -27,7 +27,7 @@ class ParseHub:
         if not parser:
             raise UnknownPlatform(url)
         try:
-            p = parser(proxy=proxy, cookie=cookie)
+            p = parser(proxy=proxy, cookie=SecretCookie(cookie))
             return await p.parse(url)
         except ParseError:
             raise

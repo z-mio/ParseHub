@@ -20,7 +20,6 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ...utils.helpers import mask_cookie
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
@@ -88,10 +87,10 @@ class BiliParse(YtParser):
     async def get_dynamic_info(self, url: str) -> BiliDynamic:
         async with BiliAPI(proxy=self.proxy) as bili:
             try:
-                dynamic_info = await bili.get_dynamic_info(url, cookie=self.cookie)
+                dynamic_info = await bili.get_dynamic_info(url, cookie=self.cookie.get_value())
             except Exception as e:
                 if "风控" in str(e):
-                    raise ParseError(f"账号风控\n使用的cookie: {mask_cookie(self.cookie)}") from e
+                    raise ParseError(f"账号风控\n使用的cookie: {self.cookie}") from e
                 raise ParseError(str(e)) from e
         return cast(BiliDynamic, dynamic_info)
 

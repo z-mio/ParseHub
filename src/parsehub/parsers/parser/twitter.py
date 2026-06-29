@@ -17,7 +17,6 @@ from ...types import (
     RichTextParseResult,
     VideoRef,
 )
-from ...utils.helpers import mask_cookie
 from ..base.base import BaseParser
 
 
@@ -40,14 +39,12 @@ class TwitterParser(BaseParser):
             tweet = await x.fetch_tweet(url)
         except Exception as e:
             if any(s in str(e) for s in ("error -2",)):
-                if self.cookie:
-                    x2 = Twitter(self.proxy, cookie=self.cookie)
+                if cookie := self.cookie.get_value():
+                    x2 = Twitter(self.proxy, cookie=cookie)
                     try:
                         tweet = await x2.fetch_tweet(url)
                     except Exception as e2:
-                        raise ParseError(
-                            f"Twitter 账号可能已被封禁\n\n使用的Cookie: {mask_cookie(self.cookie)}"
-                        ) from e2
+                        raise ParseError(f"Twitter 账号可能已被封禁\n\n使用的Cookie: {self.cookie}") from e2
                 else:
                     raise ParseError(str(e)) from e
             else:
