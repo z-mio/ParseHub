@@ -11,7 +11,7 @@ from ... import parsers
 from ...config.config import GlobalConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
-from ...utils.utils import match_url, normalize_cookie
+from ...utils.helpers import match_url, normalize_cookie
 
 
 class BaseParser(ABC):

@@ -29,12 +29,12 @@ def match_url(text: str) -> str:
     return url[0] if url else ""
 
 
-def cookie_ellipsis(cookie: dict[str, Any] | None) -> str:
+def mask_cookie(cookie: dict[str, str] | None) -> str:
     if not cookie:
         return ""
     text = "; ".join([f"{k}={v}" for k, v in cookie.items()])
-    c = min(len(text) // 3, 15)
-    return f"{text[:c]}......{text[-c:]}"
+    c = min(len(text) // 3, 4)
+    return f"{text[:c]}******{text[-c:]}"
 
 
 def normalize_cookie(v: str | dict[str, Any] | None) -> dict[str, Any] | None:

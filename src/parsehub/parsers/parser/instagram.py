@@ -6,7 +6,7 @@ from instaloader import BadResponseException
 
 from ...provider_api.instagram import MyInstaloaderContext, MyPost
 from ...types import ImageParseResult, ImageRef, MultimediaParseResult, ParseError, Platform, VideoParseResult, VideoRef
-from ...utils.utils import cookie_ellipsis
+from ...utils.helpers import mask_cookie
 from ..base.base import BaseParser
 
 
@@ -80,7 +80,7 @@ class InstagramParser(BaseParser):
                     raise ParseError("无法获取帖子内容") from e
         except Exception as e:
             if cookie:
-                text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie_ellipsis(cookie)}"
+                text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {mask_cookie(cookie)}"
             else:
                 text = str(e)
             raise ParseError(f"无法获取帖子内容: {text}") from e

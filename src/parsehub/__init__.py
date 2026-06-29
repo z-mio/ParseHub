@@ -7,7 +7,7 @@ from .parsers.base import BaseParser
 from .types import Platform
 from .types.callback import ProgressCallback
 from .types.result import AnyParseResult, DownloadResult
-from .utils.utils import run_sync
+from .utils.helpers import run_sync
 
 logger.disable(__name__)
 

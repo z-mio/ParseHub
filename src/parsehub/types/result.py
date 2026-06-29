@@ -15,7 +15,7 @@ from slugify import slugify
 from ..config import GlobalConfig
 from ..errors import DeleteError, DownloadError
 from ..utils.downloader import download
-from ..utils.utils import run_sync
+from ..utils.helpers import run_sync
 from .callback import ProgressCallback
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef

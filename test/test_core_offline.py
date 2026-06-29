@@ -5,7 +5,7 @@ from parsehub import ParseHub
 from parsehub.errors import ParseError, UnknownPlatform
 from parsehub.parsers.base import BaseParser
 from parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
-from parsehub.utils.utils import match_url, normalize_cookie, run_sync
+from parsehub.utils.helpers import match_url, normalize_cookie, run_sync
 
 
 class DummyParser(BaseParser):

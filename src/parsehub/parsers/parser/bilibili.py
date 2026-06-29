@@ -20,7 +20,7 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ...utils.utils import cookie_ellipsis
+from ...utils.helpers import mask_cookie
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
@@ -91,7 +91,7 @@ class BiliParse(YtParser):
                 dynamic_info = await bili.get_dynamic_info(url, cookie=self.cookie)
             except Exception as e:
                 if "风控" in str(e):
-                    raise ParseError(f"账号风控\n使用的cookie: {cookie_ellipsis(self.cookie)}") from e
+                    raise ParseError(f"账号风控\n使用的cookie: {mask_cookie(self.cookie)}") from e
                 raise ParseError(str(e)) from e
         return cast(BiliDynamic, dynamic_info)
 
