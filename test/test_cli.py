@@ -61,6 +61,7 @@ class FakeParseHub:
         parse_proxy=None,
         parse_cookie=None,
         save_metadata=False,
+        connections=4,
     ):
         self.download_calls.append(
             {
@@ -73,6 +74,7 @@ class FakeParseHub:
                 "parse_proxy": parse_proxy,
                 "parse_cookie": parse_cookie,
                 "save_metadata": save_metadata,
+                "connections": connections,
             }
         )
         if callback:
@@ -255,6 +257,8 @@ class TestCli(unittest.TestCase):
                     "--parse-cookie",
                     "token=abc",
                     "--metadata",
+                    "--connections",
+                    "8",
                 ]
             )
 
@@ -271,6 +275,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(call["parse_proxy"], "http://parse-proxy")
         self.assertEqual(call["parse_cookie"], "token=abc")
         self.assertTrue(call["save_metadata"])
+        self.assertEqual(call["connections"], 8)
 
     def test_short_download_alias_outputs_json_and_forwards_output_dir(self):
         with patch.object(cli, "_new_parsehub", FakeParseHub):

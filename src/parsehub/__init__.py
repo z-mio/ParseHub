@@ -56,6 +56,7 @@ class ParseHub:
         parse_proxy: str | None = None,
         parse_cookie: str | dict | None = None,
         save_metadata: bool = False,
+        connections: int = 4,
     ) -> DownloadResult:
         """下载
         :param url: 分享文案 / 分享链接
@@ -67,6 +68,7 @@ class ParseHub:
         :param parse_proxy: 解析代理
         :param parse_cookie: 解析 cookie
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
+        :param connections: 多线程下载连接数, 默认为 4
         :return: DownloadResult
 
         Note:
@@ -88,6 +90,7 @@ class ParseHub:
             callback_kwargs=callback_kwargs,
             proxy=proxy,
             save_metadata=save_metadata,
+            connections=connections,
         )
 
     def download_sync(
@@ -101,6 +104,7 @@ class ParseHub:
         parse_proxy: str | None = None,
         parse_cookie: str | dict | None = None,
         save_metadata: bool = False,
+        connections: int = 4,
     ) -> DownloadResult:
         """
         同步下载
@@ -113,6 +117,7 @@ class ParseHub:
         :param parse_proxy: 解析代理
         :param parse_cookie: 解析 cookie
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
+        :param connections: 多线程下载连接数, 默认为 4
         :return: DownloadResult
 
         Note:
@@ -137,6 +142,7 @@ class ParseHub:
                 parse_proxy=parse_proxy,
                 parse_cookie=parse_cookie,
                 save_metadata=save_metadata,
+                connections=connections,
             )
         )
 

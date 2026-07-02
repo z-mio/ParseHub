@@ -74,6 +74,7 @@ class DouyinParseResult(ParseResult):
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
+        connections: int = 4,
     ) -> "DownloadResult":
         headers = {
             "Referer": "https://www.douyin.com/",
@@ -85,6 +86,7 @@ class DouyinParseResult(ParseResult):
             callback_kwargs=callback_kwargs,
             proxy=proxy,
             headers=headers,
+            connections=connections,
         )
 
 

@@ -116,6 +116,7 @@ def _build_parser(prog: str) -> argparse.ArgumentParser:
     )
     download_parser.add_argument("-q", "--quiet", action="store_true", help="不输出状态和进度信息")
     download_parser.add_argument("--no-progress", action="store_true", help="不显示下载进度")
+    download_parser.add_argument("--connections", type=int, default=4, help="单文件分片下载连接数，设为 1 可禁用分片")
     _add_json_options(download_parser)
     download_parser.set_defaults(func=_cmd_download)
 
@@ -256,6 +257,7 @@ def _cmd_download(args: argparse.Namespace) -> int:
         parse_proxy=parse_proxy,
         parse_cookie=parse_cookie,
         save_metadata=args.save_metadata,
+        connections=args.connections,
     )
     reporter.finish()
 

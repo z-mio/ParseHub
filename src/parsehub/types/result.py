@@ -87,6 +87,7 @@ class ParseResult(ABC):  # noqa: B024
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
+        connections: int = 4,
     ) -> "DownloadResult":
         """
         执行下载
@@ -96,6 +97,7 @@ class ParseResult(ABC):  # noqa: B024
         :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param headers: 请求头
+        :param connections: 多线程下载连接数, 默认为 4
         :return: DownloadResult
         """
         if self.media is None:
@@ -134,6 +136,7 @@ class ParseResult(ABC):  # noqa: B024
                     progress=dl_progress,
                     progress_args=dl_progress_args,
                     progress_kwargs=dl_progress_kwargs,
+                    connections=connections,
                 )
             except Exception as e:
                 shutil.rmtree(output_dir, ignore_errors=True)
@@ -161,6 +164,7 @@ class ParseResult(ABC):  # noqa: B024
                                 save_path,
                                 headers=headers,
                                 proxy=proxy,
+                                connections=connections,
                             )
                         except Exception as e:
                             shutil.rmtree(output_dir, ignore_errors=True)
@@ -190,6 +194,7 @@ class ParseResult(ABC):  # noqa: B024
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         save_metadata: bool = False,
+        connections: int = 4,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
@@ -198,6 +203,7 @@ class ParseResult(ABC):  # noqa: B024
         :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
+        :param connections: 多线程下载连接数, 默认为 4
         :return: DownloadResult
 
         Note:
@@ -230,6 +236,7 @@ class ParseResult(ABC):  # noqa: B024
                 callback_args=callback_args,
                 callback_kwargs=callback_kwargs,
                 proxy=proxy,
+                connections=connections,
             )
         except Exception as e:
             shutil.rmtree(output_dir, ignore_errors=True)
@@ -244,6 +251,7 @@ class ParseResult(ABC):  # noqa: B024
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         save_metadata: bool = False,
+        connections: int = 4,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
@@ -252,6 +260,7 @@ class ParseResult(ABC):  # noqa: B024
         :param callback_kwargs: 回调函数的关键字参数
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
+        :param connections: 多线程下载连接数, 默认为 4
         :return: DownloadResult
 
         Note:
@@ -273,6 +282,7 @@ class ParseResult(ABC):  # noqa: B024
                 callback_kwargs=callback_kwargs,
                 proxy=proxy,
                 save_metadata=save_metadata,
+                connections=connections,
             )
         )
 

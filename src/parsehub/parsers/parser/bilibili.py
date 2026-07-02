@@ -181,6 +181,7 @@ class BiliVideoParseResult(VideoParseResult):
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
+        connections: int = 4,
     ) -> DownloadResult:
         headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
         return await super()._do_download(
@@ -190,6 +191,7 @@ class BiliVideoParseResult(VideoParseResult):
             callback_kwargs=callback_kwargs,
             proxy=proxy,
             headers=headers,
+            connections=connections,
         )
 
 

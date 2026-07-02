@@ -69,6 +69,7 @@ class TikTokVideoParseResult(VideoParseResult):
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
+        connections: int = 4,
     ) -> "DownloadResult":
         headers = {
             "Referer": "https://www.tiktok.com/",
@@ -80,6 +81,7 @@ class TikTokVideoParseResult(VideoParseResult):
             callback_kwargs=callback_kwargs,
             proxy=proxy,
             headers=headers,
+            connections=connections,
         )
 
 

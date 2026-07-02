@@ -190,6 +190,7 @@ class YtVideoParseResult(VideoParseResult):
         callback_kwargs: dict | None = None,
         proxy: str | None = None,
         headers: dict | None = None,
+        connections: int = 4,
     ) -> "DownloadResult":
         if callback_kwargs is None:
             callback_kwargs = {}
@@ -200,6 +201,7 @@ class YtVideoParseResult(VideoParseResult):
             paramss["proxy"] = self.dl.proxy
 
         paramss["outtmpl"] = f"{output_dir_path.joinpath(self.name)}.%(ext)s"
+        paramss["concurrent_fragment_downloads"] = connections  # 多线程下载
 
         if callback:
             loop = asyncio.get_running_loop()
