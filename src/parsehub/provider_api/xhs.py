@@ -100,7 +100,7 @@ class XHSAPI:
                     stream = selected_stream[0]
                     image = XHSMedia(
                         XHSMediaType.LIVE_PHOTO,
-                        thumb_url=i["urlDefault"],
+                        thumb_url=self.get_raw_image_url(i["urlDefault"]),
                         url=stream["masterUrl"],
                         width=i["width"],
                         height=i["height"],
@@ -108,7 +108,7 @@ class XHSAPI:
                 else:
                     image = XHSMedia(
                         XHSMediaType.IMAGE,
-                        url=i["urlDefault"],
+                        url=self.get_raw_image_url(i["urlDefault"]),
                         thumb_url=i["urlPre"],
                         width=i["width"],
                         height=i["height"],
@@ -119,6 +119,21 @@ class XHSAPI:
     async def extract(self, url: str) -> XHSPost:
         html = await self.__fetch_html(url)
         return self.__parse(await self.__extract_data(html))
+
+    @staticmethod
+    def get_trace_id(img_url: str) -> str:
+        trace_id = img_url.split("/")[-1].split("!")[0]
+        if "spectrum" in img_url:
+            return "spectrum/" + trace_id
+        if "note_pre_post_uhdr" in img_url:
+            return "note_pre_post_uhdr/" + trace_id
+        if "notes_pre_post" in img_url:
+            return "notes_pre_post/" + trace_id
+        return trace_id
+
+    def get_raw_image_url(self, ime_url: str) -> str:
+        """拼接无水印图片链接"""
+        return f"http://sns-img-hw.xhscdn.com/{self.get_trace_id(ime_url)}"
 
 
 class XHSMediaType(Enum):
