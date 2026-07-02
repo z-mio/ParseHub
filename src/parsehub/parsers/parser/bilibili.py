@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
@@ -161,6 +161,14 @@ class BiliParse(YtParser):
         for hashtag in hashtags:
             desc = desc.replace(hashtag, f" {hashtag.strip().removesuffix('#')} ")
         return desc.strip()
+
+    @property
+    def params(self) -> dict[str, Any]:
+        sub: dict[str, Any] = {
+            "format": "mp4+bestvideo[height<=1080]+bestaudio",
+        }
+        p = sub | super().params
+        return p
 
 
 class BiliVideoParseResult(VideoParseResult):

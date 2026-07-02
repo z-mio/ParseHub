@@ -155,7 +155,6 @@ class YtParser(BaseParser, register=False):
     @property
     def params(self) -> dict[str, Any]:
         params = {
-            "format": "mp4+bestvideo[height<=1080]+bestaudio",
             "quiet": True,  # 不输出日志
             "noprogress": True,  # 不输出下载进度
             # "writethumbnail": True, # 下载缩略图
