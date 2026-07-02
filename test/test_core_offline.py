@@ -301,6 +301,10 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://share.xiaochuankeji.cn/hybrid/share/post?pid=393346270",
                 "https://share.xiaochuankeji.cn/hybrid/share/post?pid=393346270&zy_to=applink",
             ],
+            Platform.SNAPCHAT: [
+                "https://www.snapchat.com/@snapchat/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYbHBpemNsYmlyAZ7mTxgqAZ7mTuxMAAAAAw",
+                "https://www.snapchat.com/@creativemindsho/gBRYnSexSxSBqXdq2Y6bhAAAga2djanpnd3JlAZ8fYED8AZ8fYD7pAAAAAA",
+            ],
         }
 
         for platform, urls in cases.items():
