@@ -67,7 +67,7 @@ class InstagramParser(BaseParser):
                 text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie}"
             else:
                 text = str(e)
-            raise ParseError(f"无法获取帖子内容: {text}") from e
+            raise ParseError(f"无法获取帖子内容(可能为私人内容): {text}") from e
 
     @staticmethod
     def get_short_code(url: str) -> str | None:
