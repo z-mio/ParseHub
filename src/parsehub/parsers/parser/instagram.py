@@ -72,7 +72,7 @@ class InstagramParser(BaseParser):
     @staticmethod
     def get_short_code(url: str) -> str | None:
         url = url.removesuffix("/")
-        shortcode = re.search(r"/(share|p|reels|.*/p)/(.*)", url)
+        shortcode = re.search(r"/(p|reel|reels|share|.*/p|.*/reel)/(.*)", url)
         return shortcode.group(2).split("/")[0] if shortcode else None
 
 
