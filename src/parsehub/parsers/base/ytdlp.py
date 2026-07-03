@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from loguru import logger
 from yt_dlp import YoutubeDL
 
 from ...types import (
@@ -32,6 +33,7 @@ def switch_ytdlp_proxy(ydl: YoutubeDL, proxy: str | None) -> None:
         director.close()
 
 
+@logger.catch
 def download_video(yto_params: dict[str, Any], url: str, proxy: str | None = None) -> None:
     """在独立线程中下载视频"""
     try:

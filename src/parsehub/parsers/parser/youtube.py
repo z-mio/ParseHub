@@ -15,7 +15,7 @@ class YtbParse(YtParser):
     @property
     def params(self) -> dict[str, Any]:
         sub: dict[str, Any] = {
-            "format": "mp4+bestvideo[height<=1080]+bestaudio",
+            "format": "mp4+bestvideo[height<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
             # "writesubtitles": True, # 下载字幕
             # "writeautomaticsub": True, # 下载自动生成的字幕
             # "subtitlesformat": "ttml", # 字幕格式
