@@ -9,7 +9,7 @@ from ..base.base import BaseParser
 class InstagramParser(BaseParser):
     __platform__ = Platform.INSTAGRAM
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reels|share|.*/p)/.*"
+    __match__ = r"^(http(s)?://)(www\.|)instagram\.com/(p|reel|reels|share|.*/p|.*/reel)/.*"
     __redirect_keywords__ = ["share"]
 
     async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult:
