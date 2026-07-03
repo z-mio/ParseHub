@@ -61,7 +61,7 @@ class InstagramParser(BaseParser):
                     else:
                         raise ParseError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频") from e
                 case _:
-                    raise ParseError("无法获取帖子内容") from e
+                    raise ParseError("无法获取帖子内容(可能为私人内容)") from e
         except Exception as e:
             if cookie:
                 text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie}"
