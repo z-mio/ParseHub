@@ -238,7 +238,7 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://www.instagram.com/share/BAexample/",
                 "https://www.instagram.com/user.name/p/C0example/",
                 "https://www.instagram.com/user.name/reel/C0example/",
-                "https://www.instagram.com/reels/DaGI8bPS3ed/"
+                "https://www.instagram.com/reels/DaGI8bPS3ed/",
             ],
             Platform.KUAISHOU: [
                 "https://www.kuaishou.com/short-video/3xexample",

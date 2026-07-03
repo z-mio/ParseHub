@@ -122,14 +122,14 @@ class XHSAPI:
 
     @staticmethod
     def get_trace_id(img_url: str) -> str:
-        trace_id = img_url.split("/")[-1].split("!")[0]
-        if "spectrum" in img_url:
-            return "spectrum/" + trace_id
-        if "note_pre_post_uhdr" in img_url:
-            return "note_pre_post_uhdr/" + trace_id
-        if "notes_pre_post" in img_url:
-            return "notes_pre_post/" + trace_id
-        return trace_id
+        match = re.search(r"/(spectrum|note_pre_post_uhdr|notes_pre_post|notes_uhdr)/([^/!]+)(?:!.*)?$", img_url)
+        if match:
+            return f"{match.group(1)}/{match.group(2)}"
+
+        match = re.search(r"/([^/!]+)(?:!.*)?$", img_url)
+        if match:
+            return match.group(1)
+        return img_url
 
     def get_raw_image_url(self, ime_url: str) -> str:
         """拼接无水印图片链接"""
