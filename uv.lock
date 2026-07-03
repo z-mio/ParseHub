@@ -360,11 +360,11 @@ wheels = [
 
 [[package]]
 name = "filelock"
-version = "3.29.4"
+version = "3.29.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e6/dc/be6cbe99670cd6e4ad387123647cb08e0c32975e223f82551e914c5568a6/filelock-3.29.4.tar.gz", hash = "sha256:10cdb3656fc44541cdf30652a93fb10ec6b05325620eb316bd26893e4201538a", size = 63028, upload-time = "2026-06-13T16:12:00.744Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/ee/29c668c50888588c432a702f7c2e8ee8a0c9e5286028d91f170308d6b2e9/filelock-3.29.5.tar.gz", hash = "sha256:6e6034c57a00a020e767f2614a5539863f056de7e7991d6d1473aef7ff73f156", size = 68927, upload-time = "2026-07-03T03:50:31.818Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/37/a065dc3bd6e49423a6532c642ca7378d3f467b1ef44c2800c937af7f9739/filelock-3.29.4-py3-none-any.whl", hash = "sha256:dac1648087d5115554850d113e7dd8c83ab2d38e3435dde2d4f163847e57b767", size = 42757, upload-time = "2026-06-13T16:11:59.582Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/e3/f1fae3647d170919c2cf2a898e77e7d1a4e5c7cae0aed7bb4bd3f5ebff6f/filelock-3.29.5-py3-none-any.whl", hash = "sha256:8af830889ba3a0ffcefbd6c7d2af8a54012058103771f2e10848222f476a1693", size = 45073, upload-time = "2026-07-03T03:50:30.445Z" },
 ]
 
 [[package]]
@@ -431,18 +431,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "instaloader"
-version = "4.15.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b0/1f/c66c9d5c65bd59cf03632adf112a05aad720b0620f52848d1e5419ef130b/instaloader-4.15.1.tar.gz", hash = "sha256:323ee2015540e627df25535703f246dc39695b71f7f04dadfe67e239dadf3b55", size = 67082, upload-time = "2026-03-21T21:07:42.55Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/4a/33099e653b4d9228920a0596a413770b20de978407a0ba0e16319b234931/instaloader-4.15.1-py3-none-any.whl", hash = "sha256:d89544b841d3d2471d6e270568474a0f022daaf392c2836499c51b332bcd530e", size = 69092, upload-time = "2026-03-21T21:07:41.196Z" },
 ]
 
 [[package]]
@@ -765,7 +753,7 @@ wheels = [
 
 [[package]]
 name = "parsehub"
-version = "2.0.33"
+version = "2.0.34"
 source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -773,7 +761,6 @@ dependencies = [
     { name = "cryptography" },
     { name = "gmssl" },
     { name = "httpx" },
-    { name = "instaloader" },
     { name = "loguru" },
     { name = "lxml" },
     { name = "markdown" },
@@ -811,7 +798,6 @@ requires-dist = [
     { name = "cryptography", specifier = ">=49.0.0" },
     { name = "gmssl", specifier = ">=3.2.2" },
     { name = "httpx", specifier = ">=0.24.1" },
-    { name = "instaloader", specifier = ">=4.14" },
     { name = "loguru", specifier = ">=0.6.0" },
     { name = "lxml", specifier = ">=5.3.0" },
     { name = "markdown", specifier = ">=3.7" },
