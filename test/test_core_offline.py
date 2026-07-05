@@ -1,11 +1,14 @@
 import unittest
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from parsehub import ParseHub
 from parsehub.errors import ParseError, UnknownPlatform
 from parsehub.parsers.base import BaseParser
+from parsehub.parsers.parser.douyin import parse_video_info
+from parsehub.provider_api.douyin import DouyinMobileCrawler, DouyinMobileDevice
 from parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
-from parsehub.utils.helpers import match_url, run_sync
+from parsehub.utils.helpers import SecretCookie, match_url, run_sync
 
 
 class DummyParser(BaseParser):
@@ -67,6 +70,11 @@ class TestCoreUtilities(unittest.TestCase):
             return "ok"
 
         self.assertEqual(run_sync(get_value()), "ok")
+
+    def test_secret_cookie_accepts_dict_input(self):
+        cookie = SecretCookie({"device_id": "123", "iid": "456"})
+
+        self.assertEqual(cookie.get_value(), {"device_id": "123", "iid": "456"})
 
 
 class TestBaseParserUrlCleaning(unittest.IsolatedAsyncioTestCase):
@@ -199,6 +207,94 @@ class TestParseResultToDict(unittest.TestCase):
                 },
             ],
         )
+
+
+class TestDouyinStorySupport(unittest.TestCase):
+    def test_mobile_device_can_be_loaded_from_env(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "PARSEHUB_DOUYIN_DEVICE_ID": "1325343490970016",
+                "PARSEHUB_DOUYIN_IID": "1325343490974112",
+            },
+            clear=True,
+        ):
+            device = DouyinMobileDevice.from_env()
+
+        self.assertIsNotNone(device)
+        assert device is not None
+        self.assertEqual(device.device_id, "1325343490970016")
+        self.assertEqual(device.iid, "1325343490974112")
+
+    def test_mobile_device_can_be_loaded_from_register_response(self):
+        device = DouyinMobileDevice.from_register_response(
+            {
+                "device_id": 1219790537803243,
+                "install_id": 1219790537807339,
+                "device_id_str": "1219790537803243",
+                "install_id_str": "1219790537807339",
+            },
+            cdid="demo-cdid",
+            openudid="demo-openudid",
+        )
+
+        self.assertIsNotNone(device)
+        assert device is not None
+        self.assertEqual(device.device_id, "1219790537803243")
+        self.assertEqual(device.iid, "1219790537807339")
+        self.assertEqual(device.cdid, "demo-cdid")
+        self.assertEqual(device.openudid, "demo-openudid")
+
+    def test_mobile_device_pool_round_robin(self):
+        old_pool = DouyinMobileCrawler._device_pool
+        old_index = DouyinMobileCrawler._device_pool_index
+        try:
+            DouyinMobileCrawler._device_pool = [
+                DouyinMobileDevice(device_id="1", iid="11"),
+                DouyinMobileDevice(device_id="2", iid="22"),
+                DouyinMobileDevice(device_id="3", iid="33"),
+            ]
+            DouyinMobileCrawler._device_pool_index = 0
+
+            picked = [DouyinMobileCrawler._next_pooled_device().device_id for _ in range(5)]
+
+            self.assertEqual(picked, ["1", "2", "3", "1", "2"])
+        finally:
+            DouyinMobileCrawler._device_pool = old_pool
+            DouyinMobileCrawler._device_pool_index = old_index
+
+    def test_parse_video_info_prefers_story_default_play_url_by_data_size(self):
+        video_data = {
+            "cover": {"url_list": ["https://cdn.example/thumb.jpg"]},
+            "bit_rate": [
+                {
+                    "bit_rate": 0,
+                    "duration": 9682,
+                    "play_addr": {
+                        "url_list": ["https://cdn.example/story-default.mp4"],
+                        "width": 720,
+                        "height": 1280,
+                        "data_size": 7567631,
+                    },
+                },
+                {
+                    "bit_rate": 632,
+                    "duration": 9682,
+                    "play_addr": {
+                        "url_list": ["https://cdn.example/720p.mp4"],
+                        "width": 720,
+                        "height": 1280,
+                        "data_size": 783567,
+                    },
+                },
+            ],
+        }
+
+        info = parse_video_info(video_data)
+
+        self.assertEqual(info["video_url"], "https://cdn.example/story-default.mp4")
+        self.assertEqual(info["thumb_url"], "https://cdn.example/thumb.jpg")
+        self.assertEqual(info["duration"], 9682)
 
 
 class TestPlatformUrlMatching(unittest.TestCase):

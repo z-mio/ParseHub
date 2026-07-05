@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Self, Union
 
 from ... import ProgressCallback
-from ...provider_api.douyin import DouyinWebCrawler
+from ...provider_api.douyin import DouyinMobileCrawler, DouyinMobileDevice, DouyinWebCrawler
 from ...types import (
     DownloadResult,
     ImageParseResult,
@@ -22,7 +22,7 @@ from ..base.base import BaseParser
 
 class DouyinParser(BaseParser):
     __platform__ = Platform.DOUYIN
-    __supported_type__ = ["视频", "图文"]
+    __supported_type__ = ["视频", "图文", "Story/日常"]
     __match__ = r"^(http(s)?://)?.+douyin.com/(?!share/user|qishui).+"
     __redirect_keywords__ = ["v.douyin", "iesdouyin"]
     __reserved_parameters__ = ["modal_id"]
@@ -38,12 +38,29 @@ class DouyinParser(BaseParser):
 
     async def _fetch_api_result(self, url: str) -> "DouyinApiResult":
         """获取并解析抖音 API 结果"""
-        if not (cookie := self.cookie.get_value()):
-            raise ParseError("抖音 Cookie 未配置")
+        cookie = self.cookie.get_value() or {}
+        mobile_device = DouyinMobileDevice.resolve()
+        web_cookie = cookie
 
-        crawler = DouyinWebCrawler(proxy=self.proxy, cookie=cookie)
-        response = await crawler.parse(url)
-        return DouyinApiResult.parse(response)
+        web_error: ParseError | None = None
+        if web_cookie:
+            try:
+                crawler = DouyinWebCrawler(proxy=self.proxy, cookie=web_cookie)
+                response = await crawler.parse(url)
+                return DouyinApiResult.parse(response)
+            except ParseError as e:
+                web_error = e
+
+        try:
+            crawler = DouyinMobileCrawler(proxy=self.proxy, device=mobile_device)
+            response = await crawler.parse(url)
+            return DouyinApiResult.parse(response)
+        except ParseError as e:
+            mobile_error = e
+
+        if web_error:
+            raise ParseError(f"{web_error}；移动端解析也失败: {mobile_error}") from mobile_error
+        raise mobile_error
 
     @staticmethod
     def _build_video_result(result: "DouyinApiResult") -> VideoParseResult:
@@ -106,9 +123,14 @@ def parse_video_info(video_data: dict) -> dict:
     if not bit_rates:
         raise ParseError("抖音解析失败: 未获取到视频下载地址")
 
-    # 按分辨率降序排列，选择最高质量
+    # 按分辨率、文件大小、码率降序排列，选择最高质量。
+    # Story/日常的移动端 default 播放地址通常没有 br 参数，但 data_size 最大。
     bit_rates.sort(
-        key=lambda x: x.get("play_addr", {}).get("width", 0) * x.get("play_addr", {}).get("height", 0),
+        key=lambda x: (
+            x.get("play_addr", {}).get("width", 0) * x.get("play_addr", {}).get("height", 0),
+            x.get("play_addr", {}).get("data_size", 0),
+            x.get("bit_rate", 0),
+        ),
         reverse=True,
     )
     best_quality = bit_rates[0]

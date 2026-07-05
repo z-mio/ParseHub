@@ -49,8 +49,10 @@ class SecretCookie:
 
     @staticmethod
     def normalize_cookie(v: str | dict[str, Any] | None) -> dict[str, SecretStr] | None:
-        if v is None or isinstance(v, dict):
+        if v is None:
             return v
+        if isinstance(v, dict):
+            return {str(k).strip(): SecretStr("" if v is None else str(v).strip()) for k, v in v.items()}
         if isinstance(v, str):
             s = v.strip()
             if not s:
