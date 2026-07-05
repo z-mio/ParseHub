@@ -1,16 +1,23 @@
 # mypy: disable-error-code=no-untyped-def
+# mypy: disable-error-code=no-any-return
 import asyncio
 import base64
+import binascii
 import hashlib
+import json
+import os
 import random
 import re
 import time
+import uuid
+from dataclasses import dataclass
 from random import choice, randint
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 from urllib.parse import quote, urlencode
 
 import httpx
 from gmssl import func, sm3
+from SignerPy import get, sign, trace_id
 
 from ..errors import ParseError
 
@@ -20,6 +27,35 @@ DEFAULT_USER_AGENT = (
 )
 
 POST_DETAIL = "https://www.douyin.com/aweme/v1/web/aweme/detail/"
+MOBILE_BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+)
+MOBILE_USER_AGENT = (
+    "com.ss.android.ugc.aweme/390500 (Linux; U; Android 13; zh_CN; Pixel 6; "
+    "Build/TQ3A.230805.001; Cronet/TTNetVersion:6b6f6e6e 2024-04-10 "
+    "QuicVersion:47946d2a 2024-03-28)"
+)
+PLAY_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+MOBILE_DETAIL_HOSTS = (
+    "api.amemv.com",
+    "api3-core-c.amemv.com",
+    "aweme.snssdk.com",
+    "api5-normal-lf.amemv.com",
+    "api3-normal-c.amemv.com",
+)
+MOBILE_REGISTER_HOSTS = (
+    "log.snssdk.com",
+    "api.amemv.com",
+)
+MOBILE_DEVICE_POOL_SIZE = 3
+MOBILE_SIGN_PROFILES = (
+    {"license_id": 1611921764, "version": 8404},
+    {"license_id": 1611921764, "version": 4404},
+)
+MOBILE_PLAY_RATIOS = ("default", "1080p", "720p", "540p", "480p")
 
 
 class XBogus:
@@ -718,21 +754,18 @@ class DouyinWebCrawler:
             "Referer": "https://www.douyin.com/",
         }
 
-    async def get_aweme_id(self, url: str) -> str:
-        async with httpx.AsyncClient(proxy=self.proxy, timeout=10) as client:
-            response = await client.get(url, follow_redirects=True)
-            response.raise_for_status()
-            response_url = str(response.url)
-            for pattern in [
-                re.compile(r"video/([^/?]*)"),
-                re.compile(r"[?&]vid=(\d+)"),
-                re.compile(r"note/([^/?]*)"),
-                re.compile(r"modal_id=([0-9]+)"),
-            ]:
-                match = pattern.search(response_url)
-                if match:
-                    return match.group(1)
-            raise ValueError("未在响应的地址中找到 aweme_id")
+    @staticmethod
+    async def get_aweme_id(raw_url: str) -> str:
+        for pattern in [
+            re.compile(r"video/([^/?]*)"),
+            re.compile(r"[?&]vid=(\d+)"),
+            re.compile(r"note/([^/?]*)"),
+            re.compile(r"modal_id=([0-9]+)"),
+        ]:
+            match = pattern.search(raw_url)
+            if match:
+                return match.group(1)
+        raise ValueError("未在响应的地址中找到 aweme_id")
 
     async def fetch_one_video(self, aweme_id: str) -> dict:
         async with httpx.AsyncClient(
@@ -778,6 +811,404 @@ class DouyinWebCrawler:
                         raise ParseError("获取抖音作品失败, 请检查 cookie") from e
             raise ParseError("获取抖音作品失败, 请检查 cookie")
 
-    async def parse(self, url: str) -> dict:
-        aweme_id = await self.get_aweme_id(url)
+    async def parse(self, raw_url: str) -> dict:
+        aweme_id = await self.get_aweme_id(raw_url)
         return await self.fetch_one_video(aweme_id)
+
+
+@dataclass(frozen=True)
+class DouyinMobileDevice:
+    """抖音移动端设备注册参数。
+
+    Story/日常作品在网页分享页会返回 story_25_filter，无法拿到 aweme_detail。
+    移动端详情接口需要先向 device_register 注册 device_id/iid；
+    随机生成的 device_id/iid 通常会返回 200 空 body。
+    """
+
+    device_id: str
+    iid: str
+    cdid: str | None = None
+    openudid: str | None = None
+
+    @classmethod
+    def from_env(cls) -> "DouyinMobileDevice | None":
+        device_id = os.getenv("PARSEHUB_DOUYIN_DEVICE_ID") or os.getenv("DOUYIN_DEVICE_ID")
+        iid = os.getenv("PARSEHUB_DOUYIN_IID") or os.getenv("PARSEHUB_DOUYIN_INSTALL_ID") or os.getenv("DOUYIN_IID")
+        if not device_id or not iid:
+            return None
+        cdid = os.getenv("PARSEHUB_DOUYIN_CDID") or os.getenv("DOUYIN_CDID")
+        openudid = os.getenv("PARSEHUB_DOUYIN_OPENUDID") or os.getenv("DOUYIN_OPENUDID")
+        return cls(
+            device_id=device_id.strip(),
+            iid=iid.strip(),
+            cdid=cdid.strip() if cdid else None,
+            openudid=openudid.strip() if openudid else None,
+        )
+
+    @classmethod
+    def resolve(cls) -> "DouyinMobileDevice | None":
+        return cls.from_env()
+
+    @classmethod
+    def from_register_response(
+        cls,
+        payload: dict[str, Any],
+        *,
+        cdid: str | None = None,
+        openudid: str | None = None,
+    ) -> "DouyinMobileDevice | None":
+        device_id = str(payload.get("device_id_str") or payload.get("device_id") or "")
+        iid = str(payload.get("install_id_str") or payload.get("install_id") or payload.get("iid") or "")
+        if not device_id or not iid or device_id == "0" or iid == "0":
+            return None
+        return cls(device_id=device_id, iid=iid, cdid=cdid, openudid=openudid)
+
+
+class DouyinMobileCrawler:
+    """Signed mobile API crawler for Douyin Story/日常 videos."""
+
+    _device_pool: ClassVar[list[DouyinMobileDevice]] = []
+    _device_pool_index: ClassVar[int] = 0
+
+    def __init__(self, device: DouyinMobileDevice | None = None, proxy: str | None = None):
+        self.device = device
+        self._fixed_device = device is not None
+        self.proxy = proxy
+
+    @staticmethod
+    async def get_aweme_id(raw_url: str) -> str:
+        for pattern in [
+            re.compile(r"/(?:share/)?video/(\d+)"),
+            re.compile(r"[?&]modal_id=(\d+)"),
+            re.compile(r"note/([^/?]*)"),
+            re.compile(r"[?&]vid=(\d+)"),
+        ]:
+            match = pattern.search(raw_url)
+            if match:
+                return match.group(1)
+        raise ParseError("未在响应地址中找到 aweme_id")
+
+    def _mobile_query(self, aweme_id: str) -> dict:
+        if self.device is None:
+            raise ParseError("抖音移动端设备未注册")
+
+        params = get(
+            {
+                "aweme_id": aweme_id,
+                "aid": "1128",
+                "app_name": "aweme",
+                "version_code": "390500",
+                "version_name": "39.5.0",
+                "device_platform": "android",
+                "os": "android",
+                "os_version": "13",
+                "ssmix": "a",
+                "language": "zh",
+                "channel": "wandoujia_aweme",
+                "device_type": "Pixel 6",
+                "device_brand": "google",
+                "resolution": "1080*2400",
+                "dpi": "420",
+                "host_abi": "arm64-v8a",
+                "manifest_version_code": "390500",
+                "update_version_code": "390500",
+                "ac": "wifi",
+                "is_guest_mode": "0",
+                "minor_status": "0",
+                "app_type": "normal",
+            }
+        )
+        params["device_id"] = self.device.device_id
+        params["iid"] = self.device.iid
+        if self.device.cdid:
+            params["cdid"] = self.device.cdid
+        if self.device.openudid:
+            params["openudid"] = self.device.openudid
+        return params
+
+    def _signed_headers(self, params: dict, profile: dict) -> dict[str, str]:
+        query = urlencode(params)
+        signed = sign(
+            params=query,
+            aid=1128,
+            license_id=profile["license_id"],
+            version=profile["version"],
+            platform=0,
+            sdk_version_str="v05.01.02-alpha.7-ov-android",
+            sdk_version=83952160,
+        )
+        return {
+            **signed,
+            "User-Agent": MOBILE_USER_AGENT,
+            "x-tt-trace-id": trace_id(params["device_id"]),
+            "sdk-version": "2",
+            "passport-sdk-version": "203226",
+        }
+
+    @staticmethod
+    def _new_openudid() -> str:
+        return binascii.hexlify(os.urandom(8)).decode()
+
+    @staticmethod
+    def _device_register_query() -> dict[str, str | int]:
+        params = get(
+            {
+                "aid": "1128",
+                "app_name": "aweme",
+                "version_code": "390500",
+                "version_name": "39.5.0",
+                "device_platform": "android",
+                "os": "android",
+                "os_version": "13",
+                "ssmix": "a",
+                "language": "zh",
+                "channel": "wandoujia_aweme",
+                "device_type": "Pixel 6",
+                "device_brand": "google",
+                "resolution": "1080*2400",
+                "dpi": "420",
+                "host_abi": "arm64-v8a",
+                "manifest_version_code": "390500",
+                "update_version_code": "390500",
+                "ac": "wifi",
+                "app_type": "normal",
+                "cpu_support64": "true",
+            }
+        )
+        return params
+
+    @staticmethod
+    def _device_register_payload(params: dict[str, str | int]) -> dict:
+        return {
+            "magic_tag": "ss_app_log",
+            "header": {
+                "display_name": "抖音",
+                "aid": 1128,
+                "channel": "wandoujia_aweme",
+                "package": "com.ss.android.ugc.aweme",
+                "app_version": "39.5.0",
+                "version_code": 390500,
+                "manifest_version_code": 390500,
+                "update_version_code": 390500,
+                "sdk_version": "3.9.5",
+                "sdk_target_version": 29,
+                "os": "Android",
+                "os_version": "13",
+                "os_api": 33,
+                "device_model": "Pixel 6",
+                "device_brand": "google",
+                "device_manufacturer": "Google",
+                "cpu_abi": "arm64-v8a",
+                "release_build": "TQ3A.230805.001",
+                "density_dpi": 420,
+                "display_density": "xhdpi",
+                "resolution": "1080x2400",
+                "language": "zh",
+                "timezone": 8,
+                "region": "CN",
+                "tz_name": "Asia/Shanghai",
+                "cdid": params["cdid"],
+                "openudid": params["openudid"],
+                "clientudid": str(uuid.uuid4()),
+                "google_aid": "",
+                "req_id": str(uuid.uuid4()),
+            },
+            "_gen_time": int(time.time()),
+        }
+
+    async def _request_registered_device(self, client: httpx.AsyncClient) -> DouyinMobileDevice:
+        last_error = "unknown"
+        for host in MOBILE_REGISTER_HOSTS:
+            params = self._device_register_query()
+            query = urlencode(params)
+            url = f"https://{host}/service/2/device_register/?{query}"
+            headers = {
+                **self._signed_headers(params, MOBILE_SIGN_PROFILES[0]),
+                "User-Agent": MOBILE_USER_AGENT,
+                "Content-Type": "application/json; charset=utf-8",
+                "sdk-version": "2",
+            }
+            body = json.dumps(self._device_register_payload(params), ensure_ascii=False, separators=(",", ":"))
+            try:
+                response = await client.post(url, headers=headers, content=body.encode(), timeout=20)
+                payload = response.json()
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+            device = DouyinMobileDevice.from_register_response(
+                payload,
+                cdid=str(params["cdid"]),
+                openudid=str(params["openudid"]),
+            )
+            if device:
+                return device
+            last_error = f"{host} returned invalid device ids: {payload}"
+        raise ParseError(f"注册抖音移动端设备失败: {last_error}")
+
+    async def register_device(self, client: httpx.AsyncClient | None = None) -> DouyinMobileDevice:
+        close_client = client is None
+        client = client or httpx.AsyncClient(proxy=self.proxy, timeout=20, follow_redirects=True)
+        try:
+            device = await self._request_registered_device(client)
+            self.device = device
+            self._fixed_device = True
+            return self.device
+        finally:
+            if close_client:
+                await client.aclose()
+
+    async def register_device_pool(
+        self,
+        client: httpx.AsyncClient | None = None,
+        *,
+        count: int = MOBILE_DEVICE_POOL_SIZE,
+    ) -> list[DouyinMobileDevice]:
+        close_client = client is None
+        client = client or httpx.AsyncClient(proxy=self.proxy, timeout=20, follow_redirects=True)
+        devices: list[DouyinMobileDevice] = []
+        seen: set[tuple[str, str]] = set()
+        last_error = "unknown"
+        try:
+            attempts = 0
+            while len(devices) < count and attempts < count * 10:
+                attempts += 1
+                try:
+                    device = await self._request_registered_device(client)
+                except ParseError as e:
+                    last_error = str(e)
+                    await asyncio.sleep(0.2)
+                    continue
+                key = (device.device_id, device.iid)
+                if key in seen:
+                    last_error = f"duplicate device ids: {device.device_id}/{device.iid}"
+                    await asyncio.sleep(0.2)
+                    continue
+                seen.add(key)
+                devices.append(device)
+        finally:
+            if close_client:
+                await client.aclose()
+        if len(devices) < count:
+            raise ParseError(f"注册抖音移动端设备池失败: 仅获取到 {len(devices)}/{count} 组设备（{last_error}）")
+        return devices
+
+    @classmethod
+    def _next_pooled_device(cls) -> DouyinMobileDevice:
+        if not cls._device_pool:
+            raise ParseError("抖音移动端设备池未初始化")
+        device = cls._device_pool[cls._device_pool_index % len(cls._device_pool)]
+        cls._device_pool_index = (cls._device_pool_index + 1) % len(cls._device_pool)
+        return device
+
+    async def _ensure_device_pool(self, client: httpx.AsyncClient) -> None:
+        if self.__class__._device_pool:
+            return
+        self.__class__._device_pool = await self.register_device_pool(client)
+        self.__class__._device_pool_index = 0
+
+    async def _select_device(self, client: httpx.AsyncClient) -> DouyinMobileDevice:
+        if self._fixed_device:
+            if self.device is None:
+                raise ParseError("抖音移动端设备未配置")
+            return self.device
+
+        await self._ensure_device_pool(client)
+        self.device = self.__class__._next_pooled_device()
+        return self.device
+
+    async def fetch_one_video(self, aweme_id: str) -> dict:
+        last_error = "unknown"
+        async with httpx.AsyncClient(proxy=self.proxy, timeout=20, follow_redirects=True) as client:
+            for _ in range(8):
+                await self._select_device(client)
+                params = self._mobile_query(aweme_id)
+                query = urlencode(params)
+                for profile in MOBILE_SIGN_PROFILES:
+                    headers = self._signed_headers(params, profile)
+                    for host in MOBILE_DETAIL_HOSTS:
+                        url = f"https://{host}/aweme/v1/aweme/detail/?{query}"
+                        try:
+                            response = await client.get(url, headers=headers)
+                            content = response.content
+                        except Exception as e:
+                            last_error = str(e)
+                            continue
+                        if not content:
+                            last_error = f"{host} returned empty body"
+                            continue
+                        try:
+                            payload = response.json()
+                        except Exception:
+                            last_error = f"{host} returned non-json body"
+                            continue
+                        if payload.get("aweme_detail"):
+                            await self._attach_story_default_play(payload["aweme_detail"])
+                            return cast(dict[str, Any], payload)
+                        last_error = f"{host} missing aweme_detail: {payload.get('status_msg') or payload}"
+                await asyncio.sleep(0.15)
+        raise ParseError(f"获取抖音 Story/日常失败: {last_error}")
+
+    async def parse(self, raw_url: str) -> dict:
+        aweme_id = await self.get_aweme_id(raw_url)
+        return await self.fetch_one_video(aweme_id)
+
+    async def _attach_story_default_play(self, detail: dict) -> None:
+        if not (detail.get("is_story") in (1, True, "1") or detail.get("is_24_story") in (1, True, "1")):
+            return
+        video = detail.get("video") or {}
+        video_uri = self._pick_video_uri(video)
+        if not video_uri:
+            return
+        best = await self._resolve_best_play_url(video_uri)
+        if not best:
+            return
+
+        play_addr = {
+            "uri": video_uri,
+            "url_list": [best["direct_url"]],
+            "data_size": best["content_length"],
+            "width": video.get("width") or 0,
+            "height": video.get("height") or 0,
+        }
+        synthetic_best = {
+            "bit_rate": best["bitrate_kbps"] or 0,
+            "duration": video.get("duration") or 0,
+            "play_addr": play_addr,
+        }
+        video["bit_rate"] = [synthetic_best, *(video.get("bit_rate") or [])]
+
+    @staticmethod
+    def _pick_video_uri(video: dict) -> str:
+        if uri := (video.get("play_addr", {})).get("uri"):
+            return str(uri)
+        best_uri = ""
+        best_bitrate = -1
+        for item in video.get("bit_rate", []):
+            candidate = (item.get("play_addr", {})).get("uri")
+            bitrate = int(item.get("bit_rate", 0))
+            if candidate and bitrate >= best_bitrate:
+                best_uri = candidate
+                best_bitrate = bitrate
+        return best_uri
+
+    async def _resolve_best_play_url(self, video_uri: str) -> dict | None:
+        headers = {"User-Agent": PLAY_USER_AGENT, "Referer": "https://www.douyin.com/"}
+        best: dict | None = None
+        async with httpx.AsyncClient(proxy=self.proxy, timeout=20, follow_redirects=True) as client:
+            for ratio in MOBILE_PLAY_RATIOS:
+                api = f"https://aweme.snssdk.com/aweme/v1/play/?video_id={video_uri}&ratio={ratio}&line=0"
+                try:
+                    response = await client.head(api, headers=headers)
+                except Exception:
+                    continue
+                content_length = int(response.headers.get("content-length", 0))
+                candidate = {
+                    "ratio": ratio,
+                    "direct_url": str(response.url),
+                    "content_length": content_length,
+                    "bitrate_kbps": 0,
+                }
+                if best is None or candidate["content_length"] > best["content_length"]:
+                    best = candidate
+        return best
