@@ -22,7 +22,7 @@ from ..base.base import BaseParser
 
 class DouyinParser(BaseParser):
     __platform__ = Platform.DOUYIN
-    __supported_type__ = ["视频", "图文", "Story/日常"]
+    __supported_type__ = ["视频", "图文", "日常"]
     __match__ = r"^(http(s)?://)?.+douyin.com/(?!share/user|qishui).+"
     __redirect_keywords__ = ["v.douyin", "iesdouyin"]
     __reserved_parameters__ = ["modal_id"]
@@ -36,24 +36,23 @@ class DouyinParser(BaseParser):
             case DouyinMediaType.IMAGE:
                 return self._build_image_result(result)
 
-    async def _fetch_api_result(self, url: str) -> "DouyinApiResult":
+    async def _fetch_api_result(self, raw_url: str) -> "DouyinApiResult":
         """获取并解析抖音 API 结果"""
-        cookie = self.cookie.get_value() or {}
-        mobile_device = DouyinMobileDevice.resolve()
-        web_cookie = cookie
+        web_cookie = self.cookie.get_value() or {}
 
         web_error: ParseError | None = None
         if web_cookie:
             try:
-                crawler = DouyinWebCrawler(proxy=self.proxy, cookie=web_cookie)
-                response = await crawler.parse(url)
+                web_crawler = DouyinWebCrawler(proxy=self.proxy, cookie=web_cookie)
+                response = await web_crawler.parse(raw_url)
                 return DouyinApiResult.parse(response)
             except ParseError as e:
                 web_error = e
 
         try:
-            crawler = DouyinMobileCrawler(proxy=self.proxy, device=mobile_device)
-            response = await crawler.parse(url)
+            mobile_device = DouyinMobileDevice.resolve()
+            app_crawler = DouyinMobileCrawler(proxy=self.proxy, device=mobile_device)
+            response = await app_crawler.parse(raw_url)
             return DouyinApiResult.parse(response)
         except ParseError as e:
             mobile_error = e

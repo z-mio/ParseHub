@@ -1,4 +1,5 @@
 # mypy: disable-error-code=no-untyped-def
+# mypy: disable-error-code=no-any-return
 import asyncio
 import base64
 import binascii
@@ -16,6 +17,7 @@ from urllib.parse import quote, urlencode
 
 import httpx
 from gmssl import func, sm3
+from SignerPy import get, sign, trace_id
 
 from ..errors import ParseError
 
@@ -35,8 +37,7 @@ MOBILE_USER_AGENT = (
     "QuicVersion:47946d2a 2024-03-28)"
 )
 PLAY_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 MOBILE_DETAIL_HOSTS = (
     "api.amemv.com",
@@ -753,21 +754,18 @@ class DouyinWebCrawler:
             "Referer": "https://www.douyin.com/",
         }
 
-    async def get_aweme_id(self, url: str) -> str:
-        async with httpx.AsyncClient(proxy=self.proxy, timeout=10) as client:
-            response = await client.get(url, follow_redirects=True)
-            response.raise_for_status()
-            response_url = str(response.url)
-            for pattern in [
-                re.compile(r"video/([^/?]*)"),
-                re.compile(r"[?&]vid=(\d+)"),
-                re.compile(r"note/([^/?]*)"),
-                re.compile(r"modal_id=([0-9]+)"),
-            ]:
-                match = pattern.search(response_url)
-                if match:
-                    return match.group(1)
-            raise ValueError("未在响应的地址中找到 aweme_id")
+    @staticmethod
+    async def get_aweme_id(raw_url: str) -> str:
+        for pattern in [
+            re.compile(r"video/([^/?]*)"),
+            re.compile(r"[?&]vid=(\d+)"),
+            re.compile(r"note/([^/?]*)"),
+            re.compile(r"modal_id=([0-9]+)"),
+        ]:
+            match = pattern.search(raw_url)
+            if match:
+                return match.group(1)
+        raise ValueError("未在响应的地址中找到 aweme_id")
 
     async def fetch_one_video(self, aweme_id: str) -> dict:
         async with httpx.AsyncClient(
@@ -813,8 +811,8 @@ class DouyinWebCrawler:
                         raise ParseError("获取抖音作品失败, 请检查 cookie") from e
             raise ParseError("获取抖音作品失败, 请检查 cookie")
 
-    async def parse(self, url: str) -> dict:
-        aweme_id = await self.get_aweme_id(url)
+    async def parse(self, raw_url: str) -> dict:
+        aweme_id = await self.get_aweme_id(raw_url)
         return await self.fetch_one_video(aweme_id)
 
 
@@ -878,32 +876,22 @@ class DouyinMobileCrawler:
         self.proxy = proxy
 
     @staticmethod
-    def _load_signer():
-        try:
-            from SignerPy import get, sign, trace_id
-        except ImportError as e:
-            raise ParseError("解析抖音 Story/日常需要安装 SignerPy: pip install SignerPy") from e
-        return get, sign, trace_id
-
-    async def get_aweme_id(self, url: str) -> str:
-        async with httpx.AsyncClient(proxy=self.proxy, timeout=20, follow_redirects=True) as client:
-            response = await client.get(url, headers={"User-Agent": MOBILE_BROWSER_USER_AGENT})
-            response.raise_for_status()
-            response_url = str(response.url)
-            for pattern in [
-                re.compile(r"/(?:share/)?video/(\d+)"),
-                re.compile(r"[?&]modal_id=(\d+)"),
-                re.compile(r"[?&]vid=(\d+)"),
-            ]:
-                match = pattern.search(response_url)
-                if match:
-                    return match.group(1)
+    async def get_aweme_id(raw_url: str) -> str:
+        for pattern in [
+            re.compile(r"/(?:share/)?video/(\d+)"),
+            re.compile(r"[?&]modal_id=(\d+)"),
+            re.compile(r"note/([^/?]*)"),
+            re.compile(r"[?&]vid=(\d+)"),
+        ]:
+            match = pattern.search(raw_url)
+            if match:
+                return match.group(1)
         raise ParseError("未在响应地址中找到 aweme_id")
 
     def _mobile_query(self, aweme_id: str) -> dict:
         if self.device is None:
             raise ParseError("抖音移动端设备未注册")
-        get, _, _ = self._load_signer()
+
         params = get(
             {
                 "aweme_id": aweme_id,
@@ -939,7 +927,6 @@ class DouyinMobileCrawler:
         return params
 
     def _signed_headers(self, params: dict, profile: dict) -> dict[str, str]:
-        _, sign, trace_id = self._load_signer()
         query = urlencode(params)
         signed = sign(
             params=query,
@@ -964,7 +951,6 @@ class DouyinMobileCrawler:
 
     @staticmethod
     def _device_register_query() -> dict[str, str | int]:
-        get, _, _ = DouyinMobileCrawler._load_signer()
         params = get(
             {
                 "aid": "1128",
@@ -1163,8 +1149,8 @@ class DouyinMobileCrawler:
                 await asyncio.sleep(0.15)
         raise ParseError(f"获取抖音 Story/日常失败: {last_error}")
 
-    async def parse(self, url: str) -> dict:
-        aweme_id = await self.get_aweme_id(url)
+    async def parse(self, raw_url: str) -> dict:
+        aweme_id = await self.get_aweme_id(raw_url)
         return await self.fetch_one_video(aweme_id)
 
     async def _attach_story_default_play(self, detail: dict) -> None:
@@ -1194,13 +1180,13 @@ class DouyinMobileCrawler:
 
     @staticmethod
     def _pick_video_uri(video: dict) -> str:
-        if uri := (video.get("play_addr") or {}).get("uri"):
+        if uri := (video.get("play_addr", {})).get("uri"):
             return str(uri)
         best_uri = ""
         best_bitrate = -1
-        for item in video.get("bit_rate") or []:
-            candidate = (item.get("play_addr") or {}).get("uri")
-            bitrate = int(item.get("bit_rate") or 0)
+        for item in video.get("bit_rate", []):
+            candidate = (item.get("play_addr", {})).get("uri")
+            bitrate = int(item.get("bit_rate", 0))
             if candidate and bitrate >= best_bitrate:
                 best_uri = candidate
                 best_bitrate = bitrate
@@ -1216,7 +1202,7 @@ class DouyinMobileCrawler:
                     response = await client.head(api, headers=headers)
                 except Exception:
                     continue
-                content_length = int(response.headers.get("content-length") or 0)
+                content_length = int(response.headers.get("content-length", 0))
                 candidate = {
                     "ratio": ratio,
                     "direct_url": str(response.url),
