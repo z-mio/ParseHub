@@ -33,7 +33,7 @@ def switch_ytdlp_proxy(ydl: YoutubeDL, proxy: str | None) -> None:
         director.close()
 
 
-@logger.catch
+@logger.catch(reraise=True)
 def download_video(yto_params: dict[str, Any], url: str, proxy: str | None = None) -> None:
     """在独立线程中下载视频"""
     try:
@@ -130,7 +130,6 @@ class YtParser(BaseParser, register=False):
         width = dl.get("width", 0)
         height = dl.get("height", 0)
         return YtVideoInfo(
-            raw_video_info=dl,
             title=title,
             description=description,
             thumbnail=thumbnail,
@@ -270,7 +269,6 @@ class YtVideoParseResult(VideoParseResult):
 class YtVideoInfo:
     """raw_video_info: yt-dlp解析结果"""
 
-    raw_video_info: dict
     title: str
     description: str
     thumbnail: str
