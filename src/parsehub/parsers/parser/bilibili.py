@@ -165,7 +165,7 @@ class BiliParse(YtParser):
     @property
     def params(self) -> dict[str, Any]:
         sub: dict[str, Any] = {
-            "format": "mp4+bestvideo[height<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
+            "format": "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
         }
         p = sub | super().params
         return p
