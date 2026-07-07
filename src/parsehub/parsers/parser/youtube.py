@@ -1,6 +1,3 @@
-import io
-from typing import Any
-
 from ...types.platform import Platform
 from ..base.ytdlp import YtParser
 
@@ -13,18 +10,21 @@ class YtbParse(YtParser):
     __reserved_parameters__ = ["v", "list", "index"]
 
     @property
-    def params(self) -> dict[str, Any]:
-        sub: dict[str, Any] = {
-            "format": "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
-            # "writesubtitles": True, # 下载字幕
-            # "writeautomaticsub": True, # 下载自动生成的字幕
-            # "subtitlesformat": "ttml", # 字幕格式
-            # "subtitleslangs": ["en", "ja", "zh-CN"], # 字幕语言
-        }
+    def cli_args(self) -> list[str]:
+        return [
+            *super().cli_args,
+            "--format",
+            "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
+            # "--write-subs", # 下载字幕
+            # "--write-auto-subs", # 下载自动生成的字幕
+            # "--sub-format", "ttml", # 字幕格式
+            # "--sub-langs", "en,ja,zh-CN", # 字幕语言
+        ]
+
+    def get_cookie_text(self) -> str | None:
         if cookie := self.cookie.get_value():
-            sub["cookiefile"] = io.StringIO(self.to_netscape_cookie(cookie, "youtube.com"))
-        p = sub | super().params
-        return p
+            return self.to_netscape_cookie(cookie, "youtube.com")
+        return None
 
     @staticmethod
     def to_netscape_cookie(cookie: dict | None, domain: str) -> str | None:

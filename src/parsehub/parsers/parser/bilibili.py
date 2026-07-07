@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
@@ -163,12 +163,12 @@ class BiliParse(YtParser):
         return desc.strip()
 
     @property
-    def params(self) -> dict[str, Any]:
-        sub: dict[str, Any] = {
-            "format": "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
-        }
-        p = sub | super().params
-        return p
+    def cli_args(self) -> list[str]:
+        return [
+            *super().cli_args,
+            "--format",
+            "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
+        ]
 
 
 class BiliVideoParseResult(VideoParseResult):
