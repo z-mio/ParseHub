@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from markdown import markdown
 from markdownify import MarkdownConverter
 
-from ..config import GlobalConfig
+from ..utils.helpers import UA
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Coolapk:
 
     @classmethod
     async def parse(cls, url: str, proxy: str | None = None) -> "Coolapk":
-        async with httpx.AsyncClient(headers={"User-Agent": GlobalConfig.ua}, proxy=proxy) as client:
+        async with httpx.AsyncClient(headers={"User-Agent": UA}, proxy=proxy) as client:
             result = await client.get(url)
         soup = BeautifulSoup(result.text, "lxml")
         # 酷安网页版不加载实况照片

@@ -7,7 +7,6 @@ from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
 
-from ...config.config import GlobalConfig
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
 from ...types import (
     DownloadResult,
@@ -20,10 +19,12 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
+from ...utils.helpers import UA
+from ..base.base import BaseParser
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
-class BiliParse(YtParser):
+class BiliParse(BaseParser):
     __platform__ = Platform.BILIBILI
     __supported_type__ = ["视频", "动态"]
     __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|\b\d{18,19}\b)|b23.tv|bili2233.cn).*"
@@ -108,6 +109,7 @@ class BiliParse(YtParser):
             part = ""
             duration = view["duration"]
             dimension = view["dimension"]
+            desc = view["desc"]
 
             if p != 1 and (pages := view.get("pages")):
                 if page_info := next((i for i in pages if i["page"] == p), None):
@@ -118,16 +120,12 @@ class BiliParse(YtParser):
 
             b3, b4 = await bili.get_buvid()
             video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
-            # if GlobalConfig.duration_limit and duration > GlobalConfig.duration_limit:
-            #     video_playurl = await bili.get_video_playurl(url, cid, b3, b4, False)
-            # else:
-            #     video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
 
         durl = video_playurl["data"]["durl"][0]
         video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
         return BiliVideoParseResult(
             title=data["View"]["title"],
-            content=f"P{p}: {part}" if part else "",
+            content=f"P{p}: {part}" if part else (desc.strip() or ""),
             video=VideoRef(
                 url=video_url,
                 thumb_url=data["View"]["pic"],
@@ -138,12 +136,7 @@ class BiliParse(YtParser):
         )
 
     async def ytp_parse(self, url: str) -> YtVideoParseResult:
-        result = cast(YtVideoParseResult, await super()._do_parse(url))
-        return YtVideoParseResult(
-            title=result.title,
-            dl=result.dl,
-            video=cast(VideoRef | None, result.media),
-        )
+        return await BiliYtParse(proxy=self.proxy, cookie=self.cookie)._do_parse(url)
 
     @staticmethod
     def change_source(url: str) -> str:
@@ -162,12 +155,20 @@ class BiliParse(YtParser):
             desc = desc.replace(hashtag, f" {hashtag.strip().removesuffix('#')} ")
         return desc.strip()
 
+
+class BiliYtParse(YtParser, register=False):
+    @property
+    def _video_parse_result_type(self) -> type[BiliYtVideoParseResult]:
+        return BiliYtVideoParseResult
+
+
+class BiliYtVideoParseResult(YtVideoParseResult):
     @property
     def cli_args(self) -> list[str]:
         return [
             *super().cli_args,
-            "--format",
-            "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
+            "-S",
+            "+codec:h264,filesize~500M",
         ]
 
 
@@ -183,7 +184,7 @@ class BiliVideoParseResult(VideoParseResult):
         headers: dict | None = None,
         connections: int = 4,
     ) -> DownloadResult:
-        headers = {"referer": "https://www.bilibili.com", "User-Agent": GlobalConfig.ua}
+        headers = {"referer": "https://www.bilibili.com", "User-Agent": UA}
         return await super()._do_download(
             output_dir=output_dir,
             callback=callback,

@@ -5,8 +5,8 @@ import signal
 import sys
 import tempfile
 from collections import deque
-from collections.abc import AsyncIterator, Iterator
-from contextlib import asynccontextmanager, contextmanager
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -14,7 +14,6 @@ from typing import Any, cast
 from loguru import logger
 
 from ...types import (
-    AnyParseResult,
     DownloadError,
     DownloadResult,
     ParseError,
@@ -46,13 +45,13 @@ TAIL_CHARS = 16_000
 
 
 class MonotonicDownloadProgress:
-    def __init__(self, *, start: float = 0.0, end: float = 100.0, min_step: float = 0.1) -> None:
+    def __init__(self, *, start: float = 0.0, end: float = 100.0, min_step: float = 1.0) -> None:
         self.start = start
         self.end = end
-        self.min_step = min_step
-        self.current = start
+        self.min_step = max(1, int(min_step))
+        self.current = int(start)
 
-    def update(self, d: dict[str, Any]) -> float | None:
+    def update(self, d: dict[str, Any]) -> int | None:
         status = d.get("status")
 
         if status == "downloading":
@@ -60,15 +59,15 @@ class MonotonicDownloadProgress:
             if percent is None:
                 return None
 
-            mapped = self.start + percent * (self.end - self.start) / 100
+            mapped = int(self.start + percent * (self.end - self.start) / 100)
 
             if mapped >= self.current + self.min_step:
                 self.current = mapped
-                return round(self.current, 1)
+                return self.current
 
-        elif status == "finished" and self.current < self.end:
-            self.current = self.end
-            return round(self.current, 1)
+        elif status == "finished" and self.current < int(self.end):
+            self.current = int(self.end)
+            return self.current
 
         return None
 
@@ -158,8 +157,8 @@ def _temporary_text_file(content: str, *, suffix: str) -> Iterator[str]:
                 logger.debug("删除 yt-dlp 临时文件失败: {}", e)
 
 
-@asynccontextmanager
-async def _materialize_cookie(cookie_text: str | None) -> AsyncIterator[list[str]]:
+@contextmanager
+def _materialize_cookie(cookie_text: str | None) -> Iterator[list[str]]:
     if not cookie_text:
         yield []
         return
@@ -168,8 +167,8 @@ async def _materialize_cookie(cookie_text: str | None) -> AsyncIterator[list[str
         yield ["--cookies", path]
 
 
-@asynccontextmanager
-async def _materialize_info_json(info_json: dict[str, Any]) -> AsyncIterator[str]:
+@contextmanager
+def _materialize_info_json(info_json: dict[str, Any]) -> Iterator[str]:
     content = json.dumps(info_json, ensure_ascii=False)
     with _temporary_text_file(content, suffix=".info.json") as path:
         yield path
@@ -177,6 +176,10 @@ async def _materialize_info_json(info_json: dict[str, Any]) -> AsyncIterator[str
 
 def _format_tail(tail: deque[str]) -> str:
     return "".join(tail)[-TAIL_CHARS:].strip()
+
+
+def _tail_from_text(text: str) -> deque[str]:
+    return deque(text.splitlines(keepends=True)[-TAIL_LINES:], maxlen=TAIL_LINES)
 
 
 def _ytdlp_error(returncode: int, stdout_tail: deque[str], stderr_tail: deque[str]) -> str:
@@ -243,13 +246,10 @@ async def _run_ytdlp_json(
     proxy: str | None = None,
     cookie_text: str | None = None,
 ) -> dict[str, Any]:
-    async with _materialize_cookie(cookie_text) as cookie_args:
+    with _materialize_cookie(cookie_text) as cookie_args:
         argv = [
             *_yt_dlp_base_cmd(),
             *cli_args,
-            "--dump-single-json",
-            "--no-download",
-            "--no-warnings",
             *cookie_args,
         ]
         if proxy:
@@ -271,9 +271,7 @@ async def _run_ytdlp_json(
     stdout_text = _decode_output(stdout)
     stderr_text = _decode_output(stderr)
     if proc.returncode:
-        stdout_tail = deque([stdout_text], maxlen=TAIL_LINES)
-        stderr_tail = deque([stderr_text], maxlen=TAIL_LINES)
-        raise RuntimeError(_ytdlp_error(proc.returncode, stdout_tail, stderr_tail))
+        raise RuntimeError(_ytdlp_error(proc.returncode, _tail_from_text(stdout_text), _tail_from_text(stderr_text)))
 
     try:
         return _json_from_stdout(stdout_text)
@@ -296,7 +294,7 @@ async def _read_ytdlp_stream(
         if progress_data and progress and callback:
             count = progress.update(progress_data)
             if count is not None:
-                await callback(int(count), 100, "bytes", *callback_args, **callback_kwargs)
+                await callback(count, 100, "bytes", *callback_args, **callback_kwargs)
             continue
         tail.append(text)
 
@@ -308,6 +306,7 @@ async def _run_ytdlp_download(
     outtmpl: str,
     connections: int,
     proxy: str | None = None,
+    headers: dict | None = None,
     callback: ProgressCallback | None = None,
     callback_args: tuple = (),
     callback_kwargs: dict | None = None,
@@ -317,7 +316,7 @@ async def _run_ytdlp_download(
     stderr_tail: deque[str] = deque(maxlen=TAIL_LINES)
     progress = MonotonicDownloadProgress(start=0, end=99) if callback else None
 
-    async with _materialize_info_json(info_json) as info_path:
+    with _materialize_info_json(info_json) as info_path:
         argv = [*_yt_dlp_base_cmd(), *cli_args]
         if callback:
             argv = [arg for arg in argv if arg not in {"--quiet", "--no-progress"}]
@@ -325,6 +324,8 @@ async def _run_ytdlp_download(
         argv.extend(["--load-info-json", info_path, "-o", outtmpl, "-N", str(connections)])
         if proxy:
             argv.extend(["--proxy", proxy])
+        for key, value in (headers or {}).items():
+            argv.extend(["--add-header", f"{key}: {value}"])
 
         proc = await asyncio.create_subprocess_exec(
             *argv,
@@ -364,30 +365,12 @@ async def _run_ytdlp_download(
         raise RuntimeError(_ytdlp_error(returncode, stdout_tail, stderr_tail))
 
 
-def _remove_subtitle_args(cli_args: list[str]) -> list[str]:
-    remove_with_value = {"--sub-format", "--sub-langs"}
-    remove_flags = {"--write-auto-subs", "--write-subs"}
-    result: list[str] = []
-    skip_next = False
-    for arg in cli_args:
-        if skip_next:
-            skip_next = False
-            continue
-        if arg in remove_flags:
-            continue
-        if arg in remove_with_value:
-            skip_next = True
-            continue
-        result.append(arg)
-    return result
-
-
 class YtParser(BaseParser, register=False):
     """yt-dlp解析器"""
 
-    async def _do_parse(self, raw_url: str) -> AnyParseResult:
+    async def _do_parse(self, raw_url: str) -> "YtVideoParseResult":
         video_info = await self._parse(raw_url)
-        return YtVideoParseResult(
+        return self._video_parse_result_type(
             dl=video_info,
             title=video_info.title,
             content=video_info.description,
@@ -400,6 +383,10 @@ class YtParser(BaseParser, register=False):
             ),
         )
 
+    @property
+    def _video_parse_result_type(self) -> type["YtVideoParseResult"]:
+        return YtVideoParseResult
+
     async def _parse(self, url: str) -> "YtVideoInfo":
         try:
             dl = await asyncio.wait_for(self._extract_info(url), timeout=30)
@@ -408,7 +395,7 @@ class YtParser(BaseParser, register=False):
         except Exception as e:
             raise ParseError(f"解析视频信息失败: {str(e)}") from e
 
-        if dl.get("_type") and dl["_type"] == "playlist":
+        if dl.get("_type") == "playlist":
             entries = dl.get("entries") or []
             if not entries:
                 raise ParseError("解析视频信息失败: playlist entries is empty")
@@ -428,21 +415,16 @@ class YtParser(BaseParser, register=False):
             url=url,
             width=width,
             height=height,
-            cli_args=self.cli_args,
             info_json=dl,
         )
 
     async def _extract_info(self, url: str) -> dict[str, Any]:
-        try:
-            return await _run_ytdlp_json(
-                url,
-                self.cli_args,
-                proxy=self.proxy,
-                cookie_text=self.get_cookie_text(),
-            )
-        except Exception as e:
-            error_msg = f"{type(e).__name__}: {str(e)}"
-            raise RuntimeError(error_msg) from None
+        return await _run_ytdlp_json(
+            url,
+            self.cli_args,
+            proxy=self.proxy,
+            cookie_text=self.get_cookie_text(),
+        )
 
     def get_cookie_text(self) -> str | None:
         return None
@@ -452,8 +434,10 @@ class YtParser(BaseParser, register=False):
         return [
             "--quiet",  # 不输出日志
             "--no-progress",  # 不输出下载进度
-            "--playlist-items",
-            "1",  # 分p列表默认解析第一个
+            "--no-playlist",
+            "--dump-single-json",
+            "--no-download",
+            "--no-warnings",
         ]
 
 
@@ -468,6 +452,13 @@ class YtVideoParseResult(VideoParseResult):
         """dl: yt-dlp解析结果"""
         self.dl = dl
         super().__init__(title=title, video=video, content=content)
+
+    @property
+    def cli_args(self) -> list[str]:
+        return [
+            "--quiet",  # 不输出日志
+            "--no-progress",  # 不输出下载进度
+        ]
 
     async def _do_download(
         self,
@@ -484,7 +475,7 @@ class YtVideoParseResult(VideoParseResult):
             callback_kwargs = {}
         output_dir_path = Path(output_dir)
 
-        cli_args = self.dl.cli_args.copy()
+        cli_args = self.cli_args.copy()
         outtmpl = f"{output_dir_path.joinpath(self.name)}.%(ext)s"
 
         await self._run_download(
@@ -492,18 +483,15 @@ class YtVideoParseResult(VideoParseResult):
             outtmpl=outtmpl,
             connections=connections,
             proxy=proxy,
+            headers=headers,
             callback=callback,
             callback_args=callback_args,
             callback_kwargs=callback_kwargs,
         )
 
-        v = (
-            list(output_dir_path.glob("*.mp4"))
-            or list(output_dir_path.glob("*.mkv"))
-            or list(output_dir_path.glob("*.webm"))
-        )
+        v = [p for p in output_dir_path.glob(f"{self.name}.*") if p.is_file()]
         if not v:
-            raise DownloadError("下载失败 -1")
+            raise DownloadError("下载失败: 未找到下载后的视频文件")
 
         if callback:
             await callback(100, 100, "bytes", *callback_args, **callback_kwargs)
@@ -522,18 +510,15 @@ class YtVideoParseResult(VideoParseResult):
     async def _run_download(
         self,
         cli_args: list[str],
-        count: int = 0,
         *,
         outtmpl: str,
         connections: int,
         proxy: str | None = None,
+        headers: dict | None = None,
         callback: ProgressCallback | None = None,
         callback_args: tuple = (),
         callback_kwargs: dict | None = None,
     ) -> None:
-        if count > 2:
-            raise DownloadError("下载失败 -2")
-
         try:
             await _run_ytdlp_download(
                 self.dl.info_json,
@@ -541,32 +526,11 @@ class YtVideoParseResult(VideoParseResult):
                 outtmpl=outtmpl,
                 connections=connections,
                 proxy=proxy,
+                headers=headers,
                 callback=callback,
                 callback_args=callback_args,
                 callback_kwargs=callback_kwargs,
             )
-        except RuntimeError as e:
-            error = str(e)
-            if any(
-                msg in error
-                for msg in (
-                    "Unable to download video subtitles",
-                    "Requested format is not available",
-                )
-            ):
-                await self._run_download(
-                    _remove_subtitle_args(cli_args),
-                    count + 1,
-                    outtmpl=outtmpl,
-                    connections=connections,
-                    proxy=proxy,
-                    callback=callback,
-                    callback_args=callback_args,
-                    callback_kwargs=callback_kwargs,
-                )
-                return
-            raise DownloadError(f"下载失败: {error}") from e
-
         except Exception as e:
             raise DownloadError(f"下载失败: {str(e)}") from e
 
@@ -579,7 +543,6 @@ class YtVideoInfo:
     description: str
     thumbnail: str
     url: str
-    cli_args: list[str]
     info_json: dict[str, Any]
     duration: int = 0
     width: int = 0

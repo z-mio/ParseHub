@@ -8,10 +8,9 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
 
 from ... import parsers
-from ...config.config import GlobalConfig
 from ...types import AnyParseResult, ParseError
 from ...types.platform import Platform
-from ...utils.helpers import SecretCookie, match_url
+from ...utils.helpers import UA, SecretCookie, match_url
 
 
 class BaseParser(ABC):
@@ -116,7 +115,7 @@ class BaseParser(ABC):
                     r = await client.get(
                         url,
                         follow_redirects=True,
-                        headers={"User-Agent": GlobalConfig.ua},
+                        headers={"User-Agent": UA},
                     )
                 except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
                     raise ParseError("获取原始链接超时") from e

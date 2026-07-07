@@ -9,7 +9,7 @@ from enum import Enum
 
 import httpx
 
-from ..config.config import GlobalConfig
+from ..utils.helpers import UA
 
 
 class ThreadsAPI:
@@ -21,7 +21,7 @@ class ThreadsAPI:
         headers = {
             "content-type": "application/x-www-form-urlencoded",
             "sec-fetch-site": "same-origin",
-            "user-agent": GlobalConfig.ua,
+            "user-agent": UA,
             "x-fb-lsd": lsd,
         }
 

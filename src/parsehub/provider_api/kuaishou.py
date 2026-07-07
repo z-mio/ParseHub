@@ -4,7 +4,7 @@ from typing import Any, cast
 import httpx
 
 from .. import ParseError
-from ..config.config import GlobalConfig
+from ..utils.helpers import UA
 
 
 class KuaiShouAPI:
@@ -17,7 +17,7 @@ class KuaiShouAPI:
         self.proxy = proxy
         self.cookie = cookie
         self.headers = {
-            "User-Agent": GlobalConfig.ua,
+            "User-Agent": UA,
             "content-type": "application/json",
         }
 

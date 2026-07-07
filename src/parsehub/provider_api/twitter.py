@@ -9,8 +9,8 @@ from typing import Literal, NamedTuple
 import httpx
 from loguru import logger
 
-from ..config import GlobalConfig
 from ..types import ParseError
+from ..utils.helpers import UA
 
 
 class Twitter:
@@ -28,7 +28,7 @@ class Twitter:
             "accept-language": "zh-CN,zh;q=0.9",
             "authorization": self.authorization,
             "content-type": "application/json",
-            "user-agent": GlobalConfig.ua,
+            "user-agent": UA,
             "x-twitter-active-user": "yes",
             "x-twitter-client-language": "zh-cn",
         }

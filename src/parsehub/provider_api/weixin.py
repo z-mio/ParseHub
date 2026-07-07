@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup, Tag
 from markdown import markdown
 from markdownify import MarkdownConverter
 
-from ..config import GlobalConfig
 from ..types import ParseError
+from ..utils.helpers import UA
 
 
 class WXConverter(MarkdownConverter):
@@ -33,7 +33,7 @@ class WX:
     @staticmethod
     async def parse(url: str, proxy: str | None = None) -> "WX":
         async with httpx.AsyncClient(proxy=proxy) as client:
-            response = await client.get(url, headers={"User-Agent": GlobalConfig.ua})
+            response = await client.get(url, headers={"User-Agent": UA})
             html = response.text
             return WX._parse_html(html)
 

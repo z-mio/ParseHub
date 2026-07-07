@@ -7,7 +7,7 @@ from urllib.parse import urlencode, urlparse
 
 import httpx
 
-from ..config import GlobalConfig
+from ..utils.helpers import UA
 
 TIKTOK_APP_FEED = "https://api22-normal-c-alisg.tiktokv.com/aweme/v1/feed/"
 
@@ -18,13 +18,13 @@ UNIVERSAL_DATA_RE = re.compile(
 )
 
 TIKTOK_HEADERS = {
-    "User-Agent": GlobalConfig.ua,
+    "User-Agent": UA,
     "Referer": "https://www.tiktok.com/",
     "x-ladon": "Hello From Evil0ctal!",
 }
 
 TIKTOK_WEB_HEADERS = {
-    "User-Agent": GlobalConfig.ua,
+    "User-Agent": UA,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.tiktok.com/",

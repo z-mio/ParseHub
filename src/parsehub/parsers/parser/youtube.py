@@ -1,5 +1,5 @@
 from ...types.platform import Platform
-from ..base.ytdlp import YtParser
+from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
 class YtbParse(YtParser):
@@ -10,16 +10,8 @@ class YtbParse(YtParser):
     __reserved_parameters__ = ["v", "list", "index"]
 
     @property
-    def cli_args(self) -> list[str]:
-        return [
-            *super().cli_args,
-            "--format",
-            "mp4+bestvideo[res<=1080]+bestaudio/mp4+bestvideo+bestaudio/mp4+best",
-            # "--write-subs", # 下载字幕
-            # "--write-auto-subs", # 下载自动生成的字幕
-            # "--sub-format", "ttml", # 字幕格式
-            # "--sub-langs", "en,ja,zh-CN", # 字幕语言
-        ]
+    def _video_parse_result_type(self) -> type["YtbVideoParseResult"]:
+        return YtbVideoParseResult
 
     def get_cookie_text(self) -> str | None:
         if cookie := self.cookie.get_value():
@@ -40,6 +32,20 @@ class YtbParse(YtParser):
         for name, value in cookie.items():
             lines.append(f"{domain}\tTRUE\t/\tFALSE\t0\t{name}\t{value}")
         return "\n".join(lines) + "\n"
+
+
+class YtbVideoParseResult(YtVideoParseResult):
+    @property
+    def cli_args(self) -> list[str]:
+        return [
+            *super().cli_args,
+            "-S",
+            "+codec:h264,filesize~500M",
+            # "--write-subs", # 下载字幕
+            # "--write-auto-subs", # 下载自动生成的字幕
+            # "--sub-format", "ttml", # 字幕格式
+            # "--sub-langs", "en,ja,zh-CN", # 字幕语言
+        ]
 
 
 __all__ = ["YtbParse"]

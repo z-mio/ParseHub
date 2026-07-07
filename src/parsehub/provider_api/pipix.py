@@ -7,7 +7,7 @@ from urllib.parse import unquote
 import httpx
 from bs4 import BeautifulSoup
 
-from ..config import GlobalConfig
+from ..utils.helpers import UA
 
 
 class Pipix:
@@ -16,7 +16,7 @@ class Pipix:
 
     async def parse(self, t_url: str) -> "PipixPost":
         async with httpx.AsyncClient(proxy=self.proxy) as client:
-            resp = await client.get(t_url, headers={"User-Agent": GlobalConfig.ua})
+            resp = await client.get(t_url, headers={"User-Agent": UA})
             resp.raise_for_status()
             return self._parse_data(resp.text)
 
