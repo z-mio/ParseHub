@@ -402,6 +402,12 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://www.snapchat.com/@snapchat/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYbHBpemNsYmlyAZ7mTxgqAZ7mTuxMAAAAAw",
                 "https://www.snapchat.com/@creativemindsho/gBRYnSexSxSBqXdq2Y6bhAAAga2djanpnd3JlAZ8fYED8AZ8fYD7pAAAAAA",
             ],
+            Platform.ZHIHU: [
+                "https://www.zhihu.com/pin/2050216877939482871",
+                "https://www.zhihu.com/question/2057559076813510452",
+                "https://zhuanlan.zhihu.com/p/1989096494578558904",
+                "https://www.zhihu.com/question/597674895/answer/3004370705",
+            ],
         }
 
         for platform, urls in cases.items():

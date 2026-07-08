@@ -28,26 +28,27 @@
 
 ## 🌐 支持平台
 
-| 平台              | 视频 | 图文 | 其他   |
-|-----------------|:--:|:--:|------|
-| **Twitter / X** | ✅  | ✅  | 📝 文章 |
-| **Instagram**   | ✅  | ✅  |      |
-| **YouTube**     | ✅  |    | 🎵 音乐 |
-| **Facebook**    | ✅  |    |      |
-| **Threads**     | ✅  | ✅  |      |
-| **Bilibili**    | ✅  |    | 📝 动态 |
-| **抖音**          | ✅  | ✅  | ☀️日常 |
-| **TikTok**      | ✅  | ✅  |      |
-| **微博**          | ✅  | ✅  |      |
-| **小红书**         | ✅  | ✅  |      |
-| **贴吧**          | ✅  | ✅  |      |
-| **微信公众号**       |    | ✅  |      |
-| **快手**          | ✅  |    |      |
-| **酷安**          |    | ✅  |      |
-| **皮皮虾**         | ✅  | ✅  |      |
-| **最右**          | ✅  | ✅  |      |
-| **小黑盒**         | ✅  | ✅  |      |
-| **Snapchat**         | ✅  |    |      |
+| 平台              | 视频 | 图文 | 其他            |
+|-----------------|:--:|:--:|---------------|
+| **Twitter / X** | ✅  | ✅  | 📝 文章         |
+| **Instagram**   | ✅  | ✅  |               |
+| **YouTube**     | ✅  |    | 🎵 音乐         |
+| **Facebook**    | ✅  |    |               |
+| **Threads**     | ✅  | ✅  |               |
+| **Bilibili**    | ✅  |    | 📝 动态         |
+| **抖音**          | ✅  | ✅  | ☀️日常          |
+| **TikTok**      | ✅  | ✅  |               |
+| **微博**          | ✅  | ✅  |               |
+| **小红书**         | ✅  | ✅  |               |
+| **贴吧**          | ✅  | ✅  |               |
+| **微信公众号**       |    | ✅  |               |
+| **快手**          | ✅  |    |               |
+| **酷安**          |    | ✅  |               |
+| **皮皮虾**         | ✅  | ✅  |               |
+| **最右**          | ✅  | ✅  |               |
+| **小黑盒**         | ✅  | ✅  |               |
+| **Snapchat**    | ✅  |    |               |
+| **知乎**          | ✅  | ✅  | 🐶 问答, 专栏, 圈子 |
 
 ## 📦 安装
 
@@ -168,6 +169,7 @@ print(result)
 - `TikTok`
 - `快手`
 - `小红书`
+- `知乎`
 
 ```python
 from parsehub import ParseHub
@@ -273,6 +275,7 @@ except ParseError as exc:
 - [instaloader/instaloader](https://github.com/instaloader/instaloader)
 - [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 - [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api)
+- [cv-cat/ZhihuApis](https://github.com/cv-cat/ZhihuApis)
 
 ## 📜 开源协议
 

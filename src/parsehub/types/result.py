@@ -101,7 +101,7 @@ class ParseResult(ABC):  # noqa: B024
         :return: DownloadResult
         """
         if self.media is None:
-            raise DownloadError("没有可下载的媒体")
+            return DownloadResult(output_dir=output_dir, media=[])
         media_list = list(self.media) if isinstance(self.media, Sequence) else [self.media]
         is_single = not isinstance(self.media, Sequence)
 

@@ -32,6 +32,7 @@ TEST_URLS = {
     "threads": "https://www.threads.com/@zaborona.magazine/post/DBuqMBwMfxW",
     "xiaoheihe": "https://www.xiaoheihe.cn/app/bbs/link/example",
     "snapchat": "https://www.snapchat.com/@creativemindsho/gBRYnSexSxSBqXdq2Y6bhAAAga2djanpnd3JlAZ8fYED8AZ8fYD7pAAAAAA",
+    "zhihu": "https://www.zhihu.com/pin/2050216877939482871",
 }
 
 # 下载保存路径

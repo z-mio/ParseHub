@@ -22,6 +22,7 @@ class Platform(Enum):
     YOUTUBE = ("youtube", "Youtube")
     ZUIYOU = ("zuiyou", "最右")
     SNAPCHAT = ("snapchat", "Snapchat")
+    ZHIHU = ("zhihu", "知乎")
 
     def __init__(self, platform_id: str, platform_name: str) -> None:
         self.id = platform_id
