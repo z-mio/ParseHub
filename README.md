@@ -294,7 +294,7 @@ uv run pytest
 
 ## 📜 开源协议
 
-本项目基于 [MIT License](LICENSE) 开源。
+本项目基于 [MIT License](LICENSE) 开源
 
 ---
 
