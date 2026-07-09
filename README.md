@@ -268,6 +268,21 @@ except ParseError as exc:
 
 ---
 
+## 🤝 参与贡献
+
+欢迎提交 Pull Request 或 Issue!
+
+- Bug 反馈请附上相关 URL 和日志信息
+
+### 开发规范
+
+提交代码前请至少执行:
+
+```bash
+ruff format && ruff check --fix && uv run mypy
+uv run pytest
+```
+
 ## 🤝 参考项目
 
 - [Evil0ctal/Douyin_TikTok_Download_API](https://github.com/Evil0ctal/Douyin_TikTok_Download_API)
