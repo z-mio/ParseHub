@@ -122,7 +122,7 @@ class XHSAPI:
 
     @staticmethod
     def get_trace_id(img_url: str) -> str:
-        match = re.search(r"/(spectrum|note_pre_post_uhdr|notes_pre_post|notes_uhdr)/([^/!]+)(?:!.*)?$", img_url)
+        match = re.search(r"/[a-f0-9]{32}/(.*)/([^/!]+)(?:!.*)?", img_url)
         if match:
             return f"{match.group(1)}/{match.group(2)}"
 
@@ -169,7 +169,7 @@ class XHSPost:
 if __name__ == "__main__":
 
     async def main() -> None:
-        url = "https://www.xiaohongshu.com/explore/68fe2018000000000303a844?xsec_token=ABgAb-5vt3L-aTqeEjdxJP_ylf02hY5n2f-y75yMQWrUo=&xsec_source=pc_search&source=web_explore_feed"
+        url = ""
         xhs = XHSAPI()
         print(await xhs.extract(url))
 
