@@ -25,6 +25,8 @@ class Coolapk:
         if title_element and (title := title_element.text.strip()):
             content = soup.find(class_="feed-article-message")
             if content is None:
+                if "s=" in url or "shareKey=" in url:
+                    raise ValueError("获取内容失败")
                 raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
             markdown_content = MarkdownConverter(heading_style="ATX").convert(str(content))
             text_content = "".join(BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True))
