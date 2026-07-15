@@ -123,7 +123,7 @@ class BiliParse(BaseParser):
         video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
         content = desc.strip()
         if content == "-":
-            content = ''
+            content = ""
         return BiliVideoParseResult(
             title=data["View"]["title"],
             content=content,
