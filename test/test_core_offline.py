@@ -265,11 +265,11 @@ class TestDouyinStorySupport(unittest.TestCase):
 
     def test_parse_video_info_prefers_story_default_play_url_by_data_size(self):
         video_data = {
+            "duration": 9682,
             "cover": {"url_list": ["https://cdn.example/thumb.jpg"]},
             "bit_rate": [
                 {
                     "bit_rate": 0,
-                    "duration": 9682,
                     "play_addr": {
                         "url_list": ["https://cdn.example/story-default.mp4"],
                         "width": 720,
@@ -279,7 +279,6 @@ class TestDouyinStorySupport(unittest.TestCase):
                 },
                 {
                     "bit_rate": 632,
-                    "duration": 9682,
                     "play_addr": {
                         "url_list": ["https://cdn.example/720p.mp4"],
                         "width": 720,
