@@ -106,7 +106,6 @@ class BiliParse(BaseParser):
             view = data["View"]
 
             cid = view["cid"]
-            part = ""
             duration = view["duration"]
             dimension = view["dimension"]
             desc = view["desc"]
@@ -114,7 +113,6 @@ class BiliParse(BaseParser):
             if p != 1 and (pages := view.get("pages")):
                 if page_info := next((i for i in pages if i["page"] == p), None):
                     cid = page_info["cid"]
-                    part = page_info["part"]
                     duration = page_info["duration"]
                     dimension = page_info["dimension"]
 
@@ -123,9 +121,12 @@ class BiliParse(BaseParser):
 
         durl = video_playurl["data"]["durl"][0]
         video_url = self.change_source(durl["backup_url"][0]) if durl.get("backup_url") else durl["url"]
+        content = desc.strip()
+        if content == "-":
+            content = ''
         return BiliVideoParseResult(
             title=data["View"]["title"],
-            content=f"P{p}: {part}" if part else (desc.strip() or ""),
+            content=content,
             video=VideoRef(
                 url=video_url,
                 thumb_url=data["View"]["pic"],
@@ -147,9 +148,9 @@ class BiliParse(BaseParser):
         )
 
     @staticmethod
-    def hashtag_handler(desc: str | None) -> str | None:
+    def hashtag_handler(desc: str) -> str:
         if not desc:
-            return None
+            return ""
         hashtags = re.findall(r" ?#[^#]+# ?", desc)
         for hashtag in hashtags:
             desc = desc.replace(hashtag, f" {hashtag.strip().removesuffix('#')} ")

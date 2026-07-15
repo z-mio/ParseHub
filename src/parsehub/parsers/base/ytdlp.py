@@ -445,9 +445,9 @@ class YtVideoParseResult(VideoParseResult):
     def __init__(
         self,
         dl: "YtVideoInfo",
-        title: str | None,
+        title: str = "",
         video: VideoRef | None = None,
-        content: str | None = None,
+        content: str = "",
     ):
         """dl: yt-dlp解析结果"""
         self.dl = dl

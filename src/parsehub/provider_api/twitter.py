@@ -173,7 +173,7 @@ class TwitterTweet:
     def __init__(
         self,
         tweet_id: str,
-        full_text: str | None = None,
+        full_text: str = "",
         media: list[TwitterVideo | TwitterPhoto | TwitterAni] | None = None,
         article: TwitterArticle | None = None,
     ):

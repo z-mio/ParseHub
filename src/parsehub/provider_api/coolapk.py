@@ -10,9 +10,9 @@ from ..utils.helpers import UA
 
 @dataclass
 class Coolapk:
-    title: str | None = None
-    markdown_content: str | None = None
-    text_content: str | None = None
+    title: str = ""
+    markdown_content: str = ""
+    text_content: str = ""
     imgs: list[str] | None = None
 
     @classmethod
@@ -37,6 +37,6 @@ class Coolapk:
         if feed_element and (feed_content := feed_element.text.strip()):
             message_image_group = soup.find(class_="message-image-group")
             imgs = [f"https:{i['src']}" for i in message_image_group.find_all("img")] if message_image_group else []
-            return cls(None, None, feed_content, imgs)
+            return cls("", "", feed_content, imgs)
 
         raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")

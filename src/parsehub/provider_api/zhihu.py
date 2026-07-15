@@ -91,8 +91,8 @@ class ZhihuQA:
 class ZhihuZhuanLan:
     title: str
     imgs: list[str]
-    markdown_content: str | None = None
-    plaintext_content: str | None = None
+    markdown_content: str = ""
+    plaintext_content: str = ""
 
     @classmethod
     def parse(cls, data: dict) -> Self:
@@ -122,8 +122,8 @@ class ZhihuPin:
     type: ZhihuPinType
     title: str
     media: list[ZhihuMedia]
-    markdown_content: str | None = None
-    plaintext_content: str | None = None
+    markdown_content: str = ""
+    plaintext_content: str = ""
 
     @classmethod
     def parse(cls, result: dict) -> "ZhihuPin":

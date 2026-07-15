@@ -30,8 +30,8 @@ class ParseResult(ABC):  # noqa: B024
 
     def __init__(
         self,
-        title: str | None = "",
-        content: str | None = "",
+        title: str = "",
+        content: str = "",
         media: Sequence[AnyMediaRef] | AnyMediaRef | None = None,
         platform: Platform | None = None,
     ):
@@ -42,8 +42,8 @@ class ParseResult(ABC):  # noqa: B024
         :param platform: 平台
         """
         self.raw_url: str = ""
-        self.title = (title or "").strip()
-        self.content = (content or "").strip()
+        self.title = title.strip()
+        self.content = content.strip()
         self.media = media
         self.platform = platform
         self.name = slugify(
@@ -294,9 +294,9 @@ class VideoParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str | None = "",
+        title: str = "",
         video: str | VideoRef | None = None,
-        content: str | None = "",
+        content: str = "",
     ):
         video = VideoRef(url=video) if isinstance(video, str) else video
         super().__init__(
@@ -313,9 +313,9 @@ class ImageParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str | None = "",
+        title: str = "",
         photo: Sequence[str | ImageRef | AniRef | LivePhotoRef] | None = None,
-        content: str | None = "",
+        content: str = "",
     ):
         media = [ImageRef(url=p) if isinstance(p, str) else p for p in photo] if photo else None
         super().__init__(title=title, media=media, content=content)
@@ -328,9 +328,9 @@ class MultimediaParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str | None = "",
+        title: str = "",
         media: Sequence[AnyMediaRef] | None = None,
-        content: str | None = "",
+        content: str = "",
     ):
         super().__init__(title=title, media=media, content=content)
 
@@ -342,16 +342,16 @@ class RichTextParseResult(ParseResult):
 
     def __init__(
         self,
-        title: str | None = "",
+        title: str = "",
         media: Sequence[AnyMediaRef] | None = None,
-        markdown_content: str | None = "",
+        markdown_content: str = "",
     ):
         """
         :param title: 标题
         :param media: 文章中的媒体
         :param markdown_content: markdown 格式正文
         """
-        self.markdown_content = markdown_content or ""
+        self.markdown_content = markdown_content
         super().__init__(title=title, media=media, content=self.plaintext_content)
 
     def __repr__(self) -> str:

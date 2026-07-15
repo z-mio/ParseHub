@@ -245,8 +245,8 @@ class BiliImage:
 
 @dataclass(kw_only=True)
 class BiliDynamic:
-    title: str | None = None
-    content: str | None = None
+    title: str = ""
+    content: str = ""
     images: list[BiliImage] | None = None
 
     @classmethod
@@ -361,10 +361,10 @@ class BiliDynamic:
         return cls(title=title)
 
     @staticmethod
-    def _get_desc_text(module_dynamic: dict) -> str | None:
+    def _get_desc_text(module_dynamic: dict) -> str:
         if desc := module_dynamic["desc"]:
             return str(desc["text"]).strip()
-        return None
+        return ""
 
     @staticmethod
     def _get_major_cover(major_content: dict) -> list[BiliImage] | None:

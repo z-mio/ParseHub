@@ -37,7 +37,7 @@ dependencies = [
     "opencv-python-headless>=4.13.0.92",
     "cryptography>=49.0.0",
     "gmssl>=3.2.2",
-    "SignerPy>=0.12.0",
+    "signerpy>=0.12.0",
 ]
 
 [project.scripts]
@@ -66,6 +66,7 @@ Issues = "https://github.com/z-mio/parsehub/issues"
 
 [tool.ruff]
 line-length = 120
+exclude = ["test/_*.py"]
 
 [tool.ruff.lint]
 select = [

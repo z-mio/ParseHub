@@ -65,17 +65,17 @@ class InstagramPost:
         return bool(self._field("is_video"))
 
     @property
-    def title(self) -> str | None:
-        return self._node.get("title")
+    def title(self) -> str:
+        return str(self._node.get("title", ""))
 
     @property
-    def caption(self) -> str | None:
+    def caption(self) -> str:
         caption_edges = self._node.get("edge_media_to_caption", {}).get("edges") or []
         if caption_edges:
             if text := caption_edges[0].get("node", {}).get("text"):
                 return str(text)
-            return None
-        return self._node.get("caption")
+            return ""
+        return str(self._node.get("caption", ""))
 
     @property
     def url(self) -> str:
