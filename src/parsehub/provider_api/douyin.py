@@ -1147,7 +1147,7 @@ class DouyinMobileCrawler:
                             return cast(dict[str, Any], payload)
                         last_error = f"{host} missing aweme_detail: {payload.get('status_msg') or payload}"
                 await asyncio.sleep(0.15)
-        raise ParseError(f"获取抖音 Story/日常失败: {last_error}")
+        raise ParseError(f"获取抖音作品失败: {last_error}")
 
     async def parse(self, raw_url: str) -> dict:
         aweme_id = await self.get_aweme_id(raw_url)

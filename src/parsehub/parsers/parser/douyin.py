@@ -117,13 +117,17 @@ def remove_video_watermark(url: str) -> str:
     return url.replace("playwm", "play")
 
 
-def parse_video_info(video_data: dict) -> dict:
-    bit_rates = video_data.get("bit_rate")
-    if not bit_rates:
-        raise ParseError("抖音解析失败: 未获取到视频下载地址")
+def _p_play_addr(video_data: dict) -> tuple[str | None, int, int]:
+    play_addr = video_data["play_addr"]
+    url_list = play_addr["url_list"]
+    if not url_list:
+        return None, 0, 0
+    return url_list[0], play_addr.get("width", 0), play_addr.get("height", 0)
 
-    # 按分辨率、文件大小、码率降序排列，选择最高质量。
-    # Story/日常的移动端 default 播放地址通常没有 br 参数，但 data_size 最大。
+
+def _p_bit_rates(video_data: dict) -> tuple[str, int, int]:
+    bit_rates: list = video_data.get("bit_rate", [])
+    bit_rates = list(filter(lambda i: i.get("is_bytevc1", 0) == 0, bit_rates))
     bit_rates.sort(
         key=lambda x: (
             x.get("play_addr", {}).get("width", 0) * x.get("play_addr", {}).get("height", 0),
@@ -135,11 +139,20 @@ def parse_video_info(video_data: dict) -> dict:
     best_quality = bit_rates[0]
 
     play_addr = best_quality.get("play_addr", {})
-    video_url_list = play_addr.get("url_list", [])
-    if not video_url_list:
-        raise ParseError("抖音解析失败: 视频下载地址为空")
+    url_list = play_addr.get("url_list", [])
+    return url_list[0], play_addr.get("width", 0), play_addr.get("height", 0)
 
-    video_url = remove_video_watermark(video_url_list[0])
+
+def parse_video_info(video_data: dict) -> dict:
+    u, w, h = None, 0, 0
+    is_bytevc1 = video_data.get("is_bytevc1")
+    # is_bytevc1 = 1 | 2 为字节自研视频编码 bytevc1 | bytevc2
+    if is_bytevc1 == 0:
+        u, w, h = _p_play_addr(video_data)
+    if not u:
+        u, w, h = _p_bit_rates(video_data)
+
+    video_url = remove_video_watermark(u)
 
     cover = video_data.get("cover", {})
     thumb_url_list = cover.get("url_list", [])
@@ -148,9 +161,9 @@ def parse_video_info(video_data: dict) -> dict:
     return {
         "video_url": video_url,
         "thumb_url": thumb_url,
-        "duration": best_quality.get("duration", 0),
-        "width": play_addr.get("width", 0),
-        "height": play_addr.get("height", 0),
+        "duration": video_data.get("duration", 0),
+        "width": w,
+        "height": h,
     }
 
 
