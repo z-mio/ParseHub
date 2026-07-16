@@ -125,9 +125,10 @@ def _p_play_addr(video_data: dict) -> tuple[str | None, int, int]:
     return url_list[0], play_addr.get("width", 0), play_addr.get("height", 0)
 
 
-def _p_bit_rates(video_data: dict) -> tuple[str, int, int]:
+def _p_bit_rates(video_data: dict, filter_bytevc1: bool = False) -> tuple[str, int, int]:
     bit_rates: list = video_data.get("bit_rate", [])
-    bit_rates = list(filter(lambda i: i.get("is_bytevc1", 0) == 0, bit_rates))
+    if filter_bytevc1:
+        bit_rates = list(filter(lambda i: i.get("is_bytevc1", 0) == 0, bit_rates))
     bit_rates.sort(
         key=lambda x: (
             x.get("play_addr", {}).get("width", 0) * x.get("play_addr", {}).get("height", 0),
@@ -144,12 +145,12 @@ def _p_bit_rates(video_data: dict) -> tuple[str, int, int]:
 
 
 def parse_video_info(video_data: dict) -> dict:
-    u, w, h = None, 0, 0
-    is_bytevc1 = video_data.get("is_bytevc1")
-    # is_bytevc1 = 1 | 2 为字节自研视频编码 bytevc1 | bytevc2
-    if is_bytevc1 == 0:
+    is_app = video_data.get("is_bytevc1", None) is not None  # 只有 app 接口带 is_bytevc1 参数
+    if is_app:
         u, w, h = _p_play_addr(video_data)
-    if not u:
+        if not u:
+            u, w, h = _p_bit_rates(video_data, True)
+    else:
         u, w, h = _p_bit_rates(video_data)
 
     video_url = remove_video_watermark(u)
