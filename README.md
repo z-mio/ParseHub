@@ -163,6 +163,7 @@ print(result)
 
 - `Twitter / X`
 - `Instagram`
+- `Threads`
 - `YouTube`
 - `Bilibili`
 - `抖音`
