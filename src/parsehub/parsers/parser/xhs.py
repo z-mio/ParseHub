@@ -21,7 +21,7 @@ class XHSParser(BaseParser):
     __platform__ = Platform.XHS
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(xiaohongshu|xhslink).com/.+"
-    __redirect_keywords__ = ["xhslink", "item"]
+    __redirect_keywords__ = ["xhslink"]
     __after_clean_parameters__ = ["xsec_token"]
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
