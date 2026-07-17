@@ -11,6 +11,8 @@
 
 轻量, 异步, 开箱即用的社交媒体解析与媒体下载库, 支持 17+ 平台
 
+简体中文 | [English](README.en.md)
+
 [安装](#-安装) · [快速开始](#-快速开始) · [高级用法](#-高级用法) · [TG Bot](https://github.com/z-mio/parse_hub_bot)
 
 </div>
