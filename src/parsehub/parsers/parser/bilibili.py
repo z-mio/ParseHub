@@ -34,7 +34,7 @@ class BiliParse(BaseParser):
     async def _do_parse(self, raw_url: str) -> YtVideoParseResult | BiliVideoParseResult | ImageParseResult:
         if await self.is_dynamic(raw_url):
             dynamic = await self.get_dynamic_info(raw_url)
-            content = self.hashtag_handler(dynamic.content)
+            content = self.hashtag_handler(dynamic.content or "")
             photos: list[LivePhotoRef | ImageRef] = []
             if dynamic.images:
                 for i in dynamic.images:
@@ -43,7 +43,7 @@ class BiliParse(BaseParser):
                     else:
                         photos.append(ImageRef(url=i.url, width=i.width, height=i.height))
             return ImageParseResult(
-                title=dynamic.title,
+                title=dynamic.title or "",
                 content=content,
                 photo=photos,
             )
@@ -65,11 +65,11 @@ class BiliParse(BaseParser):
             return False
 
     @classmethod
-    def match(cls, url: str) -> bool:
-        if cls._is_bvid(url):
+    def match(cls, text: str) -> bool:
+        if cls._is_bvid(text):
             return True
         else:
-            return super().match(url)
+            return super().match(text)
 
     async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
         """获取原始链接"""
@@ -86,14 +86,15 @@ class BiliParse(BaseParser):
         return None
 
     async def get_dynamic_info(self, url: str) -> BiliDynamic:
-        async with BiliAPI(proxy=self.proxy) as bili:
-            try:
+        try:
+            async with BiliAPI(proxy=self.proxy) as bili:
                 dynamic_info = await bili.get_dynamic_info(url, cookie=self.cookie.get_value())
-            except Exception as e:
-                if "风控" in str(e):
-                    raise ParseError(f"账号风控\n使用的cookie: {self.cookie}") from e
-                raise ParseError(str(e)) from e
-        return cast(BiliDynamic, dynamic_info)
+        except Exception as e:
+            if "风控" in str(e):
+                raise ParseError(f"账号风控\n使用的cookie: {self.cookie}") from e
+            raise ParseError(str(e)) from e
+        else:
+            return cast(BiliDynamic, dynamic_info)
 
     async def bili_api_parse(self, url: str) -> BiliVideoParseResult | ImageParseResult:
         async with BiliAPI(proxy=self.proxy) as bili:

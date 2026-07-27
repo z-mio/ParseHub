@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
 from hashlib import md5
-from typing import Any, cast
+from typing import Any, Self, cast
 
 import httpx
 
@@ -245,12 +245,12 @@ class BiliImage:
 
 @dataclass(kw_only=True)
 class BiliDynamic:
-    title: str = ""
-    content: str = ""
+    title: str | None = ""
+    content: str | None = ""
     images: list[BiliImage] | None = None
 
     @classmethod
-    def parse(cls, data: dict) -> "BiliDynamic":
+    def parse(cls, data: dict) -> Self:
         module_dynamic: dict = data["item"]["modules"]["module_dynamic"]
         major: dict | None = module_dynamic.get("major", None)
         if not major:
@@ -259,9 +259,9 @@ class BiliDynamic:
             return cls._parse_major(module_dynamic, major)
 
     @classmethod
-    def _parse_major(cls, module_dynamic: dict, major: dict) -> "BiliDynamic":
+    def _parse_major(cls, module_dynamic: dict, major: dict) -> Self:
         major_type = major["type"]
-        major_parsers: dict[MajorType, Callable[[dict, dict], BiliDynamic]] = {
+        major_parsers: dict[MajorType, Callable[[dict, dict], Self]] = {
             MajorType.MAJOR_TYPE_MEDIALIST: cls._parse_medialist,
             MajorType.MAJOR_TYPE_UPOWER_COMMON: cls._parse_upower_common,
             MajorType.MAJOR_TYPE_COMMON: cls._parse_common,
@@ -279,30 +279,30 @@ class BiliDynamic:
         return major_parser(module_dynamic, major)
 
     @classmethod
-    def _parse_pgc_union(cls, _: dict, major: dict) -> "BiliDynamic":
+    def _parse_pgc_union(cls, _: dict, major: dict) -> Self:
         pgc = major["pgc"]
         return cls(title=pgc["title"], images=[BiliImage(url=pgc["cover"])])
 
     @classmethod
-    def _parse_forward(cls, module_dynamic: dict) -> "BiliDynamic":
+    def _parse_forward(cls, module_dynamic: dict) -> Self:
         return cls(content=cls._get_desc_text(module_dynamic))
 
     @classmethod
-    def _parse_av(cls, module_dynamic: dict, major: dict):
+    def _parse_av(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         archive = major["archive"]
         return cls(title=archive["title"], content=archive["desc"], images=cls._get_major_cover(archive))
 
     @classmethod
-    def _parse_music(cls, module_dynamic: dict, major: dict):
+    def _parse_music(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         music = major["music"]
         return cls(title=music["title"], images=cls._get_major_cover(music))
 
     @classmethod
-    def _parse_opus(cls, _: dict, major: dict) -> "BiliDynamic":
+    def _parse_opus(cls, _: dict, major: dict) -> Self:
         opus = major["opus"]
         images = None
         if pics := opus["pics"]:
@@ -312,14 +312,14 @@ class BiliDynamic:
         return cls(title=opus["title"], content=opus["summary"]["text"], images=images)
 
     @classmethod
-    def _parse_common(cls, module_dynamic: dict, major: dict):
+    def _parse_common(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         common = major["common"]
         return cls(title=common["title"], content=common["desc"], images=cls._get_major_cover(common))
 
     @classmethod
-    def _parse_live(cls, module_dynamic: dict, major: dict):
+    def _parse_live(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         live = major["live"]
@@ -327,14 +327,14 @@ class BiliDynamic:
         return cls(title=live["title"], content=content, images=cls._get_major_cover(live))
 
     @classmethod
-    def _parse_medialist(cls, module_dynamic: dict, major: dict):
+    def _parse_medialist(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         medialist = major["medialist"]
         return cls(title=medialist["title"], content=medialist["sub_title"], images=cls._get_major_cover(medialist))
 
     @classmethod
-    def _parse_courses(cls, module_dynamic: dict, major: dict):
+    def _parse_courses(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         courses = major["courses"]
@@ -342,14 +342,14 @@ class BiliDynamic:
         return cls(title=courses["title"], content=content, images=cls._get_major_cover(courses))
 
     @classmethod
-    def _parse_ugc_season(cls, module_dynamic: dict, major: dict):
+    def _parse_ugc_season(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         ugc_season = major["ugc_season"]
         return cls(title=ugc_season["title"], content=ugc_season["desc"], images=cls._get_major_cover(ugc_season))
 
     @classmethod
-    def _parse_upower_common(cls, module_dynamic: dict, major: dict):
+    def _parse_upower_common(cls, module_dynamic: dict, major: dict) -> Self:
         if content := cls._get_desc_text(module_dynamic):
             return cls(content=content)
         upower_common = major["upower_common"]
