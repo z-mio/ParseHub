@@ -1,3 +1,4 @@
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 from ...provider_api.twitter import (
@@ -29,8 +30,8 @@ class TwitterParser(BaseParser):
         tweet = await self._parse(raw_url)
         return await self.media_parse(tweet)
 
-    async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
-        url = await super().get_raw_url(url, clean_all=clean_all)
+    async def get_raw_url(self, url: str, **kwargs: Any) -> str:
+        url = await super().get_raw_url(url, **kwargs)
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str) -> TwitterTweet:

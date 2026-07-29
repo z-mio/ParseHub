@@ -348,6 +348,7 @@ class TestPlatformUrlMatching(unittest.TestCase):
             Platform.THREADS: [
                 "https://www.threads.com/@zaborona.magazine/post/DBuqMBwMfxW",
                 "https://www.threads.com/@user_name/post/DBuqMBwMfxW",
+                "https://www.threads.com/share/Dq6fjYWK-/",
             ],
             Platform.TIEBA: [
                 "https://tieba.baidu.com/p/9939510114",

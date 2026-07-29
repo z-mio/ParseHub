@@ -77,11 +77,12 @@ class BaseParser(ABC):
         """
         raise NotImplementedError
 
-    async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
+    async def get_raw_url(self, url: str, *, clean_all: bool = False, headers: dict | None = None) -> str:
         """
         清除链接中的参数
         :param url: 链接
         :param clean_all: 是否清除全部可清除的参数 (包括解析后才需清除的参数)
+        :param headers: 请求头, 默认为 {"User-Agent": UA}, 不需要请求头需传入空字典
 
         Example:
             以小红书为例，其解析器配置如下::
@@ -109,13 +110,14 @@ class BaseParser(ABC):
         url = matched_url or url
         if not url.startswith("http"):
             url = f"https://{url}"
+
         if any(x in url for x in self.__redirect_keywords__):
             async with httpx.AsyncClient(proxy=self.proxy, timeout=30) as client:
                 try:
                     r = await client.get(
                         url,
                         follow_redirects=True,
-                        headers={"User-Agent": UA},
+                        headers={"User-Agent": UA} if headers is None else headers,
                     )
                 except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
                     raise ParseError("获取原始链接超时") from e

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
@@ -71,12 +71,12 @@ class BiliParse(BaseParser):
         else:
             return super().match(text)
 
-    async def get_raw_url(self, url: str, clean_all: bool = False) -> str:
+    async def get_raw_url(self, url: str, **kwargs: Any) -> str:
         """获取原始链接"""
         if self._is_bvid(url):
             return f"https://www.bilibili.com/video/{url}"
         else:
-            return await super().get_raw_url(url, clean_all=clean_all)
+            return await super().get_raw_url(url, **kwargs)
 
     @staticmethod
     async def is_dynamic(url: str) -> str | None:

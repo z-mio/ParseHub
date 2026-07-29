@@ -6,7 +6,11 @@ from ..base.base import BaseParser
 class ThreadsParser(BaseParser):
     __platform__ = Platform.THREADS
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)?.+threads.com/@[\w.]+/post/.*"
+    __match__ = r"^(http(s)?://)?.+threads.com/(@[\w.]+/post|share)/.*"
+    __redirect_keywords__ = ["/share/"]
+
+    async def get_raw_url(self, url: str, *, clean_all: bool = False, headers: dict | None = None) -> str:
+        return await super().get_raw_url(url, clean_all=clean_all, headers={})
 
     async def _do_parse(self, raw_url: str) -> "MultimediaParseResult":
         post = await self._parse(raw_url)
