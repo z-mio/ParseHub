@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlparse
 
 from loguru import logger
 
@@ -76,7 +76,10 @@ class BiliParse(BaseParser):
         if self._is_bvid(url):
             return f"https://www.bilibili.com/video/{url}"
         else:
-            return await super().get_raw_url(url, **kwargs)
+            raw_url = await super().get_raw_url(url, **kwargs)
+            u = urlparse(raw_url)
+            q = urlencode([(k, v) for k, v in parse_qsl(u.query) if (k, v) != ("p", "1")])
+            return u._replace(query=q).geturl()
 
     @staticmethod
     async def is_dynamic(url: str) -> str | None:
