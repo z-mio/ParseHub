@@ -39,13 +39,13 @@ class TwitterParser(BaseParser):
         try:
             tweet = await x.fetch_tweet(url)
         except Exception as e:
-            if any(s in str(e) for s in ("error -2",)):
+            if any(s in str(e) for s in ("error -2", "error -3")):
                 if cookie := self.cookie.get_value():
                     x2 = Twitter(self.proxy, cookie=cookie)
                     try:
                         tweet = await x2.fetch_tweet(url)
                     except Exception as e2:
-                        raise ParseError(f"Twitter 账号可能已被封禁\n\n使用的Cookie: {self.cookie}") from e2
+                        raise ParseError(f"Twitter 账号无权限或已被封禁\n\n使用的 Cookie: {self.cookie}") from e2
                 else:
                     raise ParseError(str(e)) from e
             else:
