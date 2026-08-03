@@ -395,6 +395,13 @@ class YtParser(BaseParser, register=False):
         except Exception as e:
             raise ParseError(f"解析视频信息失败: {str(e)}") from e
 
+        if dl.get("live_status") in (
+            "is_live",
+            "is_upcoming",
+            "was_live",
+        ):
+            raise ParseError("不支持直播")
+
         if dl.get("_type") == "playlist":
             entries = dl.get("entries") or []
             if not entries:
