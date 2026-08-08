@@ -30,27 +30,27 @@
 
 ## 🌐 支持平台
 
-| 平台              | 视频 | 图文 | 其他            |
-|-----------------|:--:|:--:|---------------|
-| **Twitter / X** | ✅  | ✅  | 📝 文章         |
-| **Instagram**   | ✅  | ✅  |               |
-| **YouTube**     | ✅  |    | 🎵 音乐         |
-| **Facebook**    | ✅  |    |               |
-| **Threads**     | ✅  | ✅  |               |
-| **Bilibili**    | ✅  |    | 📝 动态         |
-| **抖音**          | ✅  | ✅  | ☀️日常          |
-| **TikTok**      | ✅  | ✅  |               |
-| **微博**          | ✅  | ✅  |               |
-| **小红书**         | ✅  | ✅  |               |
-| **贴吧**          | ✅  | ✅  |               |
-| **微信公众号**       |    | ✅  |               |
-| **快手**          | ✅  |    |               |
-| **酷安**          |    | ✅  |               |
-| **皮皮虾**         | ✅  | ✅  |               |
-| **最右**          | ✅  | ✅  |               |
-| **小黑盒**         | ✅  | ✅  |               |
-| **Snapchat**    | ✅  |    |               |
-| **知乎**          | ✅  | ✅  | 🐶 问答, 专栏, 圈子 |
+| 平台            | 视频 | 图文 | 其他                |
+|-----------------|:----:|:----:|---------------------|
+| **Twitter / X** |  ✅  |  ✅  | 📝 文章             |
+| **Instagram**   |  ✅  |  ✅  |                     |
+| **YouTube**     |  ✅  |      | 🎵 音乐             |
+| **Facebook**    |  ✅  |      |                     |
+| **Threads**     |  ✅  |  ✅  |                     |
+| **Bilibili**    |  ✅  |      | 📝 动态             |
+| **抖音**        |  ✅  |  ✅  | ☀️日常              |
+| **TikTok**      |  ✅  |  ✅  |                     |
+| **微博**        |  ✅  |  ✅  |                     |
+| **小红书**      |  ✅  |  ✅  |                     |
+| **贴吧**        |  ✅  |  ✅  |                     |
+| **微信公众号**  |      |  ✅  |                     |
+| **快手**        |  ✅  |  ✅  |                     |
+| **酷安**        |      |  ✅  |                     |
+| **皮皮虾**      |  ✅  |  ✅  |                     |
+| **最右**        |  ✅  |  ✅  |                     |
+| **小黑盒**      |  ✅  |  ✅  |                     |
+| **Snapchat**    |  ✅  |      |                     |
+| **知乎**        |  ✅  |  ✅  | 🐶 问答, 专栏, 圈子 |
 
 ## 📦 安装
 
@@ -92,14 +92,14 @@ ph d "https://example.com/post/1"
 
 #### 常用命令
 
-| 命令                                               | 说明          |
-|--------------------------------------------------|-------------|
-| `ph ls`                                          | 查看支持的平台     |
+| 命令                                             | 说明                   |
+|--------------------------------------------------|------------------------|
+| `ph ls`                                          | 查看支持的平台         |
 | `ph set proxy <platform> <proxy>`                | 设置解析代理和下载代理 |
-| `ph set proxy <platform> <proxy> --for download` | 只设置下载代理     |
-| `ph set cookie <platform>`                       | 保存平台 Cookie |
-| `ph set list`                                    | 查看配置列表      |
-| `ph set show <platform>`                         | 查看平台配置      |
+| `ph set proxy <platform> <proxy> --for download` | 只设置下载代理         |
+| `ph set cookie <platform>`                       | 保存平台 Cookie        |
+| `ph set list`                                    | 查看配置列表           |
+| `ph set show <platform>`                         | 查看平台配置           |
 
 配置会自动按平台应用到后续解析和下载; 临时覆盖时仍可直接传参数:
 
@@ -294,6 +294,7 @@ uv run pytest
 - [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 - [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api)
 - [cv-cat/ZhihuApis](https://github.com/cv-cat/ZhihuApis)
+- [ucmao/media-parser](https://github.com/ucmao/media-parser)
 
 ## 📜 开源协议
 

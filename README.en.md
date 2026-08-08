@@ -32,25 +32,25 @@ A lightweight, asynchronous, ready-to-use social media parser and media download
 
 | Platform        | Video | Image Posts | Other                          |
 |-----------------|:-----:|:-----------:|--------------------------------|
-| **Twitter / X** |   ✅   |      ✅      | 📝 Articles                    |
-| **Instagram**   |   ✅   |      ✅      |                                |
-| **YouTube**     |   ✅   |             | 🎵 Music                       |
-| **Facebook**    |   ✅   |             |                                |
-| **Threads**     |   ✅   |      ✅      |                                |
-| **Bilibili**    |   ✅   |             | 📝 Updates                     |
-| **Douyin**      |   ✅   |      ✅      | ☀️ Daily posts                 |
-| **TikTok**      |   ✅   |      ✅      |                                |
-| **Weibo**       |   ✅   |      ✅      |                                |
-| **Xiaohongshu** |   ✅   |      ✅      |                                |
-| **Tieba**       |   ✅   |      ✅      |                                |
-| **WeChat OA**   |       |      ✅      |                                |
-| **Kuaishou**    |   ✅   |             |                                |
-| **Coolapk**     |       |      ✅      |                                |
-| **Pipixia**     |   ✅   |      ✅      |                                |
-| **Zuiyou**      |   ✅   |      ✅      |                                |
-| **Xiaoheihe**   |   ✅   |      ✅      |                                |
-| **Snapchat**    |   ✅   |             |                                |
-| **Zhihu**       |   ✅   |      ✅      | 🐶 Questions, columns, circles |
+| **Twitter / X** |  ✅   |     ✅      | 📝 Articles                    |
+| **Instagram**   |  ✅   |     ✅      |                                |
+| **YouTube**     |  ✅   |             | 🎵 Music                       |
+| **Facebook**    |  ✅   |             |                                |
+| **Threads**     |  ✅   |     ✅      |                                |
+| **Bilibili**    |  ✅   |             | 📝 Updates                     |
+| **Douyin**      |  ✅   |     ✅      | ☀️ Daily posts                 |
+| **TikTok**      |  ✅   |     ✅      |                                |
+| **Weibo**       |  ✅   |     ✅      |                                |
+| **Xiaohongshu** |  ✅   |     ✅      |                                |
+| **Tieba**       |  ✅   |     ✅      |                                |
+| **WeChat OA**   |       |     ✅      |                                |
+| **Kuaishou**    |  ✅   |     ✅      |                                |
+| **Coolapk**     |       |     ✅      |                                |
+| **Pipixia**     |  ✅   |     ✅      |                                |
+| **Zuiyou**      |  ✅   |     ✅      |                                |
+| **Xiaoheihe**   |  ✅   |     ✅      |                                |
+| **Snapchat**    |  ✅   |             |                                |
+| **Zhihu**       |  ✅   |     ✅      | 🐶 Questions, columns, circles |
 
 ## 📦 Installation
 
@@ -295,6 +295,7 @@ uv run pytest
 - [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 - [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api)
 - [cv-cat/ZhihuApis](https://github.com/cv-cat/ZhihuApis)
+- [ucmao/media-parser](https://github.com/ucmao/media-parser)
 
 ## 📜 License
 

@@ -340,6 +340,7 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://v.kuaishou.com/example",
                 "https://www.kuaishou.com/f/example",
                 "https://live.kuaishou.com/u/3xmdumq6gmzrr64/3xjsfb8u3d7gzyu",
+                "https://v.m.chenzhongtech.com/fw/photo/3xbr5pi8hxi4e6s",
             ],
             Platform.PIPIX: [
                 "https://h5.pipix.com/s/example/",
