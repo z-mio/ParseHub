@@ -36,7 +36,9 @@ class KuaiShouParser(BaseParser):
             raw_url, proxy=self.proxy, cookie=self.cookie.get_value() or COOKIE.get_value()
         )
         cover = ksp.get_cover_photo_url()
-        if ksp.page_type == "VIDEO":
+        if (
+            ksp.page_type == "VIDEO" or "/short-video/" in raw_url
+        ):  # 地区风控导致获取到的 page_type 可能为 ATLAS 但实际为视频
             try:
                 content = ksp.get_title_content()
                 video = ksp.get_real_video_url()
