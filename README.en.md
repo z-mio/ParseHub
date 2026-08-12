@@ -270,6 +270,8 @@ except ParseError as exc:
     print(f"Parsing failed: {exc}")
 ```
 
+---    
+
 ### Enable logging
 
 ```python
