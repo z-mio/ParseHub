@@ -270,6 +270,14 @@ except ParseError as exc:
     print(f"Parsing failed: {exc}")
 ```
 
+### Enable logging
+
+```python
+from loguru import logger
+
+logger.enable('parsehub')
+```
+
 ---
 
 ## 🤝 Contributing
