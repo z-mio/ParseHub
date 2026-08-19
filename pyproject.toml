@@ -1,6 +1,6 @@
 [project]
 name = "parsehub"
-version = "2.1.10"
+version = "2.1.11"
 description = "轻量、异步、开箱即用的社交媒体聚合解析库"
 readme = "README.md"
 requires-python = ">=3.12.0"
@@ -25,7 +25,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "tenacity>=8.5.0",
     "urlextract>=1.9.0",
-    "yt-dlp[default]",
+    "yt-dlp[default]>=2026.8.18.122307.dev0",
     "lxml>=5.3.0",
     "pydantic>=1.10.19",
     "markdownify>=1.1.0",
