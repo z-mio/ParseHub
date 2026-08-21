@@ -51,6 +51,7 @@ A lightweight, asynchronous, ready-to-use social media parser and media download
 | **Xiaoheihe**   |  ✅   |     ✅      |                                |
 | **Snapchat**    |  ✅   |             |                                |
 | **Zhihu**       |  ✅   |     ✅      | 🐶 Questions, columns, circles |
+| **Douban**      |  ✅   |     ✅      | 👥 Group topics                |
 
 ## 📦 Installation
 
@@ -174,6 +175,7 @@ The following platforms currently support Cookies:
 - `Kuaishou`
 - `Xiaohongshu`
 - `Zhihu`
+- `Douban`
 
 ```python
 from parsehub import ParseHub

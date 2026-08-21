@@ -1,13 +1,25 @@
 import unittest
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import AsyncMock, patch
 from urllib.parse import parse_qs, urlparse
+
+import httpx
 
 from parsehub import ParseHub
 from parsehub.errors import ParseError, UnknownPlatform
 from parsehub.parsers.base import BaseParser
+from parsehub.parsers.parser.douban import DoubanParser, DoubanRichTextParseResult
 from parsehub.parsers.parser.douyin import parse_video_info
+from parsehub.provider_api.douban import (
+    IMAGE_REFERER,
+    Douban,
+    DoubanError,
+    DoubanPhoto,
+    DoubanTopic,
+    DoubanVideo,
+)
 from parsehub.provider_api.douyin import DouyinMobileCrawler, DouyinMobileDevice
-from parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
+from parsehub.types import AniRef, ImageParseResult, ImageRef, ParseResult, Platform, VideoParseResult, VideoRef
 from parsehub.utils.helpers import SecretCookie, match_url, run_sync
 
 
@@ -296,6 +308,237 @@ class TestDouyinStorySupport(unittest.TestCase):
         self.assertEqual(info["duration"], 9682)
 
 
+class TestDoubanTopicParsing(unittest.TestCase):
+    @staticmethod
+    def _photo(image: dict, width: int = 500, height: int = 400) -> dict:
+        return {"id": "1", "image": image, "size": {"width": width, "height": height}}
+
+    def test_error_messages_prefer_chinese_and_contextualise_raw_codes(self):
+        cases = [
+            # 豆瓣给了中文提示时直接透出
+            ({"localized_message": "这篇内容不存在了", "msg": "topic not found"}, "这篇内容不存在了"),
+            # 只有英文错误码时补上中文上下文, 避免用户只看到 need_permission
+            ({"msg": "need_permission"}, "获取话题内容失败: need_permission"),
+            ({}, "获取话题内容失败: HTTP 403"),
+        ]
+        for payload, expected in cases:
+            with self.subTest(payload=payload):
+                response = httpx.Response(403, json=payload)
+                with patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=response)):
+                    with self.assertRaises(DoubanError) as ctx:
+                        run_sync(Douban().fetch_topic_data("https://www.douban.com/group/topic/1/"))
+                self.assertEqual(ctx.exception.msg, expected)
+
+    def test_get_topic_id_accepts_both_topic_url_forms(self):
+        # /group/topic/<id> 与 /topic/<id> 共用同一套 ID 与接口
+        self.assertEqual(Douban.get_topic_id("https://www.douban.com/group/topic/495373106/"), "495373106")
+        self.assertEqual(Douban.get_topic_id("https://www.douban.com/topic/492821052/"), "492821052")
+
+    def test_get_topic_id_rejects_non_topic_url(self):
+        for url in (
+            "https://movie.douban.com/subject/1292052/",
+            # 话题广场是另一套 ID, 不能被 /topic/ 规则误匹配
+            "https://www.douban.com/gallery/topic/125573/",
+            # 广播是另一种内容类型, 接口与数据结构均不同
+            "https://m.douban.com/people/182691094/status/9372433345/",
+        ):
+            with self.subTest(url=url), self.assertRaises(DoubanError):
+                Douban.get_topic_id(url)
+
+    def test_photo_topic_prefers_large_and_keeps_inline_markdown(self):
+        large = "https://img3.doubanio.com/view/group_topic/l/public/p1.jpg"
+        small = "https://img3.doubanio.com/view/group_topic/m/public/p1.jpg"
+        topic = DoubanTopic.parse(
+            {
+                "title": "标题",
+                "content": f"<div id='content'><p>正文</p><img src=\"{large}\"/></div>",
+                "photos": [
+                    self._photo(
+                        {
+                            "is_animated": False,
+                            "large": {"url": large, "width": 500, "height": 482},
+                            "normal": {"url": small, "width": 200, "height": 193},
+                        }
+                    )
+                ],
+            }
+        )
+
+        self.assertEqual(topic.text_content, "正文")
+        self.assertIn(large, topic.markdown_content)
+        # 取 large 作正片, normal 退为缩略图
+        self.assertEqual(topic.photos, [DoubanPhoto(url=large, ext="jpg", thumb_url=small, width=500, height=482)])
+
+    def test_animated_photo_uses_mp4_variant(self):
+        topic = DoubanTopic.parse(
+            {
+                "title": "动图",
+                "content": "",
+                "photos": [
+                    self._photo(
+                        {
+                            "is_animated": True,
+                            # large 是体积极大的原始 GIF, 应优先取 video
+                            "large": {"url": "https://img3.doubanio.com/view/group_topic/raw/public/p2.jpg"},
+                            "normal": {"url": "https://img3.doubanio.com/view/group_topic/l/public/p2.jpg"},
+                            "video": {
+                                "url": "https://img3.doubanio.com/view/group_topic/l/public/p2.mp4",
+                                "width": 500,
+                                "height": 291,
+                            },
+                        }
+                    )
+                ],
+            }
+        )
+
+        self.assertEqual(
+            topic.photos,
+            [
+                DoubanPhoto(
+                    url="https://img3.doubanio.com/view/group_topic/l/public/p2.mp4",
+                    ext="mp4",
+                    thumb_url="https://img3.doubanio.com/view/group_topic/l/public/p2.jpg",
+                    width=500,
+                    height=291,
+                    is_animated=True,
+                )
+            ],
+        )
+
+    def test_video_topic_converts_duration_to_seconds(self):
+        topic = DoubanTopic.parse(
+            {
+                "title": "视频",
+                "content": "<div id='content'><p>说明</p></div>",
+                "photos": [],
+                "video_info": {
+                    "video_url": "https://sv1.doubanio.com/example.mp4",
+                    "cover_url": "https://sv1.doubanio.com/example_cover.png",
+                    "duration": "01:05",
+                    "video_width": 720,
+                    "video_height": 1280,
+                },
+            }
+        )
+
+        self.assertEqual(
+            topic.video,
+            DoubanVideo(
+                url="https://sv1.doubanio.com/example.mp4",
+                thumb_url="https://sv1.doubanio.com/example_cover.png",
+                width=720,
+                height=1280,
+                duration=65,
+            ),
+        )
+
+    def test_video_info_without_url_is_ignored(self):
+        """video_info 缺 video_url 时不该当成视频话题"""
+        topic = DoubanTopic.parse({"title": "t", "content": "", "photos": [], "video_info": {"duration": "00:12"}})
+
+        self.assertEqual(topic.photos, [])
+
+
+class TestDoubanParserResultTypes(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def _topic(**kwargs) -> DoubanTopic:
+        defaults: dict = {
+            "title": "标题",
+            "markdown_content": "",
+            "text_content": "",
+            "video": None,
+            "photos": [],
+        }
+        return DoubanTopic(**{**defaults, **kwargs})
+
+    @staticmethod
+    async def _parse(topic: DoubanTopic):
+        with patch.object(Douban, "parse", new=AsyncMock(return_value=topic)):
+            return await DoubanParser()._do_parse("https://www.douban.com/group/topic/1/")
+
+    async def test_topic_always_returns_richtext(self):
+        """图 / 视频 / 纯文字 任意组合都走 RichText, 不再区分纯图"""
+        photo = DoubanPhoto(url="https://img3.doubanio.com/p1.jpg", width=500, height=482)
+        video = DoubanVideo(url="https://sv1.doubanio.com/a.mp4", duration=39)
+        img_md = "正文\n\n![](https://img3.doubanio.com/p1.jpg)"
+        cases = {
+            # markdown 必须原样带过去: 图片内嵌的位置信息只存在于 markdown 里
+            "图 + 正文": (self._topic(markdown_content=img_md, text_content="正文", photos=[photo]), 1, img_md),
+            "纯图无正文": (self._topic(markdown_content="![](x)", photos=[photo]), 1, "![](x)"),
+            "纯文字": (self._topic(markdown_content="只有文字", text_content="只有文字"), 0, "只有文字"),
+            "纯视频": (self._topic(video=video), 1, ""),
+        }
+        for label, (topic, media_count, expected_md) in cases.items():
+            with self.subTest(case=label):
+                result = await self._parse(topic)
+                self.assertIsInstance(result, DoubanRichTextParseResult)
+                self.assertEqual(len(result.media or []), media_count)
+                self.assertEqual(result.markdown_content, expected_md)
+
+    async def test_video_with_photos_keeps_video_first(self):
+        result = await self._parse(
+            self._topic(
+                text_content="说明",
+                markdown_content="说明",
+                video=DoubanVideo(url="https://sv1.doubanio.com/a.mp4", duration=39),
+                photos=[DoubanPhoto(url="https://img3.doubanio.com/p1.jpg", width=500, height=482)],
+            )
+        )
+
+        self.assertIsInstance(result, DoubanRichTextParseResult)
+        self.assertEqual(
+            result.media,
+            [
+                VideoRef(url="https://sv1.doubanio.com/a.mp4", duration=39),
+                ImageRef(url="https://img3.doubanio.com/p1.jpg", width=500, height=482),
+            ],
+        )
+
+    async def test_animated_photo_becomes_ani_ref(self):
+        result = await self._parse(
+            self._topic(
+                photos=[
+                    DoubanPhoto(
+                        url="https://img3.doubanio.com/p2.mp4",
+                        ext="mp4",
+                        thumb_url="https://img3.doubanio.com/p2.jpg",
+                        width=500,
+                        height=291,
+                        is_animated=True,
+                    )
+                ]
+            )
+        )
+
+        self.assertEqual(
+            result.media,
+            [
+                AniRef(
+                    url="https://img3.doubanio.com/p2.mp4",
+                    ext="mp4",
+                    thumb_url="https://img3.doubanio.com/p2.jpg",
+                    width=500,
+                    height=291,
+                )
+            ],
+        )
+
+    async def test_provider_error_is_wrapped_in_parse_error(self):
+        with patch.object(Douban, "parse", new=AsyncMock(side_effect=DoubanError("这篇内容不存在了"))):
+            with self.assertRaisesRegex(ParseError, "豆瓣解析失败: 这篇内容不存在了"):
+                await DoubanParser()._do_parse("https://www.douban.com/group/topic/1/")
+
+    async def test_download_injects_douban_referer(self):
+        result = DoubanRichTextParseResult(title="标题", media=[ImageRef(url="https://img3.doubanio.com/p1.jpg")])
+
+        with patch.object(ParseResult, "_do_download", new=AsyncMock()) as mocked:
+            await result._do_download(output_dir=Path("/tmp/does-not-matter"))
+
+        # 豆瓣图床无 Referer 时返回 418
+        self.assertEqual(mocked.await_args.kwargs["headers"]["Referer"], IMAGE_REFERER)
+
+
 class TestPlatformUrlMatching(unittest.TestCase):
     def test_supported_platform_url_formats(self):
         parsehub = ParseHub()
@@ -313,6 +556,14 @@ class TestPlatformUrlMatching(unittest.TestCase):
             Platform.COOLAPK: [
                 "https://www.coolapk.com/feed/70163953",
                 "https://www.coolapk.com/picture/123456",
+            ],
+            Platform.DOUBAN: [
+                "https://www.douban.com/group/topic/495373106/",
+                "https://m.douban.com/group/topic/495373106/",
+                "douban.com/group/topic/495373106/?_spm_id=MTU0MzM0ODY2&_i=5304694LhuE3jh",
+                "https://www.douban.com/topic/492821052/?_spm_id=MTQ3NTcyNQ&dt_dapp=1",
+                "https://www.douban.com/doubanapp/dispatch?uri=/group/topic/495373106/",
+                "https://douc.cc/2Yx4Ol",
             ],
             Platform.DOUYIN: [
                 "https://www.douyin.com/video/7615533976798727464",
@@ -419,6 +670,11 @@ class TestPlatformUrlMatching(unittest.TestCase):
     def test_known_unsupported_url_formats_are_not_matched(self):
         parsehub = ParseHub()
         urls = [
+            "https://movie.douban.com/subject/1292052/",
+            "https://book.douban.com/subject/1084336/",
+            "https://www.douban.com/people/154334866/",
+            "https://www.douban.com/group/657759/",
+            "https://www.douban.com/gallery/topic/125573/",
             "https://www.douyin.com/share/user/MS4wLjABAAAA",
             "https://www.douyin.com/qishui/share/video/123456",
             "https://www.tiktok.com/share/user/123456",
