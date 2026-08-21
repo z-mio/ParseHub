@@ -6,6 +6,7 @@ class Platform(Enum):
 
     BILIBILI = ("bilibili", "Bilibili")
     COOLAPK = ("coolapk", "酷安")
+    DOUBAN = ("douban", "豆瓣")
     DOUYIN = ("douyin", "抖音")
     TIKTOK = ("tiktok", "TikTok")
     FACEBOOK = ("facebook", "Facebook")
