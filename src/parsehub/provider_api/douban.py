@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import httpx
 from bs4 import BeautifulSoup
@@ -80,6 +80,7 @@ class DoubanTopic:
     title: str
     markdown_content: str
     text_content: str
+    image_layout: Literal["horizontal", "vertical"]  # vertical 图文混排, horizontal 图集
     video: DoubanVideo | None = None
     photos: list[DoubanPhoto] = field(default_factory=list)
 
@@ -95,7 +96,8 @@ class DoubanTopic:
             markdown_content=markdown_content,
             text_content=text_content,
             video=parse_video(video_info) if video_info else None,
-            photos=[p for photo in data.get("photos") or [] if (p := parse_photo(photo))],
+            photos=[p for photo in data.get("photos", []) if (p := parse_photo(photo))],
+            image_layout=data.get("image_layout", "horizontal"),
         )
 
 

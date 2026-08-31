@@ -1,12 +1,15 @@
 from pathlib import Path
+from typing import Union
 
 from ...provider_api.douban import IMAGE_REFERER, Douban, DoubanError, DoubanPhoto, DoubanVideo
 from ...types import (
     AniRef,
     AnyMediaRef,
     DownloadResult,
+    ImageParseResult,
     ImageRef,
     ParseError,
+    ParseResult,
     Platform,
     ProgressCallback,
     RichTextParseResult,
@@ -22,7 +25,7 @@ class DoubanParser(BaseParser):
     __match__ = r"^(http(s)?://)?(((www|m)\.)?douban\.com/((group/)?topic/\d+|doubanapp/dispatch)|douc\.cc/.+)"
     __redirect_keywords__ = ["douc.cc", "doubanapp/dispatch"]
 
-    async def _do_parse(self, raw_url: str) -> "DoubanRichTextParseResult":
+    async def _do_parse(self, raw_url: str) -> Union["DoubanRichTextParseResult", "DoubanImageParseResult"]:
         try:
             topic = await Douban(proxy=self.proxy, cookie=self.cookie.get_value()).parse(raw_url)
         except DoubanError as e:
@@ -30,11 +33,16 @@ class DoubanParser(BaseParser):
         except Exception as e:
             raise ParseError("豆瓣解析失败: 未知错误") from e
 
+        photos = [self.to_media_ref(p) for p in topic.photos]
+
+        if topic.image_layout == "horizontal":
+            return DoubanImageParseResult(title=topic.title, photo=photos, content=topic.text_content)
+
         # 图片和视频在正文里有位置关系, 交给 RichText 由 markdown 保留顺序
-        media: list[AnyMediaRef] = [
-            *([self.to_video_ref(topic.video)] if topic.video else []),
-            *(self.to_media_ref(p) for p in topic.photos),
-        ]
+        media: list[AnyMediaRef] = []
+        if topic.video:
+            media.append(self.to_video_ref(topic.video))
+        media.extend(photos)
         return DoubanRichTextParseResult(title=topic.title, media=media, markdown_content=topic.markdown_content)
 
     @staticmethod
@@ -59,7 +67,7 @@ class DoubanParser(BaseParser):
         )
 
 
-class DoubanRichTextParseResult(RichTextParseResult):
+class DoubanParseResult(ParseResult):
     async def _do_download(
         self,
         *,
@@ -81,6 +89,12 @@ class DoubanRichTextParseResult(RichTextParseResult):
             headers=headers,
             connections=connections,
         )
+
+
+class DoubanImageParseResult(ImageParseResult, DoubanParseResult): ...
+
+
+class DoubanRichTextParseResult(RichTextParseResult, DoubanParseResult): ...
 
 
 __all__ = ["DoubanParser", "DoubanRichTextParseResult"]
