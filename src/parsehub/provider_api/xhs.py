@@ -10,6 +10,8 @@ from typing import Any, cast
 import httpx
 from bs4 import BeautifulSoup
 
+from ..errors import ParseError
+
 
 class XHSAPI:
     def __init__(self, proxy: str | None = None, cookie: dict | None = None):
@@ -17,8 +19,13 @@ class XHSAPI:
         self.cookie = cookie
 
     async def __fetch_html(self, url: str) -> str:
-        async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie) as client:
-            return (await client.get(url, timeout=30)).text
+        async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie, follow_redirects=True) as client:
+            result = await client.get(url, timeout=30)
+            if "/login" in str(result.url):
+                raise ParseError("该帖子需要登录后查看")
+            elif "/404" in str(result.url):
+                raise ParseError("帖子不存在")
+            return result.text
 
     @staticmethod
     async def __extract_data(html: str) -> dict[str, Any]:
@@ -27,7 +34,7 @@ class XHSAPI:
             script for script in soup.find_all("script") if script.text.lstrip().startswith("window.__INITIAL_STATE__")
         ]
         if not scripts:
-            raise ValueError("No data found")
+            raise ParseError("No data found")
         script = scripts[0].text
         json_data = script.replace("window.__INITIAL_STATE__=", "")
         json_data = re.sub(r"\bundefined\b", "null", json_data)  # 清理js对象
@@ -36,11 +43,11 @@ class XHSAPI:
 
     def __parse(self, data: dict[str, Any]) -> XHSPost:
         if not data.get("note"):
-            raise ValueError("该帖子需要登录后查看")
+            raise ParseError("该帖子需要登录后查看")
         first_note_id = data["note"]["firstNoteId"]
         note = data["note"]["noteDetailMap"][first_note_id]["note"]
         if not note:
-            raise ValueError("未获取到内容, 该帖子可能需要登录后查看")
+            raise ParseError("未获取到内容, 该帖子可能需要登录后查看")
 
         title = note["title"]
         desc = note["desc"]
@@ -79,7 +86,7 @@ class XHSAPI:
             stream = media["stream"]
             selected_stream = self.__select_stream(stream)
             if not selected_stream:
-                raise ValueError("未获取到视频流")
+                raise ParseError("未获取到视频流")
             stream = selected_stream[0]
             media_list.append(
                 XHSMedia(
