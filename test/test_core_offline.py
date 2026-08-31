@@ -447,6 +447,7 @@ class TestDoubanParserResultTypes(unittest.IsolatedAsyncioTestCase):
             "title": "标题",
             "markdown_content": "",
             "text_content": "",
+            "image_layout": "vertical",  # 默认图文混排, 走 RichText 分支
             "video": None,
             "photos": [],
         }
