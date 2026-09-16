@@ -30,6 +30,7 @@ dependencies = [
     "pydantic>=1.10.19",
     "markdownify>=1.1.0",
     "markdown>=3.7",
+    "json5>=0.12",
     "requests",
     "httpx[socks]>=0.24.1",
     "pillow>=12.1.0",
