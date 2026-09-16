@@ -208,7 +208,23 @@ class ZhihuAPI:
             return await self.parse_zl(raw_url)
         if "/pin/" in raw_url:
             return await self.parse_pin(raw_url)
+        if "daily.zhihu.com" in raw_url or "/story/" in raw_url:
+            return await self.parse_daily(raw_url)
         raise ValueError("不支持的类型")
+
+    async def parse_daily(self, raw_url: str) -> ZhihuQA | ZhihuZhuanLan | ZhihuPin:
+        story_id = self._get_daily_id(raw_url)
+        result = await self._daily(story_id)
+        body = result.get("body", "")
+        soup = BeautifulSoup(body, "lxml")
+        origin_url: str | None = None
+        for a in soup.find_all("a"):
+            if "查看知乎原文" in a.get_text():
+                origin_url = str(a.get("href"))
+                break
+        if not origin_url:
+            raise ValueError("未在知乎日报中找到原文链接")
+        return await self.parse(origin_url)
 
     async def parse_qa(self, raw_url: str) -> ZhihuQA:
         qid, aid = self._get_qa_id(raw_url)
@@ -293,6 +309,12 @@ class ZhihuAPI:
             r = await client.get(url, headers=headers, params=query, cookies=self.cookie)
             return dict(r.json())
 
+    async def _daily(self, story_id: int | str) -> dict:
+        url = f"https://daily.zhihu.com/api/7/story/{story_id}"
+        async with httpx.AsyncClient(proxy=self.proxy) as client:
+            r = await client.get(url)
+            return dict(r.json())
+
     @staticmethod
     def _get_qa_id(raw_url: str) -> tuple[str, str | None]:
         """返回问题和回答 id,  没有回答 id 时返回 None"""
@@ -313,6 +335,13 @@ class ZhihuAPI:
         r = re.search(r"/pin/(\d+)", raw_url)
         if not r:
             raise ValueError("从链接中提取 圈子 id 错误")
+        return r.group(1)
+
+    @staticmethod
+    def _get_daily_id(raw_url: str) -> str:
+        r = re.search(r"/story/(\d+)", raw_url)
+        if not r:
+            raise ValueError("从链接中提取 日报 id 错误")
         return r.group(1)
 
 

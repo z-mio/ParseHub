@@ -13,8 +13,8 @@ from ..base.base import BaseParser
 
 class ZhihuParser(BaseParser):
     __platform__ = Platform.ZHIHU
-    __supported_type__ = ["问答", "专栏", "圈子"]
-    __match__ = r"^(http(s)?://)?(www|zhuanlan).zhihu.com/(pin|question|p)/.*"
+    __supported_type__ = ["问答", "专栏", "圈子", "日报"]
+    __match__ = r"^(http(s)?://)?(www|zhuanlan|daily).zhihu.com/(pin|question|p|story)/.*"
 
     async def _do_parse(
         self, raw_url: str
