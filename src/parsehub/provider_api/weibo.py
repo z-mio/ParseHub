@@ -206,6 +206,7 @@ class PageInfo(Info):
 @dataclass
 class Pic:
     url: str | None = None
+    hdr_url: str | None = None
     width: int | None = None
     height: int | None = None
     cut_type: int | None = None
