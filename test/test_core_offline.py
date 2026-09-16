@@ -660,6 +660,7 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://www.zhihu.com/question/2057559076813510452",
                 "https://zhuanlan.zhihu.com/p/1989096494578558904",
                 "https://www.zhihu.com/question/597674895/answer/3004370705",
+                "https://daily.zhihu.com/story/9792555",
             ],
         }
 
