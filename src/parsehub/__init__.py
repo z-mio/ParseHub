@@ -179,6 +179,8 @@ class ParseHub:
             raise UnknownPlatform(url)
         try:
             return await parser(proxy=proxy).get_raw_url(url, clean_all=clean_all)
+        except ParseError:
+            raise
         except Exception as e:
             raise ParseError from e
 

@@ -24,6 +24,14 @@ class XHSParser(BaseParser):
     __redirect_keywords__ = ["xhslink"]
     __after_clean_parameters__ = ["xsec_token"]
 
+    async def get_raw_url(self, url: str, *, clean_all: bool = False, headers: dict | None = None) -> str:
+        url = await super().get_raw_url(url, clean_all=clean_all, headers=headers)
+        if "/login" in url:
+            raise ParseError("该帖子需要登录后查看")
+        elif "/404" in url:
+            raise ParseError("帖子不存在")
+        return url
+
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
         xhs = XHSAPI(proxy=self.proxy, cookie=self.cookie.get_value())
         result = await xhs.extract(raw_url)
