@@ -10,6 +10,8 @@ from typing import Any, cast
 import httpx
 from bs4 import BeautifulSoup
 
+from parsehub.utils.helpers import UA
+
 from ..errors import ParseError
 
 
@@ -20,7 +22,11 @@ class XHSAPI:
 
     async def __fetch_html(self, url: str) -> str:
         async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie, follow_redirects=True) as client:
-            result = await client.get(url, timeout=30)
+            result = await client.get(
+                url,
+                headers={"User-Agent": UA},
+                timeout=30,
+            )
             if "/login" in str(result.url):
                 raise ParseError("该帖子需要登录后查看")
             elif "/404" in str(result.url):
