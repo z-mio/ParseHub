@@ -10,9 +10,8 @@ from typing import Any, cast
 import httpx
 from bs4 import BeautifulSoup
 
-from parsehub.utils.helpers import UA
-
 from ..errors import ParseError
+from ..utils.helpers import UA
 
 
 class XHSAPI:
@@ -24,7 +23,11 @@ class XHSAPI:
         async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie, follow_redirects=True) as client:
             result = await client.get(
                 url,
-                headers={"User-Agent": UA},
+                headers={
+                    "User-Agent": UA,
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp"
+                    ",image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                },
                 timeout=30,
             )
             if "/login" in str(result.url):

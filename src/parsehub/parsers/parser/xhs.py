@@ -14,6 +14,7 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
+from ...utils.helpers import UA
 from ..base import BaseParser
 
 
@@ -25,6 +26,11 @@ class XHSParser(BaseParser):
     __after_clean_parameters__ = ["xsec_token"]
 
     async def get_raw_url(self, url: str, *, clean_all: bool = False, headers: dict | None = None) -> str:
+        headers = {
+            "User-Agent": UA,
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,"
+            "*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        }
         url = await super().get_raw_url(url, clean_all=clean_all, headers=headers)
         if "/login" in url:
             raise ParseError("该帖子需要登录后查看")
