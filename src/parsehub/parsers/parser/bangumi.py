@@ -13,8 +13,6 @@ class BangumiParser(BaseParser):
             post = await Bangumi(proxy=self.proxy).parse(raw_url)
         except BangumiError as e:
             raise ParseError(f"Bangumi 解析失败: {e.msg}") from e
-        except Exception as e:
-            raise ParseError("Bangumi 解析失败: 未知错误") from e
 
         return RichTextParseResult(
             title=post.title,

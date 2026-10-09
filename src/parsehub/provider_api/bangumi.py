@@ -7,7 +7,10 @@ import httpx
 
 from ..utils.helpers import UA
 
-_TAG_RE = re.compile(r"\[(/?)([a-zA-Z]+)(?:=([^\]]*))?\]")
+_TAG_RE = re.compile(
+    r"\[(/?)(img|url|b|i|s|u|mask|quote|code|user|size|color|align|left|right|center|photo)(?:=([^\]]*))?\]",
+    re.IGNORECASE,
+)
 _URL_RE = re.compile(r"/(?:(subject/topic|group/topic)/(\d+)|blog/(\d+))(?:/|$)")
 _API_BASE = "https://next.bgm.tv/p1"
 
@@ -46,7 +49,10 @@ class Bangumi:
                     for photo in photos.get("data", [])
                     if photo.get("target")
                 ]
+                content_images = set(images)
+                extra_photo_urls = list(dict.fromkeys(url for url in photo_urls if url not in content_images))
                 images = list(dict.fromkeys([*images, *photo_urls]))
+                markdown_content += "".join(f"\n\n![]({url})" for url in extra_photo_urls)
                 return BangumiPost(
                     title=blog.get("title") or "",
                     markdown_content=markdown_content,
@@ -83,7 +89,7 @@ class Bangumi:
 
 def convert_bbcode(content: str) -> tuple[str, list[str]]:
     content = content.replace("\r\n", "\n")
-    content = re.sub(r"\([a-z_]*\d+\)", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"\((?:bgm|blake_|musume_)\d+\)", "", content, flags=re.IGNORECASE)
 
     root = _BBCodeNode("")
     stack = [root]
