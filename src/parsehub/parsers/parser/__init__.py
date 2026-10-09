@@ -8,6 +8,7 @@ from .facebook import *
 from .instagram import *
 from .threads import *
 from .tieba import *
+from .toutiao import *
 from .twitter import *
 from .weibo import *
 from .weixin import *
