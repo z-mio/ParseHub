@@ -172,6 +172,13 @@ class ZhihuAPI:
         self.proxy = proxy
         self.cookie = cookie
 
+    @staticmethod
+    def _json(r: httpx.Response) -> dict:
+        data = dict(r.json())
+        if err := data.get("error"):
+            raise ValueError(f"知乎接口错误 {err.get('code')}: {err.get('message')}")
+        return data
+
     @property
     def d_c0(self) -> str:
         v = self.cookie.get("d_c0")
@@ -258,7 +265,7 @@ class ZhihuAPI:
 
         async with httpx.AsyncClient() as client:
             r = await client.get(url, headers=headers, params=query, cookies=self.cookie)
-            return dict(r.json())
+            return self._json(r)
 
     async def _questions_answers(self, question_id: int | str) -> dict:
         """获取问题的回答"""
@@ -274,7 +281,7 @@ class ZhihuAPI:
 
         async with httpx.AsyncClient() as client:
             r = await client.get(url, headers=headers, params=query, cookies=self.cookie)
-            return dict(r.json())
+            return self._json(r)
 
     async def _answers(self, answers_id: int | str) -> dict:
         """获取问题的指定回答"""
@@ -287,7 +294,7 @@ class ZhihuAPI:
 
         async with httpx.AsyncClient() as client:
             r = await client.get(url, headers=headers, params=query, cookies=self.cookie)
-            return dict(r.json())
+            return self._json(r)
 
     async def _zl(self, zl_id: int | str) -> dict:
         url = f"https://zhuanlan.zhihu.com/api/articles/{zl_id}"
@@ -297,7 +304,7 @@ class ZhihuAPI:
 
         async with httpx.AsyncClient() as client:
             r = await client.get(url, headers=headers, params=query, cookies=self.cookie)
-            return dict(r.json())
+            return self._json(r)
 
     async def _pin(self, pin_id: int | str) -> dict:
         url = f"https://www.zhihu.com/api/v4/pins/{pin_id}"
@@ -307,13 +314,13 @@ class ZhihuAPI:
 
         async with httpx.AsyncClient() as client:
             r = await client.get(url, headers=headers, params=query, cookies=self.cookie)
-            return dict(r.json())
+            return self._json(r)
 
     async def _daily(self, story_id: int | str) -> dict:
         url = f"https://daily.zhihu.com/api/7/story/{story_id}"
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             r = await client.get(url)
-            return dict(r.json())
+            return self._json(r)
 
     @staticmethod
     def _get_qa_id(raw_url: str) -> tuple[str, str | None]:
