@@ -11,6 +11,7 @@ class Platform(Enum):
     DOUYIN = ("douyin", "抖音")
     TIKTOK = ("tiktok", "TikTok")
     TOUTIAO = ("toutiao", "今日头条")
+    MEDIUM = ("medium", "Medium")
     FACEBOOK = ("facebook", "Facebook")
     INSTAGRAM = ("instagram", "Instagram")
     KUAISHOU = ("kuaishou", "快手")

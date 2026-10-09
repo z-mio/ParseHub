@@ -54,6 +54,7 @@ A lightweight, asynchronous, ready-to-use social media parser and media download
 | **Douban**      |  ✅   |     ✅      | 👥 Group topics                       |
 | **Bangumi**     |       |     ✅      | 💬 Subject discussions, blogs, group topics |
 | **Toutiao**     |  ✅   |     ✅      | 📰 Articles, Weitoutiao posts |
+| **Medium**      |  ✅   |     ✅      | 📰 Articles |
 
 ## 📦 Installation
 

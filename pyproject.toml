@@ -39,6 +39,7 @@ dependencies = [
     "cryptography>=49.0.0",
     "gmssl>=3.2.2",
     "signerpy>=0.12.0",
+    "curl-cffi>=0.13",
 ]
 
 [project.scripts]
