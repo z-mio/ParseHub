@@ -1,4 +1,5 @@
 # ruff: noqa: F403
+from .bangumi import *
 from .bilibili import *
 from .coolapk import *
 from .douban import *
