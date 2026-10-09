@@ -101,7 +101,7 @@ class Medium:
             if post is None:
                 raise MediumError("内容不存在或已删除")
 
-            paragraphs = post.get("content", {}).get("bodyModel", {}).get("paragraphs", [])
+            paragraphs = ((post.get("content") or {}).get("bodyModel") or {}).get("paragraphs") or []
             markdown_content, images = _render_paragraphs(paragraphs, post.get("title") or "")
             return MediumPost(
                 title=post.get("title") or "",
