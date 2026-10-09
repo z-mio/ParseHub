@@ -6,7 +6,10 @@ from ..base.base import BaseParser
 class BangumiParser(BaseParser):
     __platform__ = Platform.BANGUMI
     __supported_type__ = ["条目讨论", "日志", "小组话题"]
-    __match__ = r"^(http(s)?://)?(www\.)?(bgm\.tv|bangumi\.tv|chii\.in)/(subject/topic|group/topic|blog)/\d+"
+    __match__ = (
+        r"^(http(s)?://)?(www\.)?(bgm\.tv|bangumi\.tv|chii\.in)/"
+        r"(subject/topic|group/topic|rakuen/topic/(subject|group)|blog)/\d+"
+    )
 
     async def _do_parse(self, raw_url: str) -> RichTextParseResult:
         try:

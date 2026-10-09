@@ -11,7 +11,7 @@ _TAG_RE = re.compile(
     r"\[(/?)(img|url|b|i|s|u|mask|quote|code|user|size|color|align|left|right|center|photo)(?:=([^\]]*))?\]",
     re.IGNORECASE,
 )
-_URL_RE = re.compile(r"/(?:(subject/topic|group/topic)/(\d+)|blog/(\d+))(?:/|$)")
+_URL_RE = re.compile(r"/(?:(subject|group)/topic|rakuen/topic/(subject|group)|(blog))/(\d+)(?:[/?#]|$)")
 _API_BASE = "https://next.bgm.tv/p1"
 
 
@@ -38,11 +38,13 @@ class Bangumi:
         if not match:
             raise BangumiError("不支持的 Bangumi 链接")
 
-        topic_type, topic_id, blog_id = match.groups()
+        kind = match.group(1) or match.group(2) or match.group(3)
+        topic_id = match.group(4)
+        assert kind is not None and topic_id is not None
         async with httpx.AsyncClient(proxy=self.proxy, timeout=30, headers={"User-Agent": UA}) as client:
-            if blog_id:
-                blog = await self._get_json(client, f"{_API_BASE}/blogs/{blog_id}")
-                photos = await self._get_json(client, f"{_API_BASE}/blogs/{blog_id}/photos", params={"limit": 100})
+            if kind == "blog":
+                blog = await self._get_json(client, f"{_API_BASE}/blogs/{topic_id}")
+                photos = await self._get_json(client, f"{_API_BASE}/blogs/{topic_id}/photos", params={"limit": 100})
                 markdown_content, images = convert_bbcode(blog.get("content") or "")
                 photo_urls = [
                     f"https://lain.bgm.tv/pic/photo/l/{photo['target'].lstrip('/')}"
@@ -59,8 +61,7 @@ class Bangumi:
                     images=images,
                 )
 
-            assert topic_type is not None and topic_id is not None
-            api_type = "subjects" if topic_type == "subject/topic" else "groups"
+            api_type = "subjects" if kind == "subject" else "groups"
             topic = await self._get_json(client, f"{_API_BASE}/{api_type}/-/topics/{topic_id}")
             replies = topic.get("replies") or []
             content = replies[0].get("content", "") if replies else ""
@@ -126,6 +127,12 @@ def _render_nodes(nodes: list[str | _BBCodeNode], images: list[str]) -> str:
             case "img":
                 url = body.strip()
                 if url:
+                    images.append(url)
+                    rendered.append(f"![]({url})")
+            case "photo":
+                photo_path = body.strip().lstrip("/")
+                if photo_path:
+                    url = f"https://lain.bgm.tv/pic/photo/l/{photo_path}"
                     images.append(url)
                     rendered.append(f"![]({url})")
             case "url" if node.value:
