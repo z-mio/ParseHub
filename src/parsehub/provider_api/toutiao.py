@@ -112,7 +112,7 @@ class Toutiao:
             for image in thread_base.get("large_image_list", [])
             if image.get("url")
         ]
-        return ToutiaoMicroPost(content=thread_base.get("content") or "", images=images)
+        return ToutiaoMicroPost(content=(thread_base.get("content") or "").strip(), images=images)
 
     async def _parse_video(
         self,
