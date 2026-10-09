@@ -4,6 +4,7 @@ from enum import Enum
 class Platform(Enum):
     """支持的平台"""
 
+    BANGUMI = ("bangumi", "Bangumi")
     BILIBILI = ("bilibili", "Bilibili")
     COOLAPK = ("coolapk", "酷安")
     DOUBAN = ("douban", "豆瓣")
