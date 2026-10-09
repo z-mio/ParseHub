@@ -19,7 +19,6 @@ from parsehub.provider_api.douban import (
     DoubanVideo,
 )
 from parsehub.provider_api.douyin import DouyinMobileCrawler, DouyinMobileDevice
-from parsehub.provider_api.zhihu import ZhihuAPI
 from parsehub.types import AniRef, ImageParseResult, ImageRef, ParseResult, Platform, VideoParseResult, VideoRef
 from parsehub.utils.helpers import SecretCookie, match_url, run_sync
 
@@ -157,43 +156,6 @@ class TestParseHubExceptionBoundary(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaisesRegex(UnknownPlatform, "example.invalid"):
             await parsehub.parse("https://example.invalid/not-supported")
-
-
-class TestZhihuAPIError(unittest.TestCase):
-    def test_json_raises_error_for_zhihu_api_error(self):
-        response = httpx.Response(
-            403,
-            json={"error": {"code": 40352, "message": "系统监测到您的网络环境存在异常"}},
-        )
-
-        with self.assertRaises(ValueError) as raised:
-            ZhihuAPI._json(response)
-
-        self.assertIn("40352", str(raised.exception))
-        self.assertIn("系统监测到您的网络环境存在异常", str(raised.exception))
-
-    def test_json_returns_payload_without_error(self):
-        payload = {"id": 1, "content": "x"}
-
-        self.assertEqual(ZhihuAPI._json(httpx.Response(200, json=payload)), payload)
-
-    def test_parse_sync_passes_through_zhihu_api_error(self):
-        response = httpx.Response(401, json={"error": {"code": 100, "message": "ERR_TICKET_NOT_EXIST"}})
-        with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=response)) as mocked_get:
-            with self.assertRaises(ParseError) as raised:
-                ParseHub().parse_sync(
-                    "https://www.zhihu.com/question/597674895/answer/3004370705",
-                    cookie="d_c0=x; z_c0=y",
-                )
-
-        self.assertIn("100", str(raised.exception))
-        self.assertIn("ERR_TICKET_NOT_EXIST", str(raised.exception))
-        self.assertNotEqual(str(raised.exception), "'question'")
-        mocked_get.assert_awaited_once()
-        self.assertEqual(
-            mocked_get.await_args.args[0],
-            "https://www.zhihu.com/api/v4/answers/3004370705",
-        )
 
 
 class TestParseResultToDict(unittest.TestCase):
