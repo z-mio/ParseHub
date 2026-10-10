@@ -196,7 +196,7 @@ class DouyinApiResult:
             filter_detail = json_dict.get("filter_detail") or {}
             if reason := filter_detail.get("filter_reason"):
                 detail_msg = filter_detail.get("detail_msg") or filter_detail.get("notice") or ""
-                raise ContentUnavailableError(f"抖音作品不可用: {reason} {detail_msg}".strip())
+                raise ContentUnavailableError(f"抖音 {reason} {detail_msg}".strip())
             raise ParseError("抖音解析失败: 未获取到作品详情")
 
         desc = data.get("desc", "")
