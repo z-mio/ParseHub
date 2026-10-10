@@ -13,6 +13,7 @@ from .toutiao import *
 from .twitter import *
 from .weibo import *
 from .weixin import *
+from .wxchannels import *
 from .xhs import *
 from .xiaoheihe import *
 from .youtube import *
