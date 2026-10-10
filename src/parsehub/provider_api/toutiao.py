@@ -10,6 +10,7 @@ import httpx
 from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
 
+from ..errors import ContentUnavailableError
 from ..utils.helpers import UA
 
 _ID_RE = re.compile(r"toutiao\.com/(?:(?:article|video|w|group|item)/|a|i)(\d+)")
@@ -67,7 +68,7 @@ class Toutiao:
             response.raise_for_status()
             data = response.json().get("data")
             if data is None:
-                raise ToutiaoError("内容不存在或已删除")
+                raise ContentUnavailableError("今日头条内容不存在或已删除")
 
             if "thread" in data:
                 return self._parse_micro_post(data["thread"])
