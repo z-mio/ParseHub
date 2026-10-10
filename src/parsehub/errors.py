@@ -11,6 +11,12 @@ class ParseError(ParseHubError):
     MSG = __doc__
 
 
+class ContentUnavailableError(ParseError):
+    """作品不可用"""
+
+    MSG = __doc__
+
+
 class DownloadError(ParseHubError):
     """下载错误"""
 

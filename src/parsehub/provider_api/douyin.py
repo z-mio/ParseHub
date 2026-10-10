@@ -1189,6 +1189,8 @@ class DouyinMobileCrawler:
                         if payload.get("aweme_detail"):
                             await self._attach_story_default_play(payload["aweme_detail"])
                             return cast(dict[str, Any], payload)
+                        if payload.get("filter_detail"):
+                            return cast(dict[str, Any], payload)
                         last_error = f"{host} missing aweme_detail: {payload.get('status_msg') or payload}"
                     if replace_device:
                         break
