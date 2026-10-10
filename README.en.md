@@ -180,7 +180,7 @@ The following platforms currently support Cookies:
 - `Xiaohongshu`
 - `Zhihu`
 - `Douban`
-- `WeChat Channels` (Tencent Yuanbao yuanbao.tencent.com login Cookie)
+- `WeChat Channels` (requires the Cookie from Tencent Yuanbao yuanbao.tencent.com after logging in)
 
 ```python
 from parsehub import ParseHub

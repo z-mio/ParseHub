@@ -179,7 +179,7 @@ print(result)
 - `小红书`
 - `知乎`
 - `豆瓣`
-- `微信视频号`（腾讯元宝 yuanbao.tencent.com 登录 Cookie）
+- `微信视频号`（需要填腾讯元宝 yuanbao.tencent.com 登录后的 Cookie）
 
 ```python
 from parsehub import ParseHub
