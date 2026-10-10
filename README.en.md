@@ -44,6 +44,7 @@ A lightweight, asynchronous, ready-to-use social media parser and media download
 | **Xiaohongshu** |  ✅   |     ✅      |                                       |
 | **Tieba**       |  ✅   |     ✅      |                                       |
 | **WeChat OA**   |       |     ✅      |                                       |
+| **WeChat Channels** |  ✅   |             |                                       |
 | **Kuaishou**    |  ✅   |     ✅      |                                       |
 | **Coolapk**     |       |     ✅      |                                       |
 | **Pipixia**     |  ✅   |     ✅      |                                       |
@@ -179,6 +180,7 @@ The following platforms currently support Cookies:
 - `Xiaohongshu`
 - `Zhihu`
 - `Douban`
+- `WeChat Channels` (requires the Cookie from Tencent Yuanbao yuanbao.tencent.com after logging in)
 
 ```python
 from parsehub import ParseHub

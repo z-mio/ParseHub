@@ -21,6 +21,7 @@ class Platform(Enum):
     TWITTER = ("twitter", "Twitter")
     WEIBO = ("weibo", "微博")
     WEIXIN = ("weixin", "微信公众号")
+    WEIXIN_CHANNELS = ("weixin_channels", "微信视频号")
     XHS = ("xhs", "小红书")
     XIAOHEIHE = ("xiaoheihe", "小黑盒")
     YOUTUBE = ("youtube", "Youtube")
