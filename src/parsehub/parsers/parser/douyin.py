@@ -6,6 +6,7 @@ from typing import Self, Union
 from ... import ProgressCallback
 from ...provider_api.douyin import DouyinMobileCrawler, DouyinMobileDevice, DouyinWebCrawler
 from ...types import (
+    ContentUnavailableError,
     DownloadResult,
     ImageParseResult,
     ImageRef,
@@ -46,6 +47,8 @@ class DouyinParser(BaseParser):
                 web_crawler = DouyinWebCrawler(proxy=self.proxy, cookie=web_cookie)
                 response = await web_crawler.parse(raw_url)
                 return DouyinApiResult.parse(response)
+            except ContentUnavailableError:
+                raise
             except ParseError as e:
                 web_error = e
 
@@ -57,6 +60,8 @@ class DouyinParser(BaseParser):
         except ParseError as e:
             mobile_error = e
 
+        if isinstance(mobile_error, ContentUnavailableError):
+            raise mobile_error
         if web_error:
             raise ParseError(f"{web_error}；移动端解析也失败: {mobile_error}") from mobile_error
         raise mobile_error
@@ -188,6 +193,10 @@ class DouyinApiResult:
     def parse(cls, json_dict: dict) -> Self:
         data = json_dict.get("aweme_detail")
         if not data:
+            filter_detail = json_dict.get("filter_detail") or {}
+            if reason := filter_detail.get("filter_reason"):
+                detail_msg = filter_detail.get("detail_msg") or filter_detail.get("notice") or ""
+                raise ContentUnavailableError(f"抖音作品不可用: {reason} {detail_msg}".strip())
             raise ParseError("抖音解析失败: 未获取到作品详情")
 
         desc = data.get("desc", "")
