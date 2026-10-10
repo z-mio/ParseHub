@@ -12,6 +12,8 @@ from typing import Any, Self, cast
 
 import httpx
 
+from ..errors import ContentUnavailableError
+
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
 )
@@ -68,7 +70,7 @@ class BiliAPI:
                 case -352:
                     raise Exception("获取动态信息失败: -352 风控限制")
                 case 4101152:
-                    raise Exception("动态不可见")
+                    raise ContentUnavailableError("动态不可见")
                 case _:
                     raise Exception(f"获取动态信息失败: {mj}")
         return BiliDynamic.parse(cast(dict[str, Any], data))

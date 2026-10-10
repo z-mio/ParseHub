@@ -11,6 +11,7 @@ from ...provider_api.twitter import (
 from ...types import (
     AniRef,
     AnyMediaRef,
+    ContentUnavailableError,
     ImageRef,
     MultimediaParseResult,
     ParseError,
@@ -38,12 +39,16 @@ class TwitterParser(BaseParser):
         x = Twitter(self.proxy, cookie=None)
         try:
             tweet = await x.fetch_tweet(url)
+        except ContentUnavailableError:
+            raise
         except Exception as e:
             if any(s in str(e) for s in ("error -2", "error -3")):
                 if cookie := self.cookie.get_value():
                     x2 = Twitter(self.proxy, cookie=cookie)
                     try:
                         tweet = await x2.fetch_tweet(url)
+                    except ContentUnavailableError:
+                        raise
                     except Exception as e2:
                         raise ParseError(f"Twitter 账号无权限或已被封禁\n\n使用的 Cookie: {self.cookie}") from e2
                 else:

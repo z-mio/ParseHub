@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 from curl_cffi import requests
 
+from ..errors import ContentUnavailableError
+
 _ID_RE = re.compile(r"(?:^|-)([0-9a-f]{8,12})$")
 _GRAPHQL_URL = "https://medium.com/_/graphql"
 _GRAPHQL_QUERY = """
@@ -99,7 +101,7 @@ class Medium:
 
             post = result["data"]["post"]
             if post is None:
-                raise MediumError("内容不存在或已删除")
+                raise ContentUnavailableError("Medium 内容不存在或已删除")
 
             paragraphs = ((post.get("content") or {}).get("bodyModel") or {}).get("paragraphs") or []
             markdown_content, images = _render_paragraphs(paragraphs, post.get("title") or "")

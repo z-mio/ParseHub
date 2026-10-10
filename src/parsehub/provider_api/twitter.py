@@ -9,7 +9,7 @@ from typing import Literal, NamedTuple
 import httpx
 from loguru import logger
 
-from ..types import ParseError
+from ..types import ContentUnavailableError
 from ..utils.helpers import UA
 
 
@@ -79,7 +79,7 @@ class Twitter:
 
         result = result["data"]["tweetResult"].get("result")
         if not result:
-            raise ParseError("error -4: 帖子或用户不存在")
+            raise ContentUnavailableError("error -4: 帖子或用户不存在")
 
         if tweet := result.get("tweet"):
             tweet_id = tweet.get("rest_id", {})
