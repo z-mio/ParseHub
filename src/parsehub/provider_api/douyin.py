@@ -27,6 +27,8 @@ DEFAULT_USER_AGENT = (
 )
 
 POST_DETAIL = "https://www.douyin.com/aweme/v1/web/aweme/detail/"
+WEB_SIGN_SALT = "A96D855A08C0A9707F8BEF0D9A527E4E"
+WEB_SIGN_UIFID_COOKIES = ("uifid", "uifid_temp", "uifidtemp", "UIFID", "UIFID_TEMP", "UIFIDTEMP")
 MOBILE_BROWSER_USER_AGENT = (
     "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) "
     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
@@ -754,6 +756,24 @@ class DouyinWebCrawler:
             "Referer": "https://www.douyin.com/",
         }
 
+    def _signed_query(self, params: dict[str, str]) -> tuple[str, dict[str, str]]:
+        uifid = next((v for name in WEB_SIGN_UIFID_COOKIES if (v := self.cookie.get(name))), None)
+        if not uifid:
+            raise ParseError("抖音 cookie 缺少 UIFID_TEMP, 无法生成网页签名")
+        pairs = [*params.items(), ("a_bogus", ABogus().get_value(params))]
+        if verify_fp := self.cookie.get("s_v_web_id"):
+            pairs += [("verifyFp", verify_fp), ("fp", verify_fp)]
+        timestamp = str(int(time.time()))
+        pairs += [("uifid", uifid), ("timestamp", timestamp)]
+        query = "&".join(f"{quote(k, safe='*-._')}={quote(str(v), safe='*-._')}" for k, v in pairs)
+        signature = hashlib.md5(f"{uifid}_{timestamp}_{WEB_SIGN_SALT}_{query}".encode()).hexdigest()
+        headers = {
+            "uifid": uifid,
+            "x-secsdk-web-signature": signature,
+            "x-secsdk-web-expire": timestamp,
+        }
+        return f"{query}&x-secsdk-web-signature={signature}", headers
+
     @staticmethod
     async def get_aweme_id(raw_url: str) -> str:
         for pattern in [
@@ -799,17 +819,23 @@ class DouyinWebCrawler:
             }
             for attempt in range(3):
                 try:
-                    a_bogus = ABogus().get_value(params)
-                    endpoint = f"{POST_DETAIL}?{urlencode(params)}&a_bogus={quote(a_bogus, safe='')}"
-                    response = await client.get(endpoint)
-                    response.raise_for_status()
-                    return cast(dict[str, Any], response.json())
-                except Exception as e:
+                    query, sign_headers = self._signed_query(params)
+                    response = await client.get(f"{POST_DETAIL}?{query}", headers=sign_headers)
+                except httpx.HTTPError as e:
                     if attempt + 1 < 3:
                         await asyncio.sleep(1)
                     else:
-                        raise ParseError("获取抖音作品失败, 请检查 cookie") from e
-            raise ParseError("获取抖音作品失败, 请检查 cookie")
+                        raise ParseError(f"抖音网页端请求失败: {e}") from e
+                    continue
+                if response.status_code != 200:
+                    raise ParseError(f"抖音网页端请求被拒绝: HTTP {response.status_code} {response.text[:80]}")
+                if not response.content:
+                    raise ParseError("抖音网页端返回空响应, cookie 可能已被限流")
+                try:
+                    return cast(dict[str, Any], response.json())
+                except (ValueError, UnicodeDecodeError) as e:
+                    raise ParseError("抖音网页端返回非 JSON 响应") from e
+            raise ParseError("抖音网页端请求失败: 未知错误")
 
     async def parse(self, raw_url: str) -> dict:
         aweme_id = await self.get_aweme_id(raw_url)
@@ -1101,11 +1127,23 @@ class DouyinMobileCrawler:
         cls._device_pool_index = (cls._device_pool_index + 1) % len(cls._device_pool)
         return device
 
+    @classmethod
+    def _evict_device(cls, device: DouyinMobileDevice) -> None:
+        if device in cls._device_pool:
+            cls._device_pool.remove(device)
+            cls._device_pool_index = cls._device_pool_index % len(cls._device_pool) if cls._device_pool else 0
+
     async def _ensure_device_pool(self, client: httpx.AsyncClient) -> None:
-        if self.__class__._device_pool:
+        cls = self.__class__
+        if len(cls._device_pool) >= MOBILE_DEVICE_POOL_SIZE:
             return
-        self.__class__._device_pool = await self.register_device_pool(client)
-        self.__class__._device_pool_index = 0
+        missing = MOBILE_DEVICE_POOL_SIZE - len(cls._device_pool)
+        new_devices = await self.register_device_pool(client, count=missing)
+        current_pool = cls._device_pool
+        cls._device_pool = (current_pool + [device for device in new_devices if device not in current_pool])[
+            :MOBILE_DEVICE_POOL_SIZE
+        ]
+        cls._device_pool_index = cls._device_pool_index % len(cls._device_pool) if cls._device_pool else 0
 
     async def _select_device(self, client: httpx.AsyncClient) -> DouyinMobileDevice:
         if self._fixed_device:
@@ -1124,6 +1162,7 @@ class DouyinMobileCrawler:
                 await self._select_device(client)
                 params = self._mobile_query(aweme_id)
                 query = urlencode(params)
+                replace_device = False
                 for profile in MOBILE_SIGN_PROFILES:
                     headers = self._signed_headers(params, profile)
                     for host in MOBILE_DETAIL_HOSTS:
@@ -1136,6 +1175,11 @@ class DouyinMobileCrawler:
                             continue
                         if not content:
                             last_error = f"{host} returned empty body"
+                            if not self._fixed_device:
+                                if self.device is not None:
+                                    self.__class__._evict_device(self.device)
+                                replace_device = True
+                                break
                             continue
                         try:
                             payload = response.json()
@@ -1146,6 +1190,8 @@ class DouyinMobileCrawler:
                             await self._attach_story_default_play(payload["aweme_detail"])
                             return cast(dict[str, Any], payload)
                         last_error = f"{host} missing aweme_detail: {payload.get('status_msg') or payload}"
+                    if replace_device:
+                        break
                 await asyncio.sleep(0.15)
         raise ParseError(f"获取抖音作品失败: {last_error}")
 
