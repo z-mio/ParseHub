@@ -10,6 +10,7 @@ class WXChannelsParser(BaseParser):
         r"^(http(s)?://)?(weixin\.qq\.com/sph/\w+|"
         r"channels\.weixin\.qq\.com/finder-preview/pages/sph\?.*\bid=\w+)"
     )
+    __redirect_keywords__ = ["weixin.qq.com/sph/"]
     __reserved_parameters__ = ["id"]
 
     async def _do_parse(self, raw_url: str) -> VideoParseResult:
