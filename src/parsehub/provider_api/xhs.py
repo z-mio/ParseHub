@@ -10,7 +10,7 @@ from typing import Any, cast
 import httpx
 from bs4 import BeautifulSoup
 
-from ..errors import ParseError
+from ..errors import ContentUnavailableError, ParseError
 from ..utils.helpers import UA
 
 
@@ -33,7 +33,7 @@ class XHSAPI:
             if "/login" in str(result.url):
                 raise ParseError("该帖子需要登录后查看")
             elif "/404" in str(result.url):
-                raise ParseError("帖子不存在")
+                raise ContentUnavailableError("帖子不存在")
             return result.text
 
     @staticmethod

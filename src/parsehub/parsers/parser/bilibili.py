@@ -9,6 +9,7 @@ from loguru import logger
 
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
 from ...types import (
+    ContentUnavailableError,
     DownloadResult,
     ImageParseResult,
     ImageRef,
@@ -92,6 +93,8 @@ class BiliParse(BaseParser):
         try:
             async with BiliAPI(proxy=self.proxy) as bili:
                 dynamic_info = await bili.get_dynamic_info(url, cookie=self.cookie.get_value())
+        except ContentUnavailableError:
+            raise
         except Exception as e:
             if "风控" in str(e):
                 raise ParseError(f"账号风控\n使用的cookie: {self.cookie}") from e

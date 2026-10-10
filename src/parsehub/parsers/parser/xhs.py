@@ -5,6 +5,7 @@ import httpx
 
 from ...provider_api.xhs import XHSAPI, XHSMedia, XHSMediaType, XHSPostType
 from ...types import (
+    ContentUnavailableError,
     ImageParseResult,
     ImageRef,
     LivePhotoRef,
@@ -35,7 +36,7 @@ class XHSParser(BaseParser):
         if "/login" in url:
             raise ParseError("该帖子需要登录后查看")
         elif "/404" in url:
-            raise ParseError("帖子不存在")
+            raise ContentUnavailableError("帖子不存在")
         return url
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
