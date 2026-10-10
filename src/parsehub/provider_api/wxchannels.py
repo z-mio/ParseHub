@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
+from ..errors import ContentUnavailableError
 from ..utils.helpers import UA
 
 _SHARE_URL = "https://weixin.qq.com/sph/{}"
@@ -69,7 +70,7 @@ class WXChannels:
             data = result.get("data") or {}
             playable_url = data.get("playable_url") or ""
             if not data.get("wx_export_id") or not playable_url:
-                raise WXChannelsError("视频不存在或已删除")
+                raise ContentUnavailableError("微信视频号视频不存在或已删除")
 
             playable_query = parse_qs(urlparse(playable_url).query)
             token = (playable_query.get("token") or [""])[0]
