@@ -2,15 +2,38 @@ import importlib
 import pkgutil
 import re
 from abc import ABC, abstractmethod
-from typing import Any
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
+from loguru import logger
 
 from ... import parsers
-from ...types import AnyParseResult, ParseError
+from ...types import (
+    AnyParseResult,
+    ContentUnavailableError,
+    ContentUnavailableFallbackError,
+    FallbackAttempt,
+    FallbackError,
+    ParseError,
+)
 from ...types.platform import Platform
 from ...utils.helpers import UA, SecretCookie, match_url
+
+T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class FallbackStage(Generic[T]):  # noqa: UP046
+    name: str
+    func: Callable[[], Awaitable[T]]
+    cookie: bool = False
+
+
+def is_content_unavailable(e: Exception) -> bool:
+    return isinstance(e, ContentUnavailableError)
 
 
 class BaseParser(ABC):
@@ -33,6 +56,7 @@ class BaseParser(ABC):
     def __init__(self, *, proxy: str | None = None, cookie: SecretCookie = SecretCookie()):
         self.proxy = proxy
         self.cookie = cookie
+        self._fallback_attempts: list[FallbackAttempt] = []
 
     def __init_subclass__(cls, /, register: bool = True, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -63,12 +87,40 @@ class BaseParser(ABC):
         :param url: 分享文案 / 分享链接
         :return: 解析结果
         """
+        self._fallback_attempts = []
         raw_url = await self.get_raw_url(url, clean_all=False)
         result = await self._do_parse(raw_url)
+        result.fallback_errors = list(self._fallback_attempts)
         result.platform = self.__platform__
         raw_url_clean = self._clean_params(raw_url, self.__after_clean_parameters__)
         result.raw_url = raw_url_clean
         return result
+
+    async def _fallback(
+        self,
+        *stages: FallbackStage[T],
+        stop: Callable[[Exception], bool] = is_content_unavailable,
+    ) -> T:
+        attempts: list[FallbackAttempt] = []
+        for stage in stages:
+            try:
+                result = await stage.func()
+            except Exception as e:
+                logger.opt(exception=e).debug(f"{self.__platform__} {stage.name} 解析失败")
+                if stop(e):
+                    raise
+                attempts.append(FallbackAttempt(stage.name, e, stage.cookie))
+            else:
+                self._fallback_attempts.extend(attempts)
+                return result
+
+        if len(attempts) == 1:
+            raise attempts[0].error
+        last_error = attempts[-1].error
+        error_type = (
+            ContentUnavailableFallbackError if isinstance(last_error, ContentUnavailableError) else FallbackError
+        )
+        raise error_type(attempts) from last_error
 
     @abstractmethod
     async def _do_parse(self, raw_url: str) -> AnyParseResult:

@@ -13,7 +13,7 @@ from markdown import markdown as md_to_html
 from slugify import slugify
 
 from ..config import GlobalConfig
-from ..errors import DeleteError, DownloadError
+from ..errors import DeleteError, DownloadError, FallbackAttempt
 from ..utils.downloader import download
 from ..utils.helpers import run_sync
 from .callback import ProgressCallback
@@ -42,6 +42,7 @@ class ParseResult(ABC):  # noqa: B024
         :param platform: 平台
         """
         self.raw_url: str = ""
+        self.fallback_errors: list[FallbackAttempt] = []
         self.title = title.strip()
         self.content = content.strip()
         self.media = media

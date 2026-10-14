@@ -1,9 +1,7 @@
-from loguru import logger
-
 from ...provider_api.kuaishou import KuaiShouAPI, KuaishouParser
 from ...types import ImageParseResult, ImageRef, ParseError, Platform, VideoParseResult, VideoRef
 from ...utils.helpers import SecretCookie
-from ..base.base import BaseParser
+from ..base.base import BaseParser, FallbackStage
 
 COOKIE = SecretCookie(
     "kpf=PC_WEB; clientid=3; did=web_bfbcdb2f5b3dc663a745deabafcf61e6; kwpsecproductname=kuaishou-"
@@ -35,18 +33,15 @@ class KuaiShouParser(BaseParser):
         ksp = await KuaishouParser.create(
             raw_url, proxy=self.proxy, cookie=self.cookie.get_value() or COOKIE.get_value()
         )
-        cover = ksp.get_cover_photo_url()
         if (
             ksp.page_type == "VIDEO" or "/short-video/" in raw_url
         ):  # 地区风控导致获取到的 page_type 可能为 ATLAS 但实际为视频
-            try:
+            async def parse_html() -> VideoParseResult:
                 content = ksp.get_title_content()
                 video = ksp.get_real_video_url()
-            except Exception as e:
-                logger.error(f"快手 HTML 解析失败, 尝试 API 解析: {e}")
-            else:
                 if not video:
                     raise ParseError("-1 快手解析失败")
+                cover = ksp.get_cover_photo_url()
 
                 return VideoParseResult(
                     title=content,
@@ -59,12 +54,9 @@ class KuaiShouParser(BaseParser):
                     ),
                 )
 
-            ks = KuaiShouAPI(self.cookie.get_value() or COOKIE.get_value(), self.proxy)
-            try:
+            async def parse_api() -> VideoParseResult:
+                ks = KuaiShouAPI(self.cookie.get_value() or COOKIE.get_value(), self.proxy)
                 result = await ks.get_video_info(raw_url)
-            except Exception as e:
-                raise ParseError(f"-2 快手解析失败: {e}") from e
-            else:
                 return VideoParseResult(
                     title=result.title,
                     video=VideoRef(
@@ -75,7 +67,13 @@ class KuaiShouParser(BaseParser):
                         width=result.width,
                     ),
                 )
+
+            return await self._fallback(
+                FallbackStage("HTML", parse_html),
+                FallbackStage("API", parse_api),
+            )
         else:
+            cover = ksp.get_cover_photo_url()
             content = ksp.get_title_content()
             img = ksp.get_image_list()
             if img:

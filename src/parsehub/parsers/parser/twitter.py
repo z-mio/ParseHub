@@ -11,7 +11,6 @@ from ...provider_api.twitter import (
 from ...types import (
     AniRef,
     AnyMediaRef,
-    ContentUnavailableError,
     ImageRef,
     MultimediaParseResult,
     ParseError,
@@ -19,7 +18,7 @@ from ...types import (
     RichTextParseResult,
     VideoRef,
 )
-from ..base.base import BaseParser
+from ..base.base import BaseParser, FallbackStage, is_content_unavailable
 
 
 class TwitterParser(BaseParser):
@@ -36,26 +35,26 @@ class TwitterParser(BaseParser):
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str) -> TwitterTweet:
-        x = Twitter(self.proxy, cookie=None)
-        try:
-            tweet = await x.fetch_tweet(url)
-        except ContentUnavailableError:
-            raise
-        except Exception as e:
-            if any(s in str(e) for s in ("error -2", "error -3")):
-                if cookie := self.cookie.get_value():
-                    x2 = Twitter(self.proxy, cookie=cookie)
-                    try:
-                        tweet = await x2.fetch_tweet(url)
-                    except ContentUnavailableError:
-                        raise
-                    except Exception as e2:
-                        raise ParseError(f"Twitter 账号无权限或已被封禁\n\n使用的 Cookie: {self.cookie}") from e2
-                else:
-                    raise ParseError(str(e)) from e
-            else:
-                raise ParseError(str(e)) from e
-        return tweet
+        stages: list[FallbackStage[TwitterTweet]] = [
+            FallbackStage("匿名", lambda: Twitter(self.proxy, cookie=None).fetch_tweet(url))
+        ]
+        if cookie := self.cookie.get_value():
+
+            async def fetch_cookie() -> TwitterTweet:
+                try:
+                    return await Twitter(self.proxy, cookie=cookie).fetch_tweet(url)
+                except Exception as e2:
+                    raise ParseError(
+                        f"Twitter 账号无权限或已被封禁: {e2}\n\n使用的 Cookie: {self.cookie}"
+                    ) from e2
+
+            stages.append(FallbackStage("cookie", fetch_cookie, cookie=True))
+
+        return await self._fallback(
+            *stages,
+            stop=lambda e: is_content_unavailable(e)
+            or not any(s in str(e) for s in ("error -2", "error -3")),
+        )
 
     @staticmethod
     async def media_parse(tweet: TwitterTweet) -> MultimediaParseResult | RichTextParseResult:
