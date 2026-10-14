@@ -410,7 +410,7 @@ class YtParser(BaseParser, register=False):
             url = dl.get("webpage_url") or url
         title = dl["title"]
         duration = dl.get("duration", 0)
-        thumbnail = dl["thumbnail"]
+        thumbnail = dl.get("thumbnail")
         description = dl["description"]
         width = dl.get("width", 0)
         height = dl.get("height", 0)
@@ -548,7 +548,7 @@ class YtVideoInfo:
 
     title: str
     description: str
-    thumbnail: str
+    thumbnail: str | None
     url: str
     info_json: dict[str, Any]
     duration: int = 0
