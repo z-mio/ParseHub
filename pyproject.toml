@@ -40,6 +40,7 @@ dependencies = [
     "gmssl>=3.2.2",
     "signerpy>=0.12.0",
     "curl-cffi>=0.13",
+    "xhshow>=0.2.0",
 ]
 
 [project.scripts]
