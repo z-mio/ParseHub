@@ -31,6 +31,8 @@ class BiliParse(BaseParser):
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
     async def _do_parse(self, raw_url: str) -> YtVideoParseResult | BiliVideoParseResult | ImageParseResult:
+        if urlparse(raw_url).path.startswith("/bangumi/"):
+            raise ParseError("暂不支持解析番剧和影视")
         if await self.is_dynamic(raw_url):
             dynamic = await self.get_dynamic_info(raw_url)
             content = self.hashtag_handler(dynamic.content or "")
