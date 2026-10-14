@@ -3,7 +3,7 @@ from typing import Union
 
 import httpx
 
-from ...provider_api.xhs import XHSAPI, XHSMedia, XHSMediaType, XHSPostType
+from ...provider_api.xhs import MOBILE_HEADERS, XHSAPI, XHSMedia, XHSMediaType, XHSPostType
 from ...types import (
     ContentUnavailableError,
     ImageParseResult,
@@ -15,7 +15,6 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ...utils.helpers import UA
 from ..base import BaseParser
 
 
@@ -24,17 +23,14 @@ class XHSParser(BaseParser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+(xiaohongshu|xhslink).(com|cn)/.+"
     __redirect_keywords__ = ["xhslink"]
-    __after_clean_parameters__ = ["xsec_token"]
+    __after_clean_parameters__ = ["xsec_token", "xsec_source"]
 
     async def get_raw_url(self, url: str, *, clean_all: bool = False, headers: dict | None = None) -> str:
-        headers = {
-            "User-Agent": UA,
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,"
-            "*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        }
-        url = await super().get_raw_url(url, clean_all=clean_all, headers=headers)
+        url = await super().get_raw_url(url, clean_all=clean_all, headers=MOBILE_HEADERS)
         if "/login" in url:
             raise ParseError("该帖子需要登录后查看")
+        elif "/404/sec" in url:
+            raise ParseError("被小红书风控拦截")
         elif "/404" in url:
             raise ContentUnavailableError("帖子不存在")
         return url

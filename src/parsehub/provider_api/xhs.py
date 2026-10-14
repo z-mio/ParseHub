@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
+import os
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -9,32 +11,72 @@ from typing import Any, cast
 
 import httpx
 from bs4 import BeautifulSoup
+from loguru import logger
+from xhshow import Xhshow
 
 from ..errors import ContentUnavailableError, ParseError
 from ..utils.helpers import UA
+
+PC_HEADERS = {
+    "User-Agent": UA,
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp"
+    ",image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+}
+# 手机 UA 配 Chrome 的 accept 会被跳到验证码页
+MOBILE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
+ACTIVATE_URI = "/api/sns/web/v1/login/activate"
 
 
 class XHSAPI:
     def __init__(self, proxy: str | None = None, cookie: dict | None = None):
         self.proxy = proxy
         self.cookie = cookie
+        self.xhshow = Xhshow()
 
-    async def __fetch_html(self, url: str) -> str:
-        async with httpx.AsyncClient(proxy=self.proxy, cookies=self.cookie, follow_redirects=True) as client:
-            result = await client.get(
-                url,
-                headers={
-                    "User-Agent": UA,
-                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp"
-                    ",image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                },
-                timeout=30,
-            )
+    async def __fetch_html(self, url: str, headers: dict[str, str], cookie: dict | None = None) -> str:
+        async with httpx.AsyncClient(proxy=self.proxy, cookies=cookie, follow_redirects=True) as client:
+            try:
+                result = await client.get(url, headers=headers, timeout=30)
+            except httpx.HTTPError as e:
+                raise ParseError(f"请求失败: {e!r}") from e
             if "/login" in str(result.url):
                 raise ParseError("该帖子需要登录后查看")
+            elif "/404/sec" in str(result.url):
+                raise ParseError("被小红书风控拦截")
             elif "/404" in str(result.url):
                 raise ContentUnavailableError("帖子不存在")
             return result.text
+
+    async def __new_session(self) -> dict[str, str]:
+        """获取游客 web_session"""
+        a1 = self.xhshow.generate_a1()
+        cookies = {"a1": a1, "webId": self.xhshow.generate_web_id(a1), "xsecappid": "xhs-pc-web"}
+        payload = {"client_public_key_base64": base64.b64encode(os.urandom(32)).decode()}
+        headers = self.xhshow.sign_headers_post(ACTIVATE_URI, cookies, payload=payload)
+        headers.update(
+            {
+                "User-Agent": UA,
+                "Content-Type": "application/json;charset=UTF-8",
+                "Origin": "https://www.xiaohongshu.com",
+                "Referer": "https://www.xiaohongshu.com/",
+            }
+        )
+        async with httpx.AsyncClient(proxy=self.proxy, cookies=cookies, timeout=30) as client:
+            try:
+                result = await client.post(
+                    f"https://edith.xiaohongshu.com{ACTIVATE_URI}",
+                    headers=headers,
+                    content=self.xhshow.build_json_body(payload),
+                )
+            except httpx.HTTPError as e:
+                raise ParseError(f"获取游客 session 失败: {e!r}") from e
+        if not (web_session := result.cookies.get("web_session")):
+            raise ParseError(f"获取游客 session 失败: {result.status_code} {result.text}")
+        return {"web_session": web_session}
 
     @staticmethod
     async def __extract_data(html: str) -> dict[str, Any]:
@@ -51,10 +93,12 @@ class XHSAPI:
         return cast(dict[str, Any], data)
 
     def __parse(self, data: dict[str, Any]) -> XHSPost:
-        if not data.get("note"):
+        if h5_data := data.get("noteData"):
+            note = (h5_data.get("data") or {}).get("noteData")
+        elif pc_data := data.get("note"):
+            note = (pc_data["noteDetailMap"].get(pc_data["firstNoteId"]) or {}).get("note")
+        else:
             raise ParseError("该帖子需要登录后查看")
-        first_note_id = data["note"]["firstNoteId"]
-        note = data["note"]["noteDetailMap"][first_note_id]["note"]
         if not note:
             raise ParseError("未获取到内容, 该帖子可能需要登录后查看")
 
@@ -86,6 +130,18 @@ class XHSAPI:
             return cast(list[dict[str, Any]], stream["h266"])
         return None
 
+    @staticmethod
+    def __image_url(image: dict[str, Any]) -> str:
+        return cast(str, image.get("urlDefault") or image["url"])
+
+    def __image_thumb_url(self, image: dict[str, Any]) -> str:
+        if url := image.get("urlPre"):
+            return cast(str, url)
+        for info in image.get("infoList") or []:
+            if info.get("imageScene") == "H5_PRV":
+                return cast(str, info["url"])
+        return self.__image_url(image)
+
     def __parse_media(self, note: dict[str, Any]) -> list[XHSMedia]:
         media_list = []
         il = note.get("imageList") or []
@@ -104,7 +160,7 @@ class XHSAPI:
                     duration=stream["duration"],
                     height=stream["height"],
                     width=stream["width"],
-                    thumb_url=il[0]["urlDefault"],
+                    thumb_url=self.__image_url(il[0]),
                 )
             )
         else:
@@ -116,7 +172,7 @@ class XHSAPI:
                     stream = selected_stream[0]
                     image = XHSMedia(
                         XHSMediaType.LIVE_PHOTO,
-                        thumb_url=self.get_raw_image_url(i["urlDefault"]),
+                        thumb_url=self.get_raw_image_url(self.__image_url(i)),
                         url=stream["masterUrl"],
                         width=i["width"],
                         height=i["height"],
@@ -124,17 +180,30 @@ class XHSAPI:
                 else:
                     image = XHSMedia(
                         XHSMediaType.IMAGE,
-                        url=self.get_raw_image_url(i["urlDefault"]),
-                        thumb_url=i["urlPre"],
+                        url=self.get_raw_image_url(self.__image_url(i)),
+                        thumb_url=self.__image_thumb_url(i),
                         width=i["width"],
                         height=i["height"],
                     )
                 media_list.append(image)
         return media_list
 
-    async def extract(self, url: str) -> XHSPost:
-        html = await self.__fetch_html(url)
+    async def __extract(self, url: str, headers: dict[str, str], cookie: dict | None = None) -> XHSPost:
+        html = await self.__fetch_html(url, headers, cookie)
         return self.__parse(await self.__extract_data(html))
+
+    async def extract(self, url: str) -> XHSPost:
+        """用户 cookie 解析 -> 游客 session 解析 -> 移动端解析"""
+        if self.cookie:
+            try:
+                return await self.__extract(url, PC_HEADERS, self.cookie)
+            except ParseError as e:
+                logger.debug(f"小红书 cookie 解析失败: {e}")
+        try:
+            return await self.__extract(url, PC_HEADERS, await self.__new_session())
+        except ParseError as e:
+            logger.debug(f"小红书游客 session 解析失败: {e}")
+        return await self.__extract(url, MOBILE_HEADERS)
 
     @staticmethod
     def get_trace_id(img_url: str) -> str:
