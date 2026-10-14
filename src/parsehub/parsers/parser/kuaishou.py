@@ -34,14 +34,14 @@ COOKIE = SecretCookie(
 class KuaiShouParser(BaseParser):
     __platform__ = Platform.KUAISHOU
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)?(www|v|live|v\.m)\.(kuaishou|chenzhongtech).com/.+"
+    __match__ = r"^(http(s)?://)?(www|v|live|v\.m|[a-z0-9]+\.m)\.(kuaishou|chenzhongtech).com/.+"
     __redirect_keywords__ = ["v.kuaishou", "/f/"]
 
     async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult:
         ksp = await KuaishouParser.create(
             raw_url, proxy=self.proxy, cookie=self.cookie.get_value() or COOKIE.get_value()
         )
-        if ksp.page_type == "UNKNOWN" and ksp.error_result == 223:
+        if ksp.page_type == "UNKNOWN" and ksp.error_result in (223, 20113):
             raise ContentUnavailableError(f"{ksp.error_result} {ksp.error_msg}")
         if (
             ksp.page_type == "VIDEO" or "/short-video/" in raw_url
