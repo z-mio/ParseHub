@@ -212,6 +212,8 @@ class KuaishouParser:
         self.page_type = "UNKNOWN"
         self.structured_data: dict = {}
         self.client: dict = {}
+        self.error_result: int | None = None
+        self.error_msg: str | None = None
 
     @classmethod
     async def create(cls, real_url, proxy: str | None = None, cookie: dict | None = None):
@@ -319,8 +321,10 @@ class KuaishouParser:
             return False
         if default_client.get("VisionVideoSetRepresentation:1"):
             return True
-        for key in default_client.keys():
-            if "visionVideoDetail" in key or "VisionVideoDetailPhoto:" in key:
+        for key, value in default_client.items():
+            if "visionVideoDetail" in key and isinstance(value, dict) and value.get("photo"):
+                return True
+            if "VisionVideoDetailPhoto:" in key:
                 return True
         return False
 
@@ -333,6 +337,10 @@ class KuaishouParser:
         page_type, structured_data = self._identify_and_parse_data()
         if page_type == "UNKNOWN" or not structured_data:
             return False
+        error_payload = self._find_nested_dict(structured_data, ("result", "error_msg"))
+        if error_payload and error_payload["result"] != 1 and error_payload["error_msg"]:
+            self.error_result = error_payload["result"]
+            self.error_msg = error_payload["error_msg"]
         if not self._is_valid_video_state(page_type, structured_data):
             logger.warning(f"Kuaishou route {candidate_url} returned incomplete video state, trying fallback")
             return False
