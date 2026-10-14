@@ -91,6 +91,8 @@ class Twitter:
         if not legacy:
             if result.get("__typename") == "TweetTombstone":
                 raise Exception("error -2: 该推文开启了限制, 匿名用户无法查看")
+            if result.get("reason") == "Suspended":
+                raise ContentUnavailableError("error -5: 这个帖子来自一个被冻结的账号")
             raise Exception(f"error -3: {result.get('reason')}")
 
         if article := result.get("article", {}):
