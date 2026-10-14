@@ -3,7 +3,7 @@ from typing import Union
 
 import httpx
 
-from ...provider_api.xhs import MOBILE_HEADERS, XHSAPI, XHSMedia, XHSMediaType, XHSPostType
+from ...provider_api.xhs import MOBILE_HEADERS, PC_HEADERS, XHSAPI, XHSMedia, XHSMediaType, XHSPost, XHSPostType
 from ...types import (
     ContentUnavailableError,
     ImageParseResult,
@@ -15,7 +15,7 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ..base import BaseParser
+from ..base.base import BaseParser, FallbackStage
 
 
 class XHSParser(BaseParser):
@@ -36,8 +36,28 @@ class XHSParser(BaseParser):
         return url
 
     async def _do_parse(self, raw_url: str) -> Union["VideoParseResult", "ImageParseResult", "MultimediaParseResult"]:
-        xhs = XHSAPI(proxy=self.proxy, cookie=self.cookie.get_value())
-        result = await xhs.extract(raw_url)
+        xhs = XHSAPI(proxy=self.proxy)
+        stages: list[FallbackStage[XHSPost]] = []
+        if cookie := self.cookie.get_value():
+
+            async def parse_cookie() -> XHSPost:
+                return await xhs.extract(raw_url, PC_HEADERS, cookie)
+
+            stages.append(FallbackStage("cookie", parse_cookie, cookie=True))
+
+        async def parse_session() -> XHSPost:
+            return await xhs.extract(raw_url, PC_HEADERS, await xhs.new_session())
+
+        async def parse_mobile() -> XHSPost:
+            return await xhs.extract(raw_url, MOBILE_HEADERS)
+
+        stages.extend(
+            [
+                FallbackStage("游客 session", parse_session),
+                FallbackStage("移动端", parse_mobile),
+            ]
+        )
+        result = await self._fallback(*stages, stop=lambda e: False)
 
         desc = self.hashtag_handler(result.desc)
         match result.type:

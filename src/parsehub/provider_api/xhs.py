@@ -11,7 +11,6 @@ from typing import Any, cast
 
 import httpx
 from bs4 import BeautifulSoup
-from loguru import logger
 from xhshow import Xhshow
 
 from ..errors import ContentUnavailableError, ParseError
@@ -32,9 +31,8 @@ ACTIVATE_URI = "/api/sns/web/v1/login/activate"
 
 
 class XHSAPI:
-    def __init__(self, proxy: str | None = None, cookie: dict | None = None):
+    def __init__(self, proxy: str | None = None):
         self.proxy = proxy
-        self.cookie = cookie
         self.xhshow = Xhshow()
 
     async def __fetch_html(self, url: str, headers: dict[str, str], cookie: dict | None = None) -> str:
@@ -51,7 +49,7 @@ class XHSAPI:
                 raise ContentUnavailableError("帖子不存在")
             return result.text
 
-    async def __new_session(self) -> dict[str, str]:
+    async def new_session(self) -> dict[str, str]:
         """获取游客 web_session"""
         a1 = self.xhshow.generate_a1()
         cookies = {"a1": a1, "webId": self.xhshow.generate_web_id(a1), "xsecappid": "xhs-pc-web"}
@@ -188,22 +186,9 @@ class XHSAPI:
                 media_list.append(image)
         return media_list
 
-    async def __extract(self, url: str, headers: dict[str, str], cookie: dict | None = None) -> XHSPost:
+    async def extract(self, url: str, headers: dict[str, str], cookie: dict | None = None) -> XHSPost:
         html = await self.__fetch_html(url, headers, cookie)
         return self.__parse(await self.__extract_data(html))
-
-    async def extract(self, url: str) -> XHSPost:
-        """用户 cookie 解析 -> 游客 session 解析 -> 移动端解析"""
-        if self.cookie:
-            try:
-                return await self.__extract(url, PC_HEADERS, self.cookie)
-            except ParseError as e:
-                logger.debug(f"小红书 cookie 解析失败: {e}")
-        try:
-            return await self.__extract(url, PC_HEADERS, await self.__new_session())
-        except ParseError as e:
-            logger.debug(f"小红书游客 session 解析失败: {e}")
-        return await self.__extract(url, MOBILE_HEADERS)
 
     @staticmethod
     def get_trace_id(img_url: str) -> str:
@@ -256,6 +241,6 @@ if __name__ == "__main__":
     async def main() -> None:
         url = ""
         xhs = XHSAPI()
-        print(await xhs.extract(url))
+        print(await xhs.extract(url, PC_HEADERS))
 
     asyncio.run(main())

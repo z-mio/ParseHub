@@ -18,7 +18,7 @@ from ...types import (
     VideoParseResult,
     VideoRef,
 )
-from ..base.base import BaseParser
+from ..base.base import BaseParser, FallbackStage
 
 
 class DouyinParser(BaseParser):
@@ -41,30 +41,22 @@ class DouyinParser(BaseParser):
         """获取并解析抖音 API 结果"""
         web_cookie = self.cookie.get_value() or {}
 
-        web_error: ParseError | None = None
-        if web_cookie:
-            try:
-                web_crawler = DouyinWebCrawler(proxy=self.proxy, cookie=web_cookie)
-                response = await web_crawler.parse(raw_url)
-                return DouyinApiResult.parse(response)
-            except ContentUnavailableError:
-                raise
-            except ParseError as e:
-                web_error = e
+        async def fetch_web() -> "DouyinApiResult":
+            web_crawler = DouyinWebCrawler(proxy=self.proxy, cookie=web_cookie)
+            response = await web_crawler.parse(raw_url)
+            return DouyinApiResult.parse(response)
 
-        try:
+        async def fetch_mobile() -> "DouyinApiResult":
             mobile_device = DouyinMobileDevice.resolve()
             app_crawler = DouyinMobileCrawler(proxy=self.proxy, device=mobile_device)
             response = await app_crawler.parse(raw_url)
             return DouyinApiResult.parse(response)
-        except ParseError as e:
-            mobile_error = e
 
-        if isinstance(mobile_error, ContentUnavailableError):
-            raise mobile_error
-        if web_error:
-            raise ParseError(f"{web_error}；移动端解析也失败: {mobile_error}") from mobile_error
-        raise mobile_error
+        stages: list[FallbackStage[DouyinApiResult]] = []
+        if web_cookie:
+            stages.append(FallbackStage("网页端", fetch_web, cookie=True))
+        stages.append(FallbackStage("移动端", fetch_mobile))
+        return await self._fallback(*stages)
 
     @staticmethod
     def _build_video_result(result: "DouyinApiResult") -> VideoParseResult:

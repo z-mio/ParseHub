@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlparse
 
-from loguru import logger
-
 from ...provider_api.bilibili import BiliAPI, BiliDynamic
 from ...types import (
     ContentUnavailableError,
@@ -21,7 +19,7 @@ from ...types import (
     VideoRef,
 )
 from ...utils.helpers import UA
-from ..base.base import BaseParser
+from ..base.base import BaseParser, FallbackStage
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
@@ -49,14 +47,11 @@ class BiliParse(BaseParser):
                 photo=photos,
             )
         else:
-            try:
-                return await self.bili_api_parse(raw_url)
-            except Exception as e:
-                logger.opt(exception=e).warning("Bilibili API 解析失败, 尝试 yt-dlp 解析")
-                try:
-                    return await self.ytp_parse(raw_url)
-                except Exception as e:
-                    raise ParseError("Bilibili 解析失败") from e
+            return await self._fallback(
+                FallbackStage("API", lambda: self.bili_api_parse(raw_url)),
+                FallbackStage("yt-dlp", lambda: self.ytp_parse(raw_url)),
+                stop=lambda e: False,
+            )
 
     @staticmethod
     def _is_bvid(url: str) -> bool:

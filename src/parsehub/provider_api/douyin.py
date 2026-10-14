@@ -10,6 +10,7 @@ import random
 import re
 import time
 import uuid
+from collections import Counter
 from dataclasses import dataclass
 from random import choice, randint
 from typing import Any, ClassVar, cast
@@ -1156,7 +1157,7 @@ class DouyinMobileCrawler:
         return self.device
 
     async def fetch_one_video(self, aweme_id: str) -> dict:
-        last_error = "unknown"
+        errors: Counter[str] = Counter()
         async with httpx.AsyncClient(proxy=self.proxy, timeout=20, follow_redirects=True) as client:
             for _ in range(8):
                 await self._select_device(client)
@@ -1171,10 +1172,10 @@ class DouyinMobileCrawler:
                             response = await client.get(url, headers=headers)
                             content = response.content
                         except Exception as e:
-                            last_error = str(e)
+                            errors[str(e)] += 1
                             continue
                         if not content:
-                            last_error = f"{host} returned empty body"
+                            errors[f"{host} returned empty body"] += 1
                             if not self._fixed_device:
                                 if self.device is not None:
                                     self.__class__._evict_device(self.device)
@@ -1184,18 +1185,19 @@ class DouyinMobileCrawler:
                         try:
                             payload = response.json()
                         except Exception:
-                            last_error = f"{host} returned non-json body"
+                            errors[f"{host} returned non-json body"] += 1
                             continue
                         if payload.get("aweme_detail"):
                             await self._attach_story_default_play(payload["aweme_detail"])
                             return cast(dict[str, Any], payload)
                         if payload.get("filter_detail"):
                             return cast(dict[str, Any], payload)
-                        last_error = f"{host} missing aweme_detail: {payload.get('status_msg') or payload}"
+                        errors[f"{host} missing aweme_detail: {payload.get('status_msg') or payload}"] += 1
                     if replace_device:
                         break
                 await asyncio.sleep(0.15)
-        raise ParseError(f"获取抖音作品失败: {last_error}")
+        error_summary = "; ".join(f"{msg}×{count}" for msg, count in errors.most_common()) or "unknown"
+        raise ParseError(f"获取抖音作品失败: {error_summary}")
 
     async def parse(self, raw_url: str) -> dict:
         aweme_id = await self.get_aweme_id(raw_url)

@@ -1,4 +1,11 @@
-from ..errors import ContentUnavailableError, DownloadError, ParseError
+from ..errors import (
+    ContentUnavailableError,
+    ContentUnavailableFallbackError,
+    DownloadError,
+    FallbackAttempt,
+    FallbackError,
+    ParseError,
+)
 from .callback import ProgressCallback, ProgressUnit
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, MediaFile, VideoFile
 from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, MediaRef, VideoRef
@@ -18,6 +25,9 @@ __all__ = [
     "DownloadError",
     "ParseError",
     "ContentUnavailableError",
+    "FallbackAttempt",
+    "FallbackError",
+    "ContentUnavailableFallbackError",
     "MediaRef",
     "AniRef",
     "VideoRef",

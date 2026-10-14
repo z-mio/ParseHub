@@ -2,6 +2,10 @@ from pathlib import Path
 
 from loguru import logger
 
+from .errors import ContentUnavailableError as ContentUnavailableError
+from .errors import ContentUnavailableFallbackError as ContentUnavailableFallbackError
+from .errors import FallbackAttempt as FallbackAttempt
+from .errors import FallbackError as FallbackError
 from .errors import ParseError, UnknownPlatform
 from .parsers.base import BaseParser
 from .types import Platform
@@ -182,7 +186,7 @@ class ParseHub:
         except ParseError:
             raise
         except Exception as e:
-            raise ParseError from e
+            raise ParseError(str(e)) from e
 
     def _select_parser(self, url: str) -> type[BaseParser] | None:
         """选择解析器
