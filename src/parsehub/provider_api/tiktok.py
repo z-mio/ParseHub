@@ -1,27 +1,22 @@
 import asyncio
+import base64
+import hashlib
 import html
 import json
 import re
 from typing import Any, NamedTuple, cast
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlparse
 
 import httpx
 
 from ..utils.helpers import UA
 
-TIKTOK_APP_FEED = "https://api22-normal-c-alisg.tiktokv.com/aweme/v1/feed/"
+TIKTOK_ITEM_PAGE = "https://www.tiktok.com/@_/video/{aweme_id}"
 
-FACEBOOK_EXTERNAL_HIT_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
 UNIVERSAL_DATA_RE = re.compile(
     r'<script[^>]+id=["\']__UNIVERSAL_DATA_FOR_REHYDRATION__["\'][^>]*>(?P<json>.*?)</script>',
     re.DOTALL,
 )
-
-TIKTOK_HEADERS = {
-    "User-Agent": UA,
-    "Referer": "https://www.tiktok.com/",
-    "x-ladon": "Hello From Evil0ctal!",
-}
 
 TIKTOK_WEB_HEADERS = {
     "User-Agent": UA,
@@ -48,7 +43,7 @@ class TikTokWebCrawler:
         max_retries: int = 3,
         timeout: int = 15,
     ):
-        self.headers = dict(TIKTOK_HEADERS)
+        self.headers = dict(TIKTOK_WEB_HEADERS)
         if user_agent:
             self.headers["User-Agent"] = user_agent
         self.cookies = httpx.Cookies()
@@ -58,30 +53,16 @@ class TikTokWebCrawler:
         self.max_retries = max_retries
         self.timeout = timeout
 
-    async def parse(self, url: str) -> dict:
-        item_ref = None
-        primary_error: Exception | None = None
+    async def parse(self, url: str) -> dict[str, Any]:
+        resolved_url = await self.resolve_url(url)
+        item_ref = self.extract_item_ref_from_url(resolved_url)
+        if not item_ref:
+            raise ValueError(f"无法从链接中提取作品 ID: {resolved_url}")
+        return await self.fetch_item(item_ref.aweme_id)
 
-        try:
-            resolved_url = await self.resolve_url(url)
-            item_ref = self.extract_item_ref_from_url(resolved_url)
-            if not item_ref:
-                raise ValueError(f"无法从链接中提取作品 ID: {resolved_url}")
-            return await self.fetch_one_video(item_ref.aweme_id)
-        except Exception as exc:
-            primary_error = exc
-
-        if item_ref and item_ref.media_type == "photo":
-            raise RuntimeError(f"获取 TikTok 图文作品失败: {primary_error}") from primary_error
-
-        try:
-            return await self.fetch_video_from_web(url, expected_aweme_id=item_ref.aweme_id if item_ref else None)
-        except Exception as web_error:
-            raise RuntimeError(f"获取 TikTok 作品失败: feed={primary_error}; web={web_error}") from web_error
-
-    def _client(self, *, headers: dict[str, str] | None = None) -> httpx.AsyncClient:
+    def _client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(
-            headers=headers or self.headers,
+            headers=self.headers,
             timeout=self.timeout,
             follow_redirects=True,
             proxy=self.proxy,
@@ -120,85 +101,24 @@ class TikTokWebCrawler:
             raise ValueError("TikTok 页面不可用，可能是地区、代理或链接问题")
         return resolved
 
-    async def resolve_web_url(self, url_or_text: str) -> str:
-        url = self.extract_url(url_or_text)
-        if self.extract_item_ref_from_url(url):
-            return url
-
-        headers = dict(TIKTOK_WEB_HEADERS)
-        headers["User-Agent"] = FACEBOOK_EXTERNAL_HIT_UA
-        async with self._client(headers=headers) as client:
-            response = await client.head(url)
-            if response.status_code >= 400:
-                response = await client.get(url)
-            response.raise_for_status()
-            return str(response.url)
-
-    async def fetch_one_video(self, aweme_id: str) -> dict[str, Any]:
-        params = {
-            "iid": 7318518857994389254,
-            "device_id": 7318517321748022790,
-            "channel": "googleplay",
-            "app_name": "musical_ly",
-            "version_code": "300904",
-            "device_platform": "android",
-            "device_type": "SM-ASUS_Z01QD",
-            "os_version": "9",
-            "aweme_id": aweme_id,
-        }
-        endpoint = f"{TIKTOK_APP_FEED}?{urlencode(params)}"
-        last_error: Exception | None = None
-
-        for attempt in range(self.max_retries):
-            try:
-                async with self._client() as client:
-                    response = await client.get(endpoint)
-                    response.raise_for_status()
-                    payload = response.json()
-
-                aweme_list = payload.get("aweme_list") or []
-                for item in aweme_list:
-                    if str(item.get("aweme_id")) == str(aweme_id):
-                        return cast(dict[str, Any], item)
-
-                if aweme_list:
-                    first_id = aweme_list[0].get("aweme_id")
-                    raise RuntimeError(f"返回作品 ID 不匹配: expected={aweme_id}, got={first_id}")
-
-                status_msg = payload.get("status_msg") or payload.get("statusMessage") or payload
-                raise RuntimeError(f"接口未返回 aweme_list: {status_msg}")
-            except Exception as exc:
-                last_error = exc
-                if attempt + 1 < self.max_retries:
-                    await asyncio.sleep(1)
-
-        raise RuntimeError(f"获取 TikTok 作品失败: {last_error}")
-
-    async def fetch_video_from_web(self, url_or_text: str, expected_aweme_id: str | None = None) -> dict[str, Any]:
-        url = await self.resolve_web_url(url_or_text)
-        item_ref = self.extract_item_ref_from_url(url)
-        if not item_ref:
-            raise ValueError(f"无法从链接中提取作品 ID: {url}")
-        if item_ref.media_type == "photo":
-            raise ValueError("TikTok 图文作品不支持 Web hydration fallback")
-
-        webpage = await self.download_webpage(url)
+    async def fetch_item(self, aweme_id: str) -> dict[str, Any]:
+        # 图文也要请求 /video/ 页面, /photo/ 页面里没有 webapp.video-detail
+        webpage = await self.download_webpage(TIKTOK_ITEM_PAGE.format(aweme_id=aweme_id))
         universal_data = self._search_universal_data(webpage)
         if not universal_data:
             raise RuntimeError("无法从页面提取 __UNIVERSAL_DATA_FOR_REHYDRATION__")
 
         item = self._extract_web_item(universal_data)
         item_id = str(item.get("aweme_id") or item.get("id") or "")
-        expected_id = str(expected_aweme_id or item_ref.aweme_id)
-        if item_id and item_id != expected_id:
-            raise RuntimeError(f"返回作品 ID 不匹配: expected={expected_id}, got={item_id}")
+        if item_id and item_id != aweme_id:
+            raise RuntimeError(f"返回作品 ID 不匹配: expected={aweme_id}, got={item_id}")
         if item_id and not item.get("aweme_id"):
             item["aweme_id"] = item_id
         return item
 
     async def download_webpage(self, url: str) -> str:
-        async with self._client(headers=TIKTOK_WEB_HEADERS) as client:
-            last_webpage = ""
+        async with self._client() as client:
+            webpage = ""
             for attempt in range(self.max_retries):
                 response = await client.get(url)
                 if urlparse(str(response.url)).path == "/login":
@@ -207,10 +127,51 @@ class TikTokWebCrawler:
                 webpage = response.text
                 if self._search_universal_data(webpage):
                     return webpage
-                last_webpage = webpage
+                if self._solve_challenge(client, webpage):
+                    continue
                 if attempt + 1 < self.max_retries:
                     await asyncio.sleep(1)
-            return last_webpage
+            return webpage
+
+    @staticmethod
+    def _html_class(webpage: str, element_id: str) -> str | None:
+        match = re.search(rf'<[^>]+\bid="{element_id}"[^>]*>', webpage)
+        if not match:
+            return None
+        class_match = re.search(r'\bclass="([^"]*)"', match.group(0))
+        return class_match.group(1) if class_match else None
+
+    @classmethod
+    def _solve_challenge(cls, client: httpx.AsyncClient, webpage: str) -> bool:
+        """解 WAF 的 sha256 计算挑战并写入 cookie, 做法同 yt-dlp"""
+        encoded = cls._html_class(webpage, "cs")
+        cookie_name = cls._html_class(webpage, "wci")
+        if not encoded or not cookie_name:
+            return False
+        try:
+            challenge = json.loads(base64.b64decode(f"{encoded}==="))
+            expected_digest = base64.b64decode(challenge["v"]["c"])
+            base_hash = hashlib.sha256(base64.b64decode(challenge["v"]["a"]))
+        except (ValueError, KeyError, TypeError):
+            return False
+
+        for i in range(1_000_001):
+            number = str(i).encode()
+            test_hash = base_hash.copy()
+            test_hash.update(number)
+            if test_hash.digest() == expected_digest:
+                challenge["d"] = base64.b64encode(number).decode()
+                break
+        else:
+            return False
+
+        cookie_value = base64.b64encode(json.dumps(challenge, separators=(",", ":")).encode()).decode()
+        client.cookies.set(cookie_name, cookie_value, domain=".tiktok.com")
+        rci_name = cls._html_class(webpage, "rci")
+        rci_value = cls._html_class(webpage, "rs")
+        if rci_name and rci_value:
+            client.cookies.set(rci_name, rci_value, domain=".tiktok.com")
+        return True
 
     @staticmethod
     def _search_universal_data(webpage: str) -> dict[str, Any]:
@@ -224,7 +185,7 @@ class TikTokWebCrawler:
             data = json.loads(raw)
         except json.JSONDecodeError:
             return {}
-        return data.get("__DEFAULT_SCOPE__") or {}
+        return cast(dict[str, Any], data.get("__DEFAULT_SCOPE__") or {})
 
     @staticmethod
     def _extract_web_item(universal_data: dict[str, Any]) -> dict[str, Any]:
@@ -236,7 +197,7 @@ class TikTokWebCrawler:
             status = 0
         item = ((detail.get("itemInfo") or {}).get("itemStruct")) or {}
         if item:
-            return item
+            return cast(dict[str, Any], item)
         if status in (10216, 10222):
             raise RuntimeError("这个 TikTok 内容需要登录或无权访问")
         if status == 10204:

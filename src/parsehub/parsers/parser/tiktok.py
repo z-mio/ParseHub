@@ -235,8 +235,8 @@ class TikTokApiResult:
                 image_list.append(
                     ImageRef(
                         url=url,
-                        height=as_int(display_image.get("height") or display_image.get("Height")),
-                        width=as_int(display_image.get("width") or display_image.get("Width")),
+                        height=as_int(display_image.get("height") or image.get("imageHeight")),
+                        width=as_int(display_image.get("width") or image.get("imageWidth")),
                     )
                 )
 
