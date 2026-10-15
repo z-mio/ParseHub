@@ -143,7 +143,7 @@ class XiaoHeiHeAPI:
             "owner_only": "1",
             **sig_params,
         }
-        cookies = {"x_xhh_tokenid": await SecuritySm.get_d_id()}
+        cookies = {"x_xhh_tokenid": await SecuritySm.get_d_id(self.proxy)}
         async with httpx.AsyncClient(proxy=self.proxy) as cli:
             result = await cli.get(self.api_url + "/bbs/app/link/tree", params=params, cookies=cookies)
             result.raise_for_status()
@@ -515,7 +515,7 @@ class SecuritySm:
         return v + smsk_web + "0"
 
     @classmethod
-    async def get_d_id(cls):
+    async def get_d_id(cls, proxy: str | None = None):
         uid = str(uuid.uuid4()).encode("utf-8")
         priId = hashlib.md5(uid).hexdigest()[0:16]
         encrypted_uid = cls.PK.encrypt(uid, padding.PKCS1v15())
@@ -542,7 +542,7 @@ class SecuritySm:
         des_target["tn"] = hashlib.md5(cls.get_tn(des_target).encode()).hexdigest()
 
         des_result = cls._AES(cls.GZIP(cls._DES(des_target)), priId.encode("utf-8"))
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxy=proxy) as client:
             response = await client.post(
                 cls.DEVICES_INFO_URL,
                 json={
