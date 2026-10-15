@@ -42,7 +42,13 @@ class SecretCookie:
     def __str__(self) -> str:
         if self._cookie is None:
             return ""
-        return "; ".join([f"{k}={v}" for k, v in self._cookie.items()])
+        return "; ".join([f"{k}={self._mask(v.get_secret_value())}" for k, v in self._cookie.items()])
+
+    @staticmethod
+    def _mask(value: str) -> str:
+        """保留前后各最多 4 位, 且总共不超过一半"""
+        keep = min(4, len(value) // 4)
+        return f"{value[:keep]}***{value[-keep:]}" if keep else "***"
 
     def get_value(self) -> dict[str, str] | None:
         if self._cookie is None:
