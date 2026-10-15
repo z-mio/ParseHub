@@ -23,6 +23,11 @@ from cryptography.hazmat.primitives.ciphers.modes import CBC, ECB
 from markdownify import MarkdownConverter
 
 
+def original_image_url(url: str) -> str:
+    path = url.split("?", 1)[0]
+    return re.sub(r"/thumb\.(\w+)$", r".\1", path)
+
+
 class XiaoHeiHePostType(Enum):
     VIDEO = "video"
     IMAGE = "image"  # 图文, 单张或多张图片 + 文案
@@ -40,6 +45,7 @@ class XiaoHeiHeMedia:
     type: XiaoHeiHeMediaType
     url: str
     thumb_url: str | None = None
+    ext: str | None = None
     height: int | None = None
     width: int | None = None
 
@@ -89,11 +95,14 @@ class XiaoHeiHeAPI:
             for image in text_list[1:]:
                 if image["type"] == "img":
                     media_type = XiaoHeiHeMediaType.GIF if ".gif" in image["url"] else XiaoHeiHeMediaType.IMAGE
+                    url = original_image_url(image["url"])
+                    ext_match = re.search(r"\.([^./]+)$", url)
                     images.append(
                         XiaoHeiHeMedia(
                             type=media_type,
-                            url=image["url"],
+                            url=url,
                             thumb_url=image["url"],
+                            ext=ext_match.group(1) if ext_match else None,
                             height=int(float(image.get("height", 0))),
                             width=int(float(image.get("width", 0))),
                         )
@@ -355,6 +364,8 @@ class XHHConverter(MarkdownConverter):
     def convert_img(self, el, _, parent_tags):
         alt = el.attrs.get("alt", None) or ""
         src = el.attrs.get("data-original", None) or ""
+        if src:
+            src = original_image_url(src)
         title = el.attrs.get("title", None) or ""
         title_part = ' "{}"'.format(title.replace('"', r"\"")) if title else ""
         options = cast(dict[str, Any], getattr(self, "options"))  # noqa: B009
