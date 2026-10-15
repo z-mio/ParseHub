@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ..errors import ContentUnavailableError
 from ..utils.helpers import UA
 
 TIKTOK_ITEM_PAGE = "https://www.tiktok.com/@_/video/{aweme_id}"
@@ -200,7 +201,7 @@ class TikTokWebCrawler:
             return cast(dict[str, Any], item)
         if status in (10216, 10222):
             raise RuntimeError("这个 TikTok 内容需要登录或无权访问")
-        if status == 10204:
-            raise RuntimeError("当前 IP 被 TikTok 阻止访问这个内容")
         status_msg = detail.get("statusMsg") or detail.get("statusMessage") or status
+        if status == 10204:
+            raise ContentUnavailableError(f"TikTok 作品不存在或不可见: {status_msg}")
         raise RuntimeError(f"页面中没有作品详情，status={status_msg}")
