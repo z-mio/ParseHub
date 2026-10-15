@@ -44,9 +44,7 @@ class TwitterParser(BaseParser):
                 try:
                     return await Twitter(self.proxy, cookie=cookie).fetch_tweet(url)
                 except Exception as e2:
-                    raise ParseError(
-                        f"Twitter 账号无权限或已被封禁: {e2}\n\n使用的 Cookie: {self.cookie}"
-                    ) from e2
+                    raise ParseError(f"{e2}\n\n使用的 Cookie: {self.cookie}") from e2
 
             stages.append(FallbackStage("cookie", fetch_cookie, cookie=True))
 
