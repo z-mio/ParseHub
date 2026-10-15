@@ -8,9 +8,15 @@ from typing import Any, cast
 
 import httpx
 
+from ..types import ContentUnavailableError
+
 
 class InstagramAPIError(RuntimeError):
     """Instagram 接口请求或响应解析失败。"""
+
+
+class InstagramRestrictedError(InstagramAPIError):
+    """内容受限, 需要登录 Cookie。"""
 
 
 class InstagramMediaType(StrEnum):
@@ -129,6 +135,8 @@ class InstagramPost:
 class InstagramAPI:
     GRAPHQL_URL = "https://www.instagram.com/graphql/query"
     INSTAGRAM_URL = "https://www.instagram.com/"
+    RULING_URL = "https://www.instagram.com/api/v1/web/get_ruling_for_content/"
+    APP_ID = "936619743392459"
     SHORTCODE_DOC_ID = "27128499623469141"
 
     DEFAULT_COOKIES = {
@@ -179,10 +187,54 @@ class InstagramAPI:
             },
         )
 
+        if payload.get("data") is None and payload.get("errors"):
+            await self._check_ruling(shortcode)
+
         media = self._extract_shortcode_media(payload)
         if media is None:
-            raise InstagramAPIError("Fetching Post metadata failed.")
+            raise InstagramRestrictedError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频")
         return media
+
+    async def _check_ruling(self, shortcode: str) -> None:
+        """查询内容裁决接口, 在 GraphQL 报错时解释原因。失败时静默返回。"""
+        try:
+            async with self._new_client() as client:
+                try:
+                    await self._ensure_csrf_token(client)
+                except InstagramAPIError:
+                    return
+                response = await client.get(
+                    self.RULING_URL,
+                    params={
+                        "content_type": "MEDIA",
+                        "target_id": str(self.shortcode_to_media_id(shortcode)),
+                    },
+                    headers={
+                        "X-IG-App-ID": self.APP_ID,
+                        "Accept-Language": "zh-CN,zh;q=0.9",
+                    },
+                )
+            body = response.json()
+        except (httpx.HTTPError, ValueError):
+            return
+        if not isinstance(body, dict):
+            return
+
+        if body.get("message") == "Media cannot be found":
+            raise ContentUnavailableError("帖子不存在或已被删除")
+        if title := body.get("title"):
+            description = body.get("description")
+            raise InstagramRestrictedError(f"{title}: {description}" if description else title)
+
+    @staticmethod
+    def shortcode_to_media_id(shortcode: str) -> int:
+        if len(shortcode) > 28:
+            shortcode = shortcode[:-28]
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        media_id = 0
+        for char in shortcode:
+            media_id = media_id * 64 + alphabet.index(char)
+        return media_id
 
     async def _post_graphql(self, *, doc_id: str, variables: dict[str, Any]) -> dict[str, Any]:
         async with self._new_client() as client:
@@ -376,5 +428,6 @@ __all__ = [
     "InstagramAPIError",
     "InstagramMediaType",
     "InstagramPost",
+    "InstagramRestrictedError",
     "InstagramSidecarNode",
 ]

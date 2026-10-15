@@ -1,9 +1,24 @@
 import re
 
-from ...provider_api.instagram import InstagramAPI, InstagramAPIError, InstagramMediaType, InstagramPost
-from ...types import ImageParseResult, ImageRef, MultimediaParseResult, ParseError, Platform, VideoParseResult, VideoRef
+from ...provider_api.instagram import (
+    InstagramAPI,
+    InstagramAPIError,
+    InstagramMediaType,
+    InstagramPost,
+    InstagramRestrictedError,
+)
+from ...types import (
+    ContentUnavailableError,
+    ImageParseResult,
+    ImageRef,
+    MultimediaParseResult,
+    ParseError,
+    Platform,
+    VideoParseResult,
+    VideoRef,
+)
 from ...utils.helpers import SecretCookie
-from ..base.base import BaseParser
+from ..base.base import BaseParser, FallbackStage
 
 
 class InstagramParser(BaseParser):
@@ -17,7 +32,7 @@ class InstagramParser(BaseParser):
         if not shortcode:
             raise ValueError("Instagram帖子链接无效")
 
-        post = await self._parse(raw_url, shortcode)
+        post = await self._parse(shortcode)
 
         width, height = post.width, post.height
 
@@ -49,25 +64,32 @@ class InstagramParser(BaseParser):
             case _:
                 raise ParseError("不支持的类型")
 
-    async def _parse(self, url: str, shortcode: str, cookie: SecretCookie | None = None) -> InstagramPost:
+    async def _parse(self, shortcode: str) -> InstagramPost:
+        stages: list[FallbackStage[InstagramPost]] = [FallbackStage("匿名", lambda: self._fetch(shortcode))]
+        if self.cookie.get_value():
+            stages.append(
+                FallbackStage("cookie", lambda: self._fetch(shortcode, self.cookie), cookie=True)
+            )
+        return await self._fallback(
+            *stages, stop=lambda e: not isinstance(e.__cause__, InstagramRestrictedError)
+        )
+
+    async def _fetch(self, shortcode: str, cookie: SecretCookie | None = None) -> InstagramPost:
+        api = InstagramAPI(proxy=self.proxy, cookie=cookie.get_value() if cookie else None, timeout=30)
         try:
-            api = InstagramAPI(proxy=self.proxy, cookie=cookie.get_value() if cookie else None, timeout=30)
             return await api.get_post(shortcode)
-        except InstagramAPIError as e:
-            match str(e):
-                case "Fetching Post metadata failed.":
-                    if self.cookie and cookie is None:
-                        return await self._parse(url, shortcode, self.cookie)
-                    else:
-                        raise ParseError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频") from e
-                case _:
-                    raise ParseError(f"无法获取帖子内容: {e}") from e
+        except ContentUnavailableError:
+            raise
         except Exception as e:
-            if cookie:
-                text = f"Instagram 账号可能已被封禁\n\n使用的Cookie: {cookie}"
-            else:
+            if isinstance(e, InstagramRestrictedError):
                 text = str(e)
-            raise ParseError(f"无法获取帖子内容(可能为私人内容): {text}") from e
+            elif isinstance(e, InstagramAPIError):
+                text = f"无法获取帖子内容: {e}"
+            else:
+                text = f"无法获取帖子内容(可能为私人内容): {e}"
+            if cookie:
+                text += f"\n\n使用的 Cookie: {cookie}"
+            raise ParseError(text) from e
 
     @staticmethod
     def get_short_code(url: str) -> str | None:
