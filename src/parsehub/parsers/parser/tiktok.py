@@ -70,6 +70,7 @@ class TikTokVideoParseResult(VideoParseResult):
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         headers = {
             "Referer": "https://www.tiktok.com/",
@@ -82,6 +83,7 @@ class TikTokVideoParseResult(VideoParseResult):
             proxy=proxy,
             headers=headers,
             connections=connections,
+            concurrency=concurrency,
         )
 
 

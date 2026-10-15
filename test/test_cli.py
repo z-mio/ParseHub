@@ -62,6 +62,7 @@ class FakeParseHub:
         parse_cookie=None,
         save_metadata=False,
         connections=4,
+        concurrency=4,
     ):
         self.download_calls.append(
             {
@@ -75,6 +76,7 @@ class FakeParseHub:
                 "parse_cookie": parse_cookie,
                 "save_metadata": save_metadata,
                 "connections": connections,
+                "concurrency": concurrency,
             }
         )
         if callback:

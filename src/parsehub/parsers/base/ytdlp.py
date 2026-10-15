@@ -477,6 +477,7 @@ class YtVideoParseResult(VideoParseResult):
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         if callback_kwargs is None:
             callback_kwargs = {}

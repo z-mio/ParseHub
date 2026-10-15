@@ -88,6 +88,7 @@ class DouyinParseResult(ParseResult):
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         headers = {
             "Referer": "https://www.douyin.com/",
@@ -100,6 +101,7 @@ class DouyinParseResult(ParseResult):
             proxy=proxy,
             headers=headers,
             connections=connections,
+            concurrency=concurrency,
         )
 
 
