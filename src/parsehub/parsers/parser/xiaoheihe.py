@@ -54,7 +54,23 @@ class XiaoHeiHeParser(BaseParser):
         images: list[ImageRef | AniRef] = []
         for media in xhh.media or []:
             if media.type == XiaoHeiHeMediaType.IMAGE:
-                images.append(ImageRef(url=media.url, width=media.width or 0, height=media.height or 0))
+                images.append(
+                    ImageRef(
+                        url=media.url,
+                        thumb_url=media.thumb_url,
+                        ext=media.ext or "jpg",
+                        width=media.width or 0,
+                        height=media.height or 0,
+                    )
+                )
             else:
-                images.append(AniRef(url=media.url, width=media.width or 0, height=media.height or 0))
+                images.append(
+                    AniRef(
+                        url=media.url,
+                        thumb_url=media.thumb_url,
+                        ext=media.ext or "gif",
+                        width=media.width or 0,
+                        height=media.height or 0,
+                    )
+                )
         return images
