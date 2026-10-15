@@ -70,6 +70,7 @@ class CoolapkParseResult(ParseResult):
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         headers = {
             "Accept": (
@@ -85,6 +86,7 @@ class CoolapkParseResult(ParseResult):
             proxy=proxy,
             headers=headers,
             connections=connections,
+            concurrency=concurrency,
         )
 
 

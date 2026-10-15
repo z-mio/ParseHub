@@ -78,6 +78,7 @@ class DoubanParseResult(ParseResult):
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         headers = {"User-Agent": UA, "Referer": IMAGE_REFERER}
         return await super()._do_download(
@@ -88,6 +89,7 @@ class DoubanParseResult(ParseResult):
             proxy=proxy,
             headers=headers,
             connections=connections,
+            concurrency=concurrency,
         )
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import shutil
 import time
@@ -89,6 +90,7 @@ class ParseResult(ABC):  # noqa: B024
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         """
         执行下载
@@ -99,48 +101,34 @@ class ParseResult(ABC):  # noqa: B024
         :param proxy: 代理
         :param headers: 请求头
         :param connections: 多线程下载连接数, 默认为 4
+        :param concurrency: 多文件并发下载数, 默认为 4
         :return: DownloadResult
         """
         if self.media is None:
             return DownloadResult(output_dir=output_dir, media=[])
         media_list = list(self.media) if isinstance(self.media, Sequence) else [self.media]
         is_single = not isinstance(self.media, Sequence)
+        concurrency = max(1, concurrency)
 
-        result_list: list[AnyMediaFile] = []
-
-        for i, media in enumerate(media_list):
-            dl_progress = None
-            dl_progress_args = ()
-            dl_progress_kwargs: dict = {}
-            if callback and is_single:
-
-                async def _byte_callback(current: int, total: int, *args: Any, **kwargs: Any) -> None:
-                    await callback(current, total, "bytes", *args, **kwargs)
-
-                dl_progress = _byte_callback
-                dl_progress_args = callback_args
-                dl_progress_kwargs = callback_kwargs or {}
-
-            index = i + 1
-
+        async def _download_media(
+            media: AnyMediaRef,
+            stem: str,
+            progress: ProgressCallback | None = None,
+            progress_args: tuple = (),
+            progress_kwargs: dict | None = None,
+        ) -> AnyMediaFile:
             try:
-                save_path = (
-                    output_dir.joinpath(f"{self.name}.{media.ext}")
-                    if is_single
-                    else output_dir.joinpath(f"{index:03d}_{self.name}.{media.ext}")
-                )
                 f = await download(
                     media.url,
-                    save_path,
+                    output_dir.joinpath(f"{stem}.{media.ext}"),
                     headers=headers,
                     proxy=proxy,
-                    progress=dl_progress,
-                    progress_args=dl_progress_args,
-                    progress_kwargs=dl_progress_kwargs,
+                    progress=progress,
+                    progress_args=progress_args,
+                    progress_kwargs=progress_kwargs,
                     connections=connections,
                 )
             except Exception as e:
-                shutil.rmtree(output_dir, ignore_errors=True)
                 raise DownloadError(f"下载失败: {e}") from e
 
             mf: AnyMediaFile
@@ -155,36 +143,74 @@ class ParseResult(ABC):  # noqa: B024
                     mf = LivePhotoFile(path=f, width=media.width, height=media.height, duration=media.duration)
                     if media.video_url:
                         try:
-                            save_path = (
-                                output_dir.joinpath(f"{self.name}_video.{media.video_ext}")
-                                if is_single
-                                else output_dir.joinpath(f"{index:03d}_{self.name}_video.{media.video_ext}")
-                            )
                             vf = await download(
                                 media.video_url,
-                                save_path,
+                                output_dir.joinpath(f"{stem}_video.{media.video_ext}"),
                                 headers=headers,
                                 proxy=proxy,
                                 connections=connections,
                             )
                         except Exception as e:
-                            shutil.rmtree(output_dir, ignore_errors=True)
                             raise DownloadError(f"LivePhoto 视频下载失败: {e}") from e
                         else:
                             mf.video_path = vf
 
-            result_list.append(mf)
+            return mf
 
-            if callback and not is_single:
-                await callback(
-                    len(result_list),
-                    len(media_list),
-                    "count",
-                    *callback_args,
+        if is_single:
+            media = media_list[0]
+            dl_progress = None
+            dl_progress_args = ()
+            dl_progress_kwargs: dict = {}
+            if callback:
+
+                async def _byte_callback(current: int, total: int, *args: Any, **kwargs: Any) -> None:
+                    await callback(current, total, "bytes", *args, **kwargs)
+
+                dl_progress = _byte_callback
+                dl_progress_args = callback_args
+                dl_progress_kwargs = callback_kwargs or {}
+
+            try:
+                mf = await _download_media(
+                    media,
+                    self.name,
+                    progress=dl_progress,
+                    progress_args=dl_progress_args,
+                    progress_kwargs=dl_progress_kwargs,
                 )
+            except DownloadError:
+                shutil.rmtree(output_dir, ignore_errors=True)
+                raise
+            return DownloadResult(mf, output_dir)
 
-        result_media = result_list[0] if is_single else result_list
-        return DownloadResult(result_media, output_dir)
+        n = len(media_list)
+        results: list[AnyMediaFile | None] = [None] * n
+        semaphore = asyncio.Semaphore(concurrency)
+        completed = 0
+
+        async def _download_one(i: int, media: AnyMediaRef) -> AnyMediaFile:
+            nonlocal completed
+            async with semaphore:
+                mf = await _download_media(media, f"{i + 1:03d}_{self.name}")
+                results[i] = mf
+                completed += 1
+                if callback:
+                    await callback(completed, n, "count", *callback_args)
+                return mf
+
+        tasks = [asyncio.create_task(_download_one(i, media)) for i, media in enumerate(media_list)]
+        try:
+            await asyncio.gather(*tasks)
+        except BaseException:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            shutil.rmtree(output_dir, ignore_errors=True)
+            raise
+
+        result_list = [media for media in results if media is not None]
+        return DownloadResult(result_list, output_dir)
 
     async def download(
         self,
@@ -196,6 +222,7 @@ class ParseResult(ABC):  # noqa: B024
         proxy: str | None = None,
         save_metadata: bool = False,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
@@ -205,6 +232,7 @@ class ParseResult(ABC):  # noqa: B024
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :param connections: 多线程下载连接数, 默认为 4
+        :param concurrency: 多文件并发下载数, 默认为 4
         :return: DownloadResult
 
         Note:
@@ -238,6 +266,7 @@ class ParseResult(ABC):  # noqa: B024
                 callback_kwargs=callback_kwargs,
                 proxy=proxy,
                 connections=connections,
+                concurrency=concurrency,
             )
         except Exception as e:
             shutil.rmtree(output_dir, ignore_errors=True)
@@ -253,6 +282,7 @@ class ParseResult(ABC):  # noqa: B024
         proxy: str | None = None,
         save_metadata: bool = False,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> "DownloadResult":
         """
         :param path: 保存路径
@@ -262,6 +292,7 @@ class ParseResult(ABC):  # noqa: B024
         :param proxy: 代理
         :param save_metadata: 保存解析结果为 metadata.json, 默认为 False
         :param connections: 多线程下载连接数, 默认为 4
+        :param concurrency: 多文件并发下载数, 默认为 4
         :return: DownloadResult
 
         Note:
@@ -284,6 +315,7 @@ class ParseResult(ABC):  # noqa: B024
                 proxy=proxy,
                 save_metadata=save_metadata,
                 connections=connections,
+                concurrency=concurrency,
             )
         )
 

@@ -191,6 +191,7 @@ class BiliVideoParseResult(VideoParseResult):
         proxy: str | None = None,
         headers: dict | None = None,
         connections: int = 4,
+        concurrency: int = 4,
     ) -> DownloadResult:
         headers = {"referer": "https://www.bilibili.com", "User-Agent": UA}
         return await super()._do_download(
@@ -201,6 +202,7 @@ class BiliVideoParseResult(VideoParseResult):
             proxy=proxy,
             headers=headers,
             connections=connections,
+            concurrency=concurrency,
         )
 
 
