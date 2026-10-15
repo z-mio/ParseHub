@@ -57,6 +57,9 @@ class BiliAPI:
         headers |= {
             "referer": f"https://t.bilibili.com/{dyn_id}",
         }
+        # buvid3 失效会触发 -352 风控，每次现取一枚匿名指纹，覆盖配置里的旧值
+        b3, b4 = await self.get_buvid()
+        cookie = {**(cookie or {}), "buvid3": b3, "buvid4": b4}
         response = await self._get_client().get(
             "https://api.bilibili.com/x/polymer/web-dynamic/v1/detail",
             headers=headers,
