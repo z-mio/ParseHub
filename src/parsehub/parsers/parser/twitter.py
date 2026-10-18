@@ -11,10 +11,8 @@ from ...provider_api.twitter import (
 from ...types import (
     AniRef,
     AnyMediaRef,
-    ContentUnavailableError,
     ImageRef,
     MultimediaParseResult,
-    ParseError,
     Platform,
     RichTextParseResult,
     VideoRef,
@@ -36,15 +34,7 @@ class TwitterParser(BaseParser):
         return str(urlunparse(urlparse(url)._replace(netloc="x.com")))
 
     async def _parse(self, url: str) -> TwitterTweet:
-        cookie = self.cookie.get_value()
-        try:
-            return await Twitter(self.proxy, cookie=cookie).fetch_tweet(url)
-        except ContentUnavailableError:
-            raise
-        except Exception as e:
-            if cookie:
-                raise ParseError(f"{e}\n\n使用的 Cookie: {self.cookie}") from e
-            raise
+        return await Twitter(self.proxy, cookie=self.cookie.get_value()).fetch_tweet(url)
 
     @staticmethod
     async def media_parse(tweet: TwitterTweet) -> MultimediaParseResult | RichTextParseResult:

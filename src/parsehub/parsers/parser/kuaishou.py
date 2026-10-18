@@ -79,8 +79,8 @@ class KuaiShouParser(BaseParser):
                 )
 
             return await self._fallback(
-                FallbackStage("HTML", parse_html),
-                FallbackStage("API", parse_api),
+                FallbackStage("HTML", parse_html, cookie=bool(self.cookie)),
+                FallbackStage("API", parse_api, cookie=bool(self.cookie)),
             )
         else:
             cover = ksp.get_cover_photo_url()

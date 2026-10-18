@@ -1,11 +1,24 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .utils.helpers import SecretCookie
 
 
 class ParseHubError(Exception):
     MSG = __doc__
+    cookie: "SecretCookie | None" = None
 
-    def __init__(self, msg: str = ""):
+    def __init__(self, msg: str = "", *, cookie: "SecretCookie | None" = None):
         super().__init__(self.MSG if not msg else f"{self.MSG}: {msg}")
+        self.cookie = cookie
+
+    @property
+    def message(self) -> str:
+        return super().__str__()
+
+    def __str__(self) -> str:
+        return f"{self.message}\n\n使用的 Cookie: {self.cookie}" if self.cookie else self.message
 
 
 class ParseError(ParseHubError):
@@ -34,10 +47,12 @@ def format_attempts(attempts: list[FallbackAttempt], indent: int = 0) -> str:
         if isinstance(attempt.error, FallbackError):
             lines.append(f"{prefix}:")
             lines.append(format_attempts(attempt.error.attempts, indent + 1))
+        elif isinstance(attempt.error, ParseHubError):
+            lines.append(f"{prefix}: {attempt.error.message}")
+            if attempt.error.cookie:
+                lines.append("  " * (indent + 1) + f"使用的 Cookie: {attempt.error.cookie}")
         else:
-            error = attempt.error
-            text = str(error) if isinstance(error, ParseHubError) else f"{type(error).__name__}: {error}"
-            lines.append(f"{prefix}: {text}")
+            lines.append(f"{prefix}: {type(attempt.error).__name__}: {attempt.error}")
     return "\n".join(lines)
 
 

@@ -11,6 +11,7 @@ import httpx
 from loguru import logger
 
 from ... import parsers
+from ...errors import ParseHubError
 from ...types import (
     AnyParseResult,
     ContentUnavailableError,
@@ -30,6 +31,16 @@ class FallbackStage(Generic[T]):  # noqa: UP046
     name: str
     func: Callable[[], Awaitable[T]]
     cookie: bool = False
+
+
+def _attach_cookie(e: Exception, cookie: SecretCookie) -> Exception:
+    if isinstance(e, (ContentUnavailableError, FallbackError)):
+        return e
+    if not isinstance(e, ParseHubError):
+        return ParseError(f"{type(e).__name__}: {e}" if str(e) else type(e).__name__, cookie=cookie)
+    if e.cookie is None:
+        e.cookie = cookie
+    return e
 
 
 def is_content_unavailable(e: Exception) -> bool:
@@ -89,7 +100,13 @@ class BaseParser(ABC):
         """
         self._fallback_attempts = []
         raw_url = await self.get_raw_url(url, clean_all=False)
-        result = await self._do_parse(raw_url)
+        try:
+            result = await self._do_parse(raw_url)
+        except Exception as e:
+            err = _attach_cookie(e, self.cookie)
+            if err is e:
+                raise
+            raise err from e
         result.fallback_errors = list(self._fallback_attempts)
         result.platform = self.__platform__
         raw_url_clean = self._clean_params(raw_url, self.__after_clean_parameters__)
@@ -107,9 +124,13 @@ class BaseParser(ABC):
                 result = await stage.func()
             except Exception as e:
                 logger.opt(exception=e).debug(f"{self.__platform__} {stage.name} 解析失败")
-                if stop(e):
-                    raise
-                attempts.append(FallbackAttempt(stage.name, e, stage.cookie))
+                should_stop = stop(e)
+                err = _attach_cookie(e, self.cookie if stage.cookie else SecretCookie())
+                if should_stop:
+                    if err is e:
+                        raise
+                    raise err from e
+                attempts.append(FallbackAttempt(stage.name, err, stage.cookie))
             else:
                 self._fallback_attempts.extend(attempts)
                 return result
