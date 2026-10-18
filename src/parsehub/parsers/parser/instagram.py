@@ -87,8 +87,6 @@ class InstagramParser(BaseParser):
                 text = f"无法获取帖子内容: {e}"
             else:
                 text = f"无法获取帖子内容(可能为私人内容): {e}"
-            if cookie:
-                text += f"\n\n使用的 Cookie: {cookie}"
             raise ParseError(text) from e
 
     @staticmethod

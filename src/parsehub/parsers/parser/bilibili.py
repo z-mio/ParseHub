@@ -54,7 +54,7 @@ class BiliParse(BaseParser):
         else:
             return await self._fallback(
                 FallbackStage("API", lambda: self.bili_api_parse(raw_url)),
-                FallbackStage("yt-dlp", lambda: self.ytp_parse(raw_url)),
+                FallbackStage("yt-dlp", lambda: self.ytp_parse(raw_url), cookie=bool(self.cookie)),
                 stop=lambda e: False,
             )
 
@@ -97,7 +97,7 @@ class BiliParse(BaseParser):
             raise
         except Exception as e:
             if "风控" in str(e):
-                raise ParseError(f"账号风控\n使用的cookie: {self.cookie}") from e
+                raise ParseError("账号风控") from e
             raise ParseError(str(e)) from e
         else:
             return cast(BiliDynamic, dynamic_info)
