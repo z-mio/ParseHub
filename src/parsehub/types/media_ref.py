@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(kw_only=True)
@@ -10,6 +10,7 @@ class MediaRef:
         thumb_url: 缩略图 URL
         width: 宽度
         height: 高度
+        backup_urls: 备用下载链接, 与 url 是同一个文件, url 下载失败时按顺序尝试
     """
 
     url: str
@@ -17,6 +18,7 @@ class MediaRef:
     thumb_url: str | None = None
     width: int = 0
     height: int = 0
+    backup_urls: list[str] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)

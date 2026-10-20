@@ -76,6 +76,21 @@ class DownloadError(ParseHubError):
     """下载错误"""
 
     MSG = __doc__
+    status_code: int | None = None
+
+    def __init__(self, msg: str = "", *, status_code: int | None = None, cookie: "SecretCookie | None" = None):
+        super().__init__(msg, cookie=cookie)
+        self.status_code = status_code
+
+
+class DownloadFallbackError(DownloadError):
+    """所有下载地址均失败"""
+
+    MSG = __doc__
+
+    def __init__(self, attempts: list[FallbackAttempt]):
+        self.attempts = attempts
+        Exception.__init__(self, f"{self.MSG}:\n{format_attempts(attempts)}")
 
 
 class DeleteError(ParseHubError):

@@ -96,7 +96,9 @@ class SegmentDownloader:
             except httpx.HTTPStatusError as e:
                 last_error = e
                 if attempt == self.max_retries or not _is_retryable_status(e.response.status_code):
-                    raise DownloadError(f"HTTP错误: {e.response.status_code}") from e
+                    raise DownloadError(
+                        f"HTTP错误: {e.response.status_code}", status_code=e.response.status_code
+                    ) from e
             except (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError, httpx.ReadError) as e:
                 last_error = e
                 if attempt == self.max_retries:
@@ -104,7 +106,7 @@ class SegmentDownloader:
             except Exception as e:
                 last_error = e
                 if attempt == self.max_retries:
-                    raise DownloadError(f"下载失败: {e}") from e
+                    raise DownloadError(f"{type(e).__name__}: {e}" if str(e) else type(e).__name__) from e
 
             await asyncio.sleep(2**attempt)
 
@@ -273,7 +275,9 @@ class SegmentDownloader:
                         raise FallbackToSingle
                     response.raise_for_status()
                     if response.status_code != 206:
-                        raise DownloadError(f"分片下载失败: HTTP {response.status_code}")
+                        raise DownloadError(
+                            f"分片下载失败: HTTP {response.status_code}", status_code=response.status_code
+                        )
                     if _has_non_identity_encoding(response.headers.get("Content-Encoding")):
                         raise FallbackToSingle
                     self._validate_part_response(part, response.headers, total_size)
@@ -293,7 +297,9 @@ class SegmentDownloader:
                 raise
             except httpx.HTTPStatusError as e:
                 if attempt == self.max_retries or not _is_retryable_status(e.response.status_code):
-                    raise DownloadError(f"分片下载失败: HTTP {e.response.status_code}") from e
+                    raise DownloadError(
+                        f"分片下载失败: HTTP {e.response.status_code}", status_code=e.response.status_code
+                    ) from e
             except (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError, httpx.ReadError) as e:
                 if attempt == self.max_retries:
                     raise DownloadError(f"分片网络错误: {e}") from e

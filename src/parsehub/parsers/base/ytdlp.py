@@ -499,7 +499,7 @@ class YtVideoParseResult(VideoParseResult):
 
         v = [p for p in output_dir_path.glob(f"{self.name}.*") if p.is_file()]
         if not v:
-            raise DownloadError("下载失败: 未找到下载后的视频文件")
+            raise DownloadError("未找到下载后的视频文件")
 
         if callback:
             await callback(100, 100, "bytes", *callback_args, **callback_kwargs)
@@ -540,7 +540,7 @@ class YtVideoParseResult(VideoParseResult):
                 callback_kwargs=callback_kwargs,
             )
         except Exception as e:
-            raise DownloadError(f"下载失败: {str(e)}") from e
+            raise DownloadError(str(e)) from e
 
 
 @dataclass
