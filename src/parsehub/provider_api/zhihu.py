@@ -211,7 +211,7 @@ class ZhihuAPI:
     async def parse(self, raw_url: str) -> ZhihuQA | ZhihuZhuanLan | ZhihuPin:
         if "/question" in raw_url:
             return await self.parse_qa(raw_url)
-        if "zhuanlan." in raw_url:
+        if "zhuanlan." in raw_url or "/appview/p/" in raw_url:
             return await self.parse_zl(raw_url)
         if "/pin/" in raw_url:
             return await self.parse_pin(raw_url)
