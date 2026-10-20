@@ -1077,7 +1077,7 @@ requires-dist = [
     { name = "tenacity", specifier = ">=8.5.0" },
     { name = "urlextract", specifier = ">=1.9.0" },
     { name = "xhshow", specifier = ">=0.2.0" },
-    { name = "yt-dlp", extras = ["default"], specifier = ">=2026.8.18.122307.dev0" },
+    { name = "yt-dlp", extras = ["default"], specifier = ">=2026.10.10.233141.dev0" },
 ]
 provides-extras = ["cli"]
 
@@ -1738,11 +1738,11 @@ wheels = [
 
 [[package]]
 name = "yt-dlp"
-version = "2026.9.16.232951.dev0"
+version = "2026.10.10.233141.dev0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/41/f2/807798fc6bd0f69fa2779f88b8f754b5e930db0486b09fd87cb91a23985e/yt_dlp-2026.9.16.232951.dev0.tar.gz", hash = "sha256:5e83673631da906cd920e275df07b4874c64f1135e5f18d0503ebebe290a313c", size = 3055019, upload-time = "2026-09-16T23:33:57.046Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/96/2f/69a67ddfceb2daf9b7bc43826dbec7761ccfc7f264c9ec657b03b8cead13/yt_dlp-2026.10.10.233141.dev0.tar.gz", hash = "sha256:3782c394377a073903e55924a630a733c820fdb70cf8330525137f8fcef57a3d", size = 3055384, upload-time = "2026-10-10T23:35:33.571Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/d6/d14bdbfa1a7e41ce4fad4a277dddeb925117faef33f063478f6b45587756/yt_dlp-2026.9.16.232951.dev0-py3-none-any.whl", hash = "sha256:6d2bfe8655e45d7d08a2a868c09ee39738f032aad3295904f51a8bc061338309", size = 3187199, upload-time = "2026-09-16T23:33:54.102Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/24/568769172d45bdc83dc26e958adfcaa811cb9814cacdff3723bcfd4b0750/yt_dlp-2026.10.10.233141.dev0-py3-none-any.whl", hash = "sha256:0a3d0ad593800995837f44ace900cf1689a497b52bad206066624d8eb5116c1b", size = 3186562, upload-time = "2026-10-10T23:35:30.289Z" },
 ]
 
 [package.optional-dependencies]
