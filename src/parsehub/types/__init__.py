@@ -2,6 +2,7 @@ from ..errors import (
     ContentUnavailableError,
     ContentUnavailableFallbackError,
     DownloadError,
+    DownloadFallbackError,
     FallbackAttempt,
     FallbackError,
     ParseError,
@@ -23,6 +24,7 @@ from .result import (
 
 __all__ = [
     "DownloadError",
+    "DownloadFallbackError",
     "ParseError",
     "ContentUnavailableError",
     "FallbackAttempt",

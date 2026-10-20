@@ -2,13 +2,11 @@ import importlib
 import pkgutil
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
-from loguru import logger
 
 from ... import parsers
 from ...errors import ParseHubError
@@ -21,16 +19,10 @@ from ...types import (
     ParseError,
 )
 from ...types.platform import Platform
+from ...utils.fallback import FallbackStage, run_fallback
 from ...utils.helpers import UA, SecretCookie, match_url
 
 T = TypeVar("T")
-
-
-@dataclass(frozen=True)
-class FallbackStage(Generic[T]):  # noqa: UP046
-    name: str
-    func: Callable[[], Awaitable[T]]
-    cookie: bool = False
 
 
 def _attach_cookie(e: Exception, cookie: SecretCookie) -> Exception:
@@ -118,30 +110,20 @@ class BaseParser(ABC):
         *stages: FallbackStage[T],
         stop: Callable[[Exception], bool] = is_content_unavailable,
     ) -> T:
-        attempts: list[FallbackAttempt] = []
-        for stage in stages:
-            try:
-                result = await stage.func()
-            except Exception as e:
-                logger.opt(exception=e).debug(f"{self.__platform__} {stage.name} 解析失败")
-                should_stop = stop(e)
-                err = _attach_cookie(e, self.cookie if stage.cookie else SecretCookie())
-                if should_stop:
-                    if err is e:
-                        raise
-                    raise err from e
-                attempts.append(FallbackAttempt(stage.name, err, stage.cookie))
-            else:
-                self._fallback_attempts.extend(attempts)
-                return result
+        def exhausted(attempts: list[FallbackAttempt]) -> FallbackError:
+            if isinstance(attempts[-1].error, ContentUnavailableError):
+                return ContentUnavailableFallbackError(attempts)
+            return FallbackError(attempts)
 
-        if len(attempts) == 1:
-            raise attempts[0].error
-        last_error = attempts[-1].error
-        error_type = (
-            ContentUnavailableFallbackError if isinstance(last_error, ContentUnavailableError) else FallbackError
+        result, attempts = await run_fallback(
+            stages,
+            stop=stop,
+            wrap=lambda e, stage: _attach_cookie(e, self.cookie if stage.cookie else SecretCookie()),
+            exhausted=exhausted,
+            label=f"{self.__platform__} 解析",
         )
-        raise error_type(attempts) from last_error
+        self._fallback_attempts.extend(attempts)
+        return result
 
     @abstractmethod
     async def _do_parse(self, raw_url: str) -> AnyParseResult:

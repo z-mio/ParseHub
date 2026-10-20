@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, ClassVar
+from urllib.parse import urlparse
 
 import aiofiles
 from bs4 import BeautifulSoup
@@ -14,8 +15,9 @@ from markdown import markdown as md_to_html
 from slugify import slugify
 
 from ..config import GlobalConfig
-from ..errors import DeleteError, DownloadError, FallbackAttempt
+from ..errors import DeleteError, DownloadError, DownloadFallbackError, FallbackAttempt
 from ..utils.downloader import download
+from ..utils.fallback import FallbackStage, run_fallback
 from ..utils.helpers import run_sync
 from .callback import ProgressCallback
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
@@ -80,6 +82,10 @@ class ParseResult(ABC):  # noqa: B024
             "media": media,
         }
 
+    def _download_stop(self, e: Exception) -> bool:
+        """下载失败时是否不再尝试后面的备用链接, 平台可覆盖"""
+        return False
+
     async def _do_download(
         self,
         *,
@@ -109,6 +115,7 @@ class ParseResult(ABC):  # noqa: B024
         media_list = list(self.media) if isinstance(self.media, Sequence) else [self.media]
         is_single = not isinstance(self.media, Sequence)
         concurrency = max(1, concurrency)
+        fallback_errors: list[FallbackAttempt] = []
 
         async def _download_media(
             media: AnyMediaRef,
@@ -117,19 +124,30 @@ class ParseResult(ABC):  # noqa: B024
             progress_args: tuple = (),
             progress_kwargs: dict | None = None,
         ) -> AnyMediaFile:
-            try:
-                f = await download(
-                    media.url,
-                    output_dir.joinpath(f"{stem}.{media.ext}"),
-                    headers=headers,
-                    proxy=proxy,
-                    progress=progress,
-                    progress_args=progress_args,
-                    progress_kwargs=progress_kwargs,
-                    connections=connections,
+            def _stage(i: int, url: str) -> FallbackStage[str]:
+                return FallbackStage(
+                    f"#{i + 1} {urlparse(url).hostname}",
+                    lambda: download(
+                        url,
+                        output_dir.joinpath(f"{stem}.{media.ext}"),
+                        headers=headers,
+                        proxy=proxy,
+                        progress=progress,
+                        progress_args=progress_args,
+                        progress_kwargs=progress_kwargs,
+                        connections=connections,
+                    ),
                 )
-            except Exception as e:
-                raise DownloadError(f"下载失败: {e}") from e
+
+            urls = list(dict.fromkeys([media.url, *media.backup_urls]))
+            f, attempts = await run_fallback(
+                [_stage(i, url) for i, url in enumerate(urls)],
+                stop=self._download_stop,
+                wrap=lambda e, _: e if isinstance(e, DownloadError) else DownloadError(f"{type(e).__name__}: {e}"),
+                exhausted=DownloadFallbackError,
+                label=f"{self.platform.display_name if self.platform else ''} 下载",
+            )
+            fallback_errors.extend(attempts)
 
             mf: AnyMediaFile
             match media:
@@ -150,8 +168,12 @@ class ParseResult(ABC):  # noqa: B024
                                 proxy=proxy,
                                 connections=connections,
                             )
+                        except DownloadError as e:
+                            raise DownloadError(
+                                f"LivePhoto 视频{e.message.removeprefix(DownloadError.MSG)}", status_code=e.status_code
+                            ) from e
                         except Exception as e:
-                            raise DownloadError(f"LivePhoto 视频下载失败: {e}") from e
+                            raise DownloadError(f"LivePhoto 视频: {type(e).__name__}: {e}") from e
                         else:
                             mf.video_path = vf
 
@@ -182,7 +204,7 @@ class ParseResult(ABC):  # noqa: B024
             except DownloadError:
                 shutil.rmtree(output_dir, ignore_errors=True)
                 raise
-            return DownloadResult(mf, output_dir)
+            return DownloadResult(mf, output_dir, fallback_errors)
 
         n = len(media_list)
         results: list[AnyMediaFile | None] = [None] * n
@@ -210,7 +232,7 @@ class ParseResult(ABC):  # noqa: B024
             raise
 
         result_list = [media for media in results if media is not None]
-        return DownloadResult(result_list, output_dir)
+        return DownloadResult(result_list, output_dir, fallback_errors)
 
     async def download(
         self,
@@ -413,14 +435,21 @@ class RichTextParseResult(ParseResult):
 
 
 class DownloadResult:
-    def __init__(self, media: AnyMediaFile | Sequence[AnyMediaFile], output_dir: str | Path):
+    def __init__(
+        self,
+        media: AnyMediaFile | Sequence[AnyMediaFile],
+        output_dir: str | Path,
+        fallback_errors: list[FallbackAttempt] | None = None,
+    ):
         """
         下载结果
         :param media: 本地媒体路径
         :param output_dir: 输出目录
+        :param fallback_errors: 下载成功前失败的链接
         """
         self.media = media
         self.output_dir = Path(output_dir).resolve()
+        self.fallback_errors = fallback_errors or []
 
     def delete(self) -> None:
         try:

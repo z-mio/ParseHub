@@ -188,6 +188,7 @@ class TestParseResultToDict(unittest.TestCase):
                     "thumb_url": "https://cdn.example/thumb.jpg",
                     "width": 1920,
                     "height": 1080,
+                    "backup_urls": [],
                     "duration": 90,
                 },
             },
@@ -209,6 +210,7 @@ class TestParseResultToDict(unittest.TestCase):
                     "thumb_url": None,
                     "width": 100,
                     "height": 0,
+                    "backup_urls": [],
                 },
                 {
                     "url": "https://cdn.example/two.jpg",
@@ -216,6 +218,7 @@ class TestParseResultToDict(unittest.TestCase):
                     "thumb_url": None,
                     "width": 0,
                     "height": 0,
+                    "backup_urls": [],
                 },
             ],
         )

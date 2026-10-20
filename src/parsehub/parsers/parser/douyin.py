@@ -116,15 +116,12 @@ def remove_video_watermark(url: str) -> str:
     return url.replace("playwm", "play")
 
 
-def _p_play_addr(video_data: dict) -> tuple[str | None, int, int]:
+def _p_play_addr(video_data: dict) -> tuple[list[str], int, int]:
     play_addr = video_data["play_addr"]
-    url_list = play_addr["url_list"]
-    if not url_list:
-        return None, 0, 0
-    return url_list[0], play_addr.get("width", 0), play_addr.get("height", 0)
+    return play_addr["url_list"], play_addr.get("width", 0), play_addr.get("height", 0)
 
 
-def _p_bit_rates(video_data: dict, filter_bytevc1: bool = False) -> tuple[str, int, int]:
+def _p_bit_rates(video_data: dict, filter_bytevc1: bool = False) -> tuple[list[str], int, int]:
     bit_rates: list = video_data.get("bit_rate", [])
     if filter_bytevc1:
         bit_rates = list(filter(lambda i: i.get("is_bytevc1", 0) == 0, bit_rates))
@@ -139,20 +136,19 @@ def _p_bit_rates(video_data: dict, filter_bytevc1: bool = False) -> tuple[str, i
     best_quality = bit_rates[0]
 
     play_addr = best_quality.get("play_addr", {})
-    url_list = play_addr.get("url_list", [])
-    return url_list[0], play_addr.get("width", 0), play_addr.get("height", 0)
+    return play_addr.get("url_list", []), play_addr.get("width", 0), play_addr.get("height", 0)
 
 
 def parse_video_info(video_data: dict) -> dict:
     is_app = video_data.get("is_bytevc1", None) is not None  # 只有 app 接口带 is_bytevc1 参数
     if is_app:
-        u, w, h = _p_play_addr(video_data)
-        if not u:
-            u, w, h = _p_bit_rates(video_data, True)
+        urls, w, h = _p_play_addr(video_data)
+        if not urls:
+            urls, w, h = _p_bit_rates(video_data, True)
     else:
-        u, w, h = _p_bit_rates(video_data)
+        urls, w, h = _p_bit_rates(video_data)
 
-    video_url = remove_video_watermark(u)
+    video_url, *backup_urls = dict.fromkeys(remove_video_watermark(u) for u in urls)
 
     cover = video_data.get("cover", {})
     thumb_url_list = cover.get("url_list", [])
@@ -160,6 +156,7 @@ def parse_video_info(video_data: dict) -> dict:
 
     return {
         "video_url": video_url,
+        "backup_urls": backup_urls,
         "thumb_url": thumb_url,
         "duration": video_data.get("duration", 0),
         "width": w,
@@ -288,6 +285,7 @@ class DouyinApiResult:
             type=DouyinMediaType.VIDEO,
             video=VideoRef(
                 url=video_info["video_url"],
+                backup_urls=video_info["backup_urls"],
                 thumb_url=video_info["thumb_url"],
                 width=video_info["width"],
                 height=video_info["height"],
