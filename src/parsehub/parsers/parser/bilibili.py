@@ -112,16 +112,15 @@ class BiliParse(BaseParser):
             p = int(parse_qs(urlparse(url).query).get("p", ["1"])[0])
             view = data["View"]
 
-            cid = view["cid"]
-            duration = view["duration"]
-            dimension = view["dimension"]
-            desc = view["desc"]
+            pages = view.get("pages") or []
+            page_info = next((i for i in pages if i["page"] == p), None)
+            if page_info is None and pages:
+                page_info = pages[0]  # p 越界时回退默认P
 
-            if p != 1 and (pages := view.get("pages")):
-                if page_info := next((i for i in pages if i["page"] == p), None):
-                    cid = page_info["cid"]
-                    duration = page_info["duration"]
-                    dimension = page_info["dimension"]
+            cid = page_info["cid"] if page_info else view["cid"]
+            duration = page_info["duration"] if page_info else view["duration"]
+            dimension = page_info["dimension"] if page_info else view["dimension"]
+            desc = view["desc"]
 
             b3, b4 = await bili.get_buvid()
             video_playurl = await bili.get_video_playurl(url, cid, b3, b4)
