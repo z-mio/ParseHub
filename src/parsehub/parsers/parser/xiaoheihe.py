@@ -19,6 +19,7 @@ class XiaoHeiHeParser(BaseParser):
     __supported_type__ = ["视频", "图文"]
     __match__ = r"^(http(s)?://)?.+xiaoheihe.cn/(v3|app)/bbs/(app|link).+"
     __redirect_keywords__ = ["api.xiaoheihe"]
+    __reserved_parameters__ = ["link_id"]
 
     async def _do_parse(self, raw_url: str) -> AnyParseResult:
         xhh = await XiaoHeiHeAPI(proxy=self.proxy).parse(raw_url)
