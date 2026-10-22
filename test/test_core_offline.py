@@ -640,8 +640,7 @@ class TestPlatformUrlMatching(unittest.TestCase):
             ],
             Platform.XIAOHEIHE: [
                 "https://www.xiaoheihe.cn/app/bbs/link/174972336",
-                "https://www.xiaoheihe.cn/v3/bbs/app/api/web/share?link_id=174972336",
-                "https://api.xiaoheihe.cn/v3/bbs/app/link?link_id=174972336",
+                "https://api.xiaoheihe.cn/v3/bbs/app/api/web/share?h_camp=link&h_src=YXBwX3NoYXJl&link_id=57b172affdbc",
             ],
             Platform.YOUTUBE: [
                 "https://www.youtube.com/watch?v=1h_uc3K4Cpg",
