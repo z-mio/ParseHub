@@ -6,7 +6,8 @@ from ..base.base import BaseParser
 class ZuiYouParser(BaseParser):
     __platform__ = Platform.ZUIYOU
     __supported_type__ = ["视频", "图文"]
-    __match__ = r"^(http(s)?://)share.xiaochuankeji.cn/hybrid/share/post\?pid=\d+"
+    __match__ = r"^(http(s)?://)(share.xiaochuankeji.cn/hybrid/share/post\?pid=\d+|s.izuiyou.com/s/\w+)"
+    __redirect_keywords__ = ["s.izuiyou.com/s/"]
     __reserved_parameters__ = ["pid"]
 
     async def _do_parse(self, raw_url: str) -> MultimediaParseResult:
