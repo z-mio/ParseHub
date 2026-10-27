@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 import httpx
 from bs4 import BeautifulSoup
@@ -87,6 +88,7 @@ class XHSAPI:
         script = scripts[0].text
         json_data = script.replace("window.__INITIAL_STATE__=", "")
         json_data = re.sub(r"\bundefined\b", "null", json_data)  # 清理js对象
+        json_data = re.sub(r"new Set\((\[[^\]]*\])\)", r"\1", json_data)
         data = json.loads(json_data)
         return cast(dict[str, Any], data)
 
@@ -192,18 +194,13 @@ class XHSAPI:
 
     @staticmethod
     def get_trace_id(img_url: str) -> str:
-        match = re.search(r"/[a-f0-9]{32}/(.*)/([^/!]+)(?:!.*)?", img_url)
-        if match:
-            return f"{match.group(1)}/{match.group(2)}"
-
-        match = re.search(r"/([^/!]+)(?:!.*)?$", img_url)
-        if match:
-            return match.group(1)
-        return img_url
+        path = urlsplit(img_url).path.split("!", 1)[0]
+        match = re.search(r"/[a-f0-9]{32}/(.+)", path)
+        return match.group(1) if match else path.lstrip("/")
 
     def get_raw_image_url(self, ime_url: str) -> str:
         """拼接无水印图片链接"""
-        return f"http://sns-img-hw.xhscdn.com/{self.get_trace_id(ime_url)}"
+        return f"https://sns-img-hw.xhscdn.com/{self.get_trace_id(ime_url)}?imageView2/format/jpg"
 
 
 class XHSMediaType(Enum):

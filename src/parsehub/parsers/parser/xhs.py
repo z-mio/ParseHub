@@ -1,8 +1,6 @@
 import re
 from typing import Union
 
-import httpx
-
 from ...provider_api.xhs import MOBILE_HEADERS, PC_HEADERS, XHSAPI, XHSMedia, XHSMediaType, XHSPost, XHSPostType
 from ...types import (
     ContentUnavailableError,
@@ -81,12 +79,8 @@ class XHSParser(BaseParser):
                             LivePhotoRef(url=i.thumb_url or "", video_url=i.url, width=i.width, height=i.height)
                         )
                     else:
-                        # 小红书图片格式: "png" | "webp" | "jpeg" | "heic" | "avif"
-                        ext = await self.get_ext_by_url(i.url)
-                        if ext not in ["png", "webp", "jpeg", "heic", "avif"]:
-                            ext = "jpeg"
                         photos.append(
-                            ImageRef(url=i.url, ext=ext, thumb_url=i.thumb_url, width=i.width, height=i.height)
+                            ImageRef(url=i.url, ext="jpg", thumb_url=i.thumb_url, width=i.width, height=i.height)
                         )
 
                 return ImageParseResult(
@@ -96,21 +90,6 @@ class XHSParser(BaseParser):
                 )
             case _:
                 raise ParseError("不支持的类型")
-
-    async def get_ext_by_url(self, url: str) -> str:
-        async with httpx.AsyncClient(proxy=self.proxy) as client:
-            try:
-                response = await client.head(url, follow_redirects=True)
-            except Exception:
-                return ""
-
-            if content_type := response.headers.get("content-type"):
-                media_type = content_type.split(";")[0].strip()
-                if "/" in media_type:
-                    extension = media_type.split("/")[-1]
-                    return str(extension)
-
-            return ""
 
     @staticmethod
     def hashtag_handler(desc: str | None) -> str:
