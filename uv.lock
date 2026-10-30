@@ -1010,7 +1010,7 @@ wheels = [
 
 [[package]]
 name = "parsehub"
-version = "2.3.15"
+version = "2.3.16"
 source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },
