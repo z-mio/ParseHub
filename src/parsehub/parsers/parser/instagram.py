@@ -1,5 +1,7 @@
 import re
 
+from loguru import logger
+
 from ...provider_api.instagram import (
     InstagramAPI,
     InstagramAPIError,
@@ -19,6 +21,7 @@ from ...types import (
 )
 from ...utils.helpers import SecretCookie
 from ..base.base import BaseParser, FallbackStage
+from ..base.ytdlp import YtParser, YtVideoParseResult
 
 
 class InstagramParser(BaseParser):
@@ -34,29 +37,56 @@ class InstagramParser(BaseParser):
 
         post = await self._parse(shortcode)
 
-        width, height = post.width, post.height
-
-        match post.typename:
+        match post.type:
             case InstagramMediaType.SIDECAR:
                 media = [
-                    VideoRef(url=i.video_url, thumb_url=i.display_url, width=i.width, height=i.height)
-                    if i.is_video and i.video_url
-                    else ImageRef(url=i.display_url, width=i.width, height=i.height)
-                    for i in post.get_sidecar_nodes()
+                    VideoRef(
+                        url=item.video_url,
+                        thumb_url=item.display_url,
+                        duration=int(item.duration),
+                        width=item.width,
+                        height=item.height,
+                    )
+                    if item.is_video
+                    else ImageRef(url=item.display_url, width=item.width, height=item.height)
+                    for item in post.media
                 ]
                 return MultimediaParseResult(media=media, title=post.title, content=post.caption)
             case InstagramMediaType.IMAGE:
+                item = post.media[0]
                 return ImageParseResult(
-                    photo=[ImageRef(url=post.url, width=width, height=height)], title=post.title, content=post.caption
+                    photo=[ImageRef(url=item.display_url, width=item.width, height=item.height)],
+                    title=post.title,
+                    content=post.caption,
                 )
             case InstagramMediaType.VIDEO:
+                item = post.media[0]
+                try:
+                    info = await InstagramYtParse(proxy=self.proxy)._parse(f"https://www.instagram.com/p/{shortcode}/")
+                except ParseError as e:
+                    logger.warning(f"Instagram yt-dlp 解析失败, 使用直链视频: {e}")
+                else:
+                    return YtVideoParseResult(
+                        dl=info,
+                        title=post.title,
+                        content=post.caption,
+                        video=VideoRef(
+                            url=info.url,
+                            thumb_url=item.display_url or info.thumbnail,
+                            width=info.width,
+                            height=info.height,
+                            duration=int(info.duration or item.duration),
+                        ),
+                    )
+                if not item.video_url:
+                    raise ParseError("未获取到视频地址")
                 return VideoParseResult(
                     video=VideoRef(
-                        url=post.video_url or post.url,
-                        thumb_url=post.url,
-                        duration=int(post.video_duration or 0),
-                        width=width,
-                        height=height,
+                        url=item.video_url,
+                        thumb_url=item.display_url,
+                        duration=int(item.duration),
+                        width=item.width,
+                        height=item.height,
                     ),
                     title=post.title,
                     content=post.caption,
@@ -80,20 +110,20 @@ class InstagramParser(BaseParser):
             return await api.get_post(shortcode)
         except ContentUnavailableError:
             raise
-        except Exception as e:
-            if isinstance(e, InstagramRestrictedError):
-                text = str(e)
-            elif isinstance(e, InstagramAPIError):
-                text = f"无法获取帖子内容: {e}"
-            else:
-                text = f"无法获取帖子内容(可能为私人内容): {e}"
-            raise ParseError(text) from e
+        except InstagramRestrictedError as e:
+            raise ParseError(str(e)) from e
+        except InstagramAPIError as e:
+            raise ParseError(f"无法获取帖子内容: {e}") from e
 
     @staticmethod
     def get_short_code(url: str) -> str | None:
         url = url.removesuffix("/")
         shortcode = re.search(r"/(p|reel|reels|share|.*/p|.*/reel)/(.*)", url)
         return shortcode.group(2).split("/")[0] if shortcode else None
+
+
+class InstagramYtParse(YtParser, register=False):
+    pass
 
 
 __all__ = ["InstagramParser"]
