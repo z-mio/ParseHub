@@ -411,7 +411,7 @@ class YtParser(BaseParser, register=False):
         title = dl["title"]
         duration = dl.get("duration", 0)
         thumbnail = dl.get("thumbnail")
-        description = dl["description"]
+        description = dl.get("description", "")
         width = dl.get("width", 0)
         height = dl.get("height", 0)
         return YtVideoInfo(
