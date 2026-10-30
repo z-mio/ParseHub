@@ -15,6 +15,7 @@ class Media:
     url: str
     thumb_url: str
     type: MediaType
+    duration: int = 0
 
 
 @dataclass
@@ -34,8 +35,15 @@ class ZuiYouPost:
             id_ = img["id"]
             img_url = list(img["urls"].values())[-1]["urls"][-1]
             if img.get("video"):
-                video_url = videos[str(id_)]["url"]
-                media.append(Media(url=video_url, thumb_url=img_url, type=MediaType.VIDEO))
+                video = videos[str(id_)]
+                media.append(
+                    Media(
+                        url=video["url"],
+                        thumb_url=img_url,
+                        type=MediaType.VIDEO,
+                        duration=int(video.get("dur") or 0),
+                    )
+                )
                 continue
             media.append(Media(url=img_url, thumb_url=img_url, type=MediaType.PHOTO))
 

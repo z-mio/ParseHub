@@ -15,7 +15,7 @@ class ZuiYouParser(BaseParser):
         return MultimediaParseResult(
             content=zy.content,
             media=[
-                VideoRef(url=i.url, thumb_url=i.thumb_url)
+                VideoRef(url=i.url, thumb_url=i.thumb_url, duration=i.duration)
                 if i.type == MediaType.VIDEO
                 else ImageRef(url=i.url, thumb_url=i.thumb_url)
                 for i in zy.media
