@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+import re
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, cast
+from typing import Any
+from urllib.parse import urlparse
 
-import httpx
+from curl_cffi import requests
 
 from ..types import ContentUnavailableError
 
@@ -16,7 +17,7 @@ class InstagramAPIError(RuntimeError):
 
 
 class InstagramRestrictedError(InstagramAPIError):
-    """内容受限, 需要登录 Cookie。"""
+    """Instagram 内容受限。"""
 
 
 class InstagramMediaType(StrEnum):
@@ -25,141 +26,75 @@ class InstagramMediaType(StrEnum):
     SIDECAR = "GraphSidecar"
 
 
-@dataclass(slots=True)
-class InstagramSidecarNode:
+@dataclass(slots=True, kw_only=True)
+class InstagramMedia:
     is_video: bool
     display_url: str
-    video_url: str | None
-    width: int
-    height: int
+    video_url: str = ""
+    width: int = 0
+    height: int = 0
+    duration: float = 0
 
 
+@dataclass(slots=True, kw_only=True)
 class InstagramPost:
-    """轻量版 Instagram Post，只保留当前项目解析帖子需要的字段。"""
+    shortcode: str
+    type: InstagramMediaType
+    caption: str = ""
+    title: str = ""
+    media: list[InstagramMedia]
 
-    _XDT_TYPES = {
-        "XDTGraphImage": InstagramMediaType.IMAGE,
-        "XDTGraphVideo": InstagramMediaType.VIDEO,
-        "XDTGraphSidecar": InstagramMediaType.SIDECAR,
-    }
+    @classmethod
+    def from_v1(cls, item: dict[str, Any]) -> InstagramPost:
+        media_type = _v1_type(item)
+        if media_type is InstagramMediaType.SIDECAR:
+            media_items = item.get("carousel_media") or []
+            if not media_items:
+                raise InstagramAPIError("未返回帖子数据")
+        else:
+            media_items = [item]
+        if not all(isinstance(media_item, dict) for media_item in media_items):
+            raise InstagramAPIError("Instagram 帖子数据格式无效")
+        return cls(
+            shortcode=str(item.get("code") or item.get("shortcode") or ""),
+            type=media_type,
+            caption=_caption_text(item.get("caption")),
+            title=str(item.get("title") or ""),
+            media=[_v1_media(media_item) for media_item in media_items],
+        )
 
-    def __init__(self, node: dict[str, Any]):
-        self._node = node
-        self._normalize_typename()
+    @classmethod
+    def from_graph(cls, node: dict[str, Any]) -> InstagramPost:
+        media_type = _graph_type(node)
+        if media_type is InstagramMediaType.SIDECAR:
+            edges = (node.get("edge_sidecar_to_children") or {}).get("edges") or []
+            if not edges:
+                raise InstagramAPIError("未返回帖子数据")
+            media = [_graph_media(edge.get("node") or {}) for edge in edges]
+        else:
+            media = [_graph_media(node)]
 
-    def _normalize_typename(self) -> None:
-        typename = self._node.get("__typename")
-        if typename in self._XDT_TYPES:
-            self._node["__typename"] = self._XDT_TYPES[typename]
-
-    def _field(self, *keys: str) -> Any:
-        value: Any = self._node
-        for key in keys:
-            value = value[key]
-        return value
-
-    @property
-    def shortcode(self) -> str:
-        return str(self._node.get("shortcode") or self._node["code"])
-
-    @property
-    def typename(self) -> InstagramMediaType:
-        return InstagramMediaType(self._field("__typename"))
-
-    @property
-    def is_video(self) -> bool:
-        return bool(self._field("is_video"))
-
-    @property
-    def title(self) -> str:
-        return str(self._node.get("title", ""))
-
-    @property
-    def caption(self) -> str:
-        caption_edges = self._node.get("edge_media_to_caption", {}).get("edges") or []
-        if caption_edges:
-            if text := caption_edges[0].get("node", {}).get("text"):
-                return str(text)
-            return ""
-        return str(self._node.get("caption", ""))
-
-    @property
-    def url(self) -> str:
-        return str(self._node.get("display_url") or self._node["display_src"])
-
-    @property
-    def video_url(self) -> str | None:
-        if not self.is_video:
-            return None
-        return self._node.get("video_url")
-
-    @property
-    def video_duration(self) -> float | None:
-        value = self._node.get("video_duration")
-        return float(value) if value is not None else None
-
-    @property
-    def width(self) -> int:
-        return int(self._node.get("dimensions", {}).get("width") or 0)
-
-    @property
-    def height(self) -> int:
-        return int(self._node.get("dimensions", {}).get("height") or 0)
-
-    def get_sidecar_nodes(self, start: int = 0, end: int = -1) -> Iterator[InstagramSidecarNode]:
-        if self.typename is not InstagramMediaType.SIDECAR:
-            return
-
-        edges = self._field("edge_sidecar_to_children", "edges")
-        if end < 0:
-            end = len(edges) - 1
-        if start < 0:
-            start = len(edges) - 1
-
-        for idx, edge in enumerate(edges):
-            if not start <= idx <= end:
-                continue
-
-            node = edge["node"]
-            dimensions = node.get("dimensions", {})
-            is_video = bool(node.get("is_video"))
-            yield InstagramSidecarNode(
-                is_video=is_video,
-                display_url=node.get("display_url") or node.get("display_src") or "",
-                video_url=node.get("video_url") if is_video else None,
-                width=int(dimensions.get("width") or 0),
-                height=int(dimensions.get("height") or 0),
-            )
+        caption_edges = (node.get("edge_media_to_caption") or {}).get("edges") or []
+        caption = caption_edges[0].get("node", {}).get("text", "") if caption_edges else ""
+        return cls(
+            shortcode=str(node.get("shortcode") or node.get("code") or ""),
+            type=media_type,
+            caption=str(caption or node.get("caption") or ""),
+            title=str(node.get("title") or ""),
+            media=media,
+        )
 
 
 class InstagramAPI:
-    GRAPHQL_URL = "https://www.instagram.com/graphql/query"
-    INSTAGRAM_URL = "https://www.instagram.com/"
+    HOME_URL = "https://www.instagram.com/"
+    GRAPHQL_URL = "https://www.instagram.com/api/graphql"
+    EMBED_URL = "https://www.instagram.com/{kind}/{shortcode}/embed/captioned/"
+    MEDIA_INFO_URL = "https://www.instagram.com/api/v1/media/{media_id}/info/"
     RULING_URL = "https://www.instagram.com/api/v1/web/get_ruling_for_content/"
     APP_ID = "936619743392459"
-    SHORTCODE_DOC_ID = "27128499623469141"
-
-    DEFAULT_COOKIES = {
-        "sessionid": "",
-        "mid": "",
-        "ig_pr": "1",
-        "ig_vw": "1920",
-        "csrftoken": "",
-        "s_network": "",
-        "ds_user_id": "",
-    }
-
-    DEFAULT_USER_AGENT = (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    )
-
-    MEDIA_TYPES = {
-        1: InstagramMediaType.IMAGE,
-        2: InstagramMediaType.VIDEO,
-        8: InstagramMediaType.SIDECAR,
-    }
+    ASBD_ID = "359341"
+    DOC_ID = "27130156389949648"
+    MOBILE_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
 
     def __init__(
         self,
@@ -167,64 +102,171 @@ class InstagramAPI:
         proxy: str | None = None,
         cookie: dict[str, str] | None = None,
         timeout: float = 30,
-        user_agent: str | None = None,
     ):
         self.proxy = proxy
         self.cookie = cookie or {}
         self.timeout = timeout
-        self.user_agent = user_agent or self.DEFAULT_USER_AGENT
 
     async def get_post(self, shortcode: str) -> InstagramPost:
-        media = await self.get_shortcode_media(shortcode)
-        return InstagramPost(media)
-
-    async def get_shortcode_media(self, shortcode: str) -> dict[str, Any]:
-        payload = await self._post_graphql(
-            doc_id=self.SHORTCODE_DOC_ID,
-            variables={
-                "shortcode": shortcode,
-                "__relay_internal__pv__PolarisAIGMMediaWebLabelEnabledrelayprovider": False,
-            },
-        )
-
-        if payload.get("data") is None and payload.get("errors"):
-            await self._check_ruling(shortcode)
-
-        media = self._extract_shortcode_media(payload)
-        if media is None:
-            raise InstagramRestrictedError("受限视频无法解析: 你必须年满 18 周岁才能观看这个视频")
-        return media
-
-    async def _check_ruling(self, shortcode: str) -> None:
-        """查询内容裁决接口, 在 GraphQL 报错时解释原因。失败时静默返回。"""
         try:
-            async with self._new_client() as client:
-                try:
-                    await self._ensure_csrf_token(client)
-                except InstagramAPIError:
-                    return
-                response = await client.get(
-                    self.RULING_URL,
-                    params={
-                        "content_type": "MEDIA",
-                        "target_id": str(self.shortcode_to_media_id(shortcode)),
-                    },
-                    headers={
-                        "X-IG-App-ID": self.APP_ID,
-                        "Accept-Language": "zh-CN,zh;q=0.9",
-                    },
-                )
-            body = response.json()
-        except (httpx.HTTPError, ValueError):
-            return
-        if not isinstance(body, dict):
+            async with requests.AsyncSession(
+                impersonate="chrome",
+                proxy=self.proxy,
+                timeout=self.timeout,
+                cookies=self.cookie or None,
+            ) as session:
+                if self.cookie:
+                    return await self._get_cookie_post(session, shortcode)
+                return await self._get_logged_out_post(session, shortcode)
+        except requests.RequestsError as exc:
+            raise InstagramAPIError(f"请求 Instagram 失败: {exc}") from exc
+
+    async def _get_logged_out_post(self, session: requests.AsyncSession, shortcode: str) -> InstagramPost:
+        detail = "未返回帖子数据"
+        media_id = str(self.shortcode_to_media_id(shortcode))
+
+        try:
+            item = await self._fetch_graphql(session, shortcode, media_id)
+            if item is not None:
+                return InstagramPost.from_v1(item)
+        except InstagramAPIError as exc:
+            detail = str(exc)
+        except requests.RequestsError as exc:
+            detail = f"请求 Instagram 失败: {exc}"
+
+        try:
+            node = await self._fetch_embed(session, shortcode)
+            if node is not None:
+                return InstagramPost.from_graph(node)
+        except InstagramAPIError as exc:
+            detail = str(exc)
+        except requests.RequestsError as exc:
+            detail = f"请求 Instagram Embed 失败: {exc}"
+
+        await self._check_ruling(session, media_id)
+        raise InstagramAPIError(detail)
+
+    async def _fetch_graphql(
+        self, session: requests.AsyncSession, shortcode: str, media_id: str
+    ) -> dict[str, Any] | None:
+        response = await session.get(self.HOME_URL)
+        if response.status_code != 200:
+            raise InstagramAPIError(f"HTTP {response.status_code}: {response.text[:300]}")
+
+        match = re.search(r'\["LSD",\[\],\{"token":"([^"]+)"', response.text)
+        if not match:
+            raise InstagramAPIError(f"未能获取 Instagram LSD token: {response.text[:300]}")
+        lsd = match.group(1)
+        csrf = session.cookies.get("csrftoken", "")
+        headers = {
+            "X-IG-App-ID": self.APP_ID,
+            "X-ASBD-ID": self.ASBD_ID,
+            "X-IG-WWW-Claim": "0",
+            "Origin": self.HOME_URL.rstrip("/"),
+            "Accept": "*/*",
+            "X-FB-Friendly-Name": "PolarisLoggedOutDesktopWWWPostRootContentQuery",
+            "X-CSRFToken": csrf,
+            "X-FB-LSD": lsd,
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"https://www.instagram.com/p/{shortcode}/",
+        }
+        data = {
+            "lsd": lsd,
+            "fb_api_caller_class": "RelayModern",
+            "fb_api_req_friendly_name": "PolarisLoggedOutDesktopWWWPostRootContentQuery",
+            "server_timestamps": "true",
+            "variables": json.dumps({"media_id": media_id}, separators=(",", ":")),
+            "doc_id": self.DOC_ID,
+        }
+        response = await session.post(self.GRAPHQL_URL, headers=headers, data=data)
+        if response.status_code != 200:
+            raise InstagramAPIError(f"HTTP {response.status_code}: {response.text[:300]}")
+        payload = _response_json(response)
+        graphql_data = payload.get("data")
+        media = graphql_data.get("xig_polaris_media") if isinstance(graphql_data, dict) else None
+        item = media.get("if_not_gated_logged_out") if isinstance(media, dict) else None
+        if isinstance(item, dict):
+            return item
+        errors = payload.get("errors")
+        if errors:
+            raise InstagramAPIError(str(errors[0])[:300])
+        return None
+
+    async def _fetch_embed(self, session: requests.AsyncSession, shortcode: str) -> dict[str, Any] | None:
+        for kind in ("p", "reel"):
+            response = await session.get(
+                self.EMBED_URL.format(kind=kind, shortcode=shortcode),
+                headers={"Accept": "text/html", "User-Agent": self.MOBILE_USER_AGENT},
+                allow_redirects=False,
+            )
+            if response.status_code != 200:
+                continue
+            node = self._extract_embed_media(response.text)
+            if node is not None:
+                return node
+        return None
+
+    @staticmethod
+    def _extract_embed_media(html: str) -> dict[str, Any] | None:
+        match = re.search(r'"init",\[\],\[(.*?)\]\],', html, re.DOTALL)
+        if not match:
+            return None
+        try:
+            payload = json.loads(f"[{match.group(1)}]")
+            context = payload[0].get("contextJSON")
+            context = json.loads(context) if isinstance(context, str) else context
+        except (IndexError, AttributeError, json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(context, dict):
+            return None
+        node = (context.get("gql_data") or {}).get("shortcode_media")
+        return node if isinstance(node, dict) else None
+
+    async def _check_ruling(self, session: requests.AsyncSession, media_id: str) -> None:
+        try:
+            response = await session.get(
+                self.RULING_URL,
+                params={"content_type": "MEDIA", "target_id": media_id},
+                headers={"X-IG-App-ID": self.APP_ID, "Accept-Language": "zh-CN,zh;q=0.9"},
+            )
+            body = _response_json(response)
+        except (InstagramAPIError, requests.RequestsError):
             return
 
         if body.get("message") == "Media cannot be found":
             raise ContentUnavailableError("帖子不存在或已被删除")
         if title := body.get("title"):
             description = body.get("description")
-            raise InstagramRestrictedError(f"{title}: {description}" if description else title)
+            raise InstagramRestrictedError(f"{title}: {description}" if description else str(title))
+
+    async def _get_cookie_post(self, session: requests.AsyncSession, shortcode: str) -> InstagramPost:
+        media_id = self.shortcode_to_media_id(shortcode)
+        response = await session.get(
+            self.MEDIA_INFO_URL.format(media_id=media_id),
+            headers={
+                "X-IG-App-ID": self.APP_ID,
+                "X-ASBD-ID": self.ASBD_ID,
+                "X-IG-WWW-Claim": "0",
+                "X-CSRFToken": self.cookie.get("csrftoken", ""),
+                "Origin": self.HOME_URL.rstrip("/"),
+                "Referer": f"https://www.instagram.com/p/{shortcode}/",
+            },
+            allow_redirects=False,
+        )
+        location = response.headers.get("Location", "")
+        redirect_path = urlparse(location).path
+        if response.status_code in (301, 302, 303, 307, 308) and (
+            redirect_path.startswith("/accounts/login") or redirect_path == "/"
+        ):
+            raise InstagramAPIError("Cookie 已失效")
+        if response.status_code != 200:
+            raise InstagramAPIError(f"HTTP {response.status_code}: {response.text[:300]}")
+
+        payload = _response_json(response)
+        items = payload.get("items") or []
+        if not items or not isinstance(items[0], dict):
+            raise InstagramAPIError("未返回帖子数据")
+        return InstagramPost.from_v1(items[0])
 
     @staticmethod
     def shortcode_to_media_id(shortcode: str) -> int:
@@ -236,198 +278,79 @@ class InstagramAPI:
             media_id = media_id * 64 + alphabet.index(char)
         return media_id
 
-    async def _post_graphql(self, *, doc_id: str, variables: dict[str, Any]) -> dict[str, Any]:
-        async with self._new_client() as client:
-            await self._ensure_csrf_token(client)
-            data = {
-                "variables": json.dumps(variables, separators=(",", ":")),
-                "doc_id": doc_id,
-                "server_timestamps": "true",
-            }
 
-            try:
-                response = await client.post(self.GRAPHQL_URL, data=data, follow_redirects=False)
-            except httpx.HTTPError as exc:
-                raise InstagramAPIError(f"请求 Instagram GraphQL 失败: {exc}") from exc
+def _response_json(response: Any) -> dict[str, Any]:
+    try:
+        payload = response.json()
+    except (ValueError, requests.RequestsError) as exc:
+        raise InstagramAPIError(f"Instagram 返回无效 JSON: {response.text[:300]}") from exc
+    if not isinstance(payload, dict):
+        raise InstagramAPIError("Instagram 返回的数据格式无效")
+    return payload
 
-        if response.status_code != 200:
-            raise InstagramAPIError(f"Instagram GraphQL 返回 HTTP {response.status_code}: {response.text[:500]}")
 
-        try:
-            payload = response.json()
-        except ValueError as exc:
-            raise InstagramAPIError(f"Instagram GraphQL 返回非 JSON 响应: {response.text[:500]}") from exc
+def _caption_text(caption: Any) -> str:
+    if isinstance(caption, dict):
+        caption = caption.get("text")
+    return str(caption or "")
 
-        if payload.get("status") not in (None, "ok"):
-            raise InstagramAPIError(f"Instagram GraphQL 状态异常: {payload!r}")
-        return cast(dict[str, Any], payload)
 
-    def _extract_shortcode_media(self, payload: dict[str, Any]) -> dict[str, Any] | None:
-        data = payload.get("data")
-        if not isinstance(data, dict):
-            raise InstagramAPIError(f"响应缺少 data: {payload!r}")
+def _v1_type(item: dict[str, Any]) -> InstagramMediaType:
+    media_types = {
+        1: InstagramMediaType.IMAGE,
+        2: InstagramMediaType.VIDEO,
+        8: InstagramMediaType.SIDECAR,
+    }
+    media_type = item.get("media_type")
+    if isinstance(media_type, int) and media_type in media_types:
+        return media_types[media_type]
+    raise InstagramAPIError(f"不支持的 Instagram 媒体类型: {media_type}")
 
-        old_media = data.get("xdt_shortcode_media")
-        if isinstance(old_media, dict):
-            return old_media
-        if old_media is None and "xdt_shortcode_media" in data:
-            return None
 
-        web_info = data.get("xdt_api__v1__media__shortcode__web_info")
-        if not isinstance(web_info, dict):
-            raise InstagramAPIError(f"响应缺少 shortcode web_info: {payload!r}")
+def _v1_media(item: dict[str, Any]) -> InstagramMedia:
+    candidates = (item.get("image_versions2") or {}).get("candidates") or []
+    candidate = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+    video_versions = item.get("video_versions") or []
+    video = video_versions[0] if video_versions and isinstance(video_versions[0], dict) else {}
+    video_url = str(video.get("url") or "")
+    return InstagramMedia(
+        is_video=bool(video_url),
+        display_url=str(candidate.get("url") or item.get("display_url") or ""),
+        video_url=video_url,
+        width=int(item.get("original_width") or candidate.get("width") or 0),
+        height=int(item.get("original_height") or candidate.get("height") or 0),
+        duration=float(item.get("video_duration") or 0),
+    )
 
-        items = web_info.get("items") or []
-        if not items:
-            return None
-        if not isinstance(items[0], dict):
-            raise InstagramAPIError(f"shortcode web_info.items[0] 类型异常: {type(items[0]).__name__}")
-        return self._convert_v1_media(items[0])
 
-    def _convert_v1_media(self, media: dict[str, Any]) -> dict[str, Any]:
-        media_type = self._media_type(media)
-        typename = self.MEDIA_TYPES.get(media_type, InstagramMediaType.IMAGE)
-        caption = media.get("caption")
-        caption_text = caption.get("text") if isinstance(caption, dict) else caption
-        image_candidate = self._first_image_candidate(media)
-        video_version = self._first_video_version(media)
+def _graph_type(node: dict[str, Any]) -> InstagramMediaType:
+    typename = node.get("__typename")
+    if not isinstance(typename, str):
+        raise InstagramAPIError(f"不支持的 Instagram 媒体类型: {typename}")
+    try:
+        return InstagramMediaType(typename)
+    except ValueError as exc:
+        raise InstagramAPIError(f"不支持的 Instagram 媒体类型: {typename}") from exc
 
-        node: dict[str, Any] = {
-            "shortcode": media.get("code", ""),
-            "id": media.get("pk", ""),
-            "__typename": typename,
-            "is_video": media_type == 2,
-            "taken_at_timestamp": media.get("taken_at"),
-            "edge_media_to_caption": {
-                "edges": [{"node": {"text": caption_text}}] if caption_text else [],
-            },
-            "edge_media_preview_like": {"count": media.get("like_count") or 0},
-            "edge_media_to_parent_comment": {
-                "count": media.get("comment_count") or 0,
-                "edges": [],
-            },
-            "owner": self._convert_owner(media.get("user")),
-            "dimensions": self._dimensions_from_candidate(image_candidate),
-            "display_url": image_candidate.get("url", ""),
-        }
 
-        for source_key, target_key in (
-            ("title", "title"),
-            ("has_liked", "viewer_has_liked"),
-            ("accessibility_caption", "accessibility_caption"),
-            ("location", "location"),
-            ("video_duration", "video_duration"),
-            ("view_count", "video_view_count"),
-            ("play_count", "video_play_count"),
-        ):
-            if media.get(source_key) is not None:
-                node[target_key] = media[source_key]
-
-        if video_version.get("url"):
-            node["video_url"] = video_version["url"]
-
-        carousel_media = media.get("carousel_media") or []
-        if carousel_media:
-            node["edge_sidecar_to_children"] = {
-                "edges": [{"node": self._convert_v1_sidecar_item(item)} for item in carousel_media],
-            }
-
-        return node
-
-    def _convert_v1_sidecar_item(self, item: dict[str, Any]) -> dict[str, Any]:
-        media_type = self._media_type(item)
-        typename = self.MEDIA_TYPES.get(media_type, InstagramMediaType.IMAGE)
-        image_candidate = self._first_image_candidate(item)
-        video_version = self._first_video_version(item)
-        is_video = media_type == 2
-
-        node: dict[str, Any] = {
-            "shortcode": item.get("code", ""),
-            "__typename": typename,
-            "is_video": is_video,
-            "display_url": image_candidate.get("url", ""),
-            "video_url": video_version.get("url") if is_video else None,
-            "dimensions": self._dimensions_from_candidate(image_candidate),
-        }
-        if item.get("accessibility_caption") is not None:
-            node["accessibility_caption"] = item["accessibility_caption"]
-        return node
-
-    @staticmethod
-    def _media_type(media: dict[str, Any]) -> int:
-        value = media.get("media_type")
-        return value if isinstance(value, int) else 0
-
-    @staticmethod
-    def _convert_owner(user: Any) -> dict[str, Any]:
-        if not isinstance(user, dict):
-            return {"id": "", "username": "", "full_name": ""}
-        return {
-            "id": user.get("pk", ""),
-            "username": user.get("username", ""),
-            "full_name": user.get("full_name", ""),
-        }
-
-    @staticmethod
-    def _first_image_candidate(media: dict[str, Any]) -> dict[str, Any]:
-        candidates = media.get("image_versions2", {}).get("candidates") or []
-        return candidates[0] if candidates and isinstance(candidates[0], dict) else {}
-
-    @staticmethod
-    def _first_video_version(media: dict[str, Any]) -> dict[str, Any]:
-        versions = media.get("video_versions") or []
-        return versions[0] if versions and isinstance(versions[0], dict) else {}
-
-    @staticmethod
-    def _dimensions_from_candidate(candidate: dict[str, Any]) -> dict[str, int]:
-        return {
-            "width": int(candidate.get("width") or 0),
-            "height": int(candidate.get("height") or 0),
-        }
-
-    async def _ensure_csrf_token(self, client: httpx.AsyncClient) -> None:
-        csrf_token = self._get_cookie_value(client, "csrftoken")
-        if not csrf_token:
-            try:
-                await client.get(self.INSTAGRAM_URL, follow_redirects=True)
-            except httpx.HTTPError as exc:
-                raise InstagramAPIError(f"获取 Instagram csrftoken 失败: {exc}") from exc
-            csrf_token = self._get_cookie_value(client, "csrftoken")
-
-        if not csrf_token:
-            raise InstagramAPIError("无法获取 Instagram csrftoken")
-        client.headers["x-csrftoken"] = csrf_token
-
-    @staticmethod
-    def _get_cookie_value(client: httpx.AsyncClient, name: str) -> str:
-        values = [cookie.value for cookie in client.cookies.jar if cookie.name == name and cookie.value]
-        return values[-1] if values else ""
-
-    def _new_client(self) -> httpx.AsyncClient:
-        cookies = self.DEFAULT_COOKIES | self.cookie
-        headers = {
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate",
-            "Accept-Language": "en-US,en;q=0.8",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Referer": "https://www.instagram.com/",
-            "User-Agent": self.user_agent,
-            "authority": "www.instagram.com",
-            "scheme": "https",
-        }
-        return httpx.AsyncClient(
-            cookies=cookies,
-            headers=headers,
-            proxy=self.proxy,
-            timeout=self.timeout,
-        )
+def _graph_media(node: dict[str, Any]) -> InstagramMedia:
+    video_url = str(node.get("video_url") or "")
+    dimensions = node.get("dimensions") or {}
+    return InstagramMedia(
+        is_video=bool(video_url),
+        display_url=str(node.get("display_url") or node.get("display_src") or ""),
+        video_url=video_url,
+        width=int(dimensions.get("width") or 0),
+        height=int(dimensions.get("height") or 0),
+        duration=float(node.get("video_duration") or 0),
+    )
 
 
 __all__ = [
     "InstagramAPI",
     "InstagramAPIError",
+    "InstagramMedia",
     "InstagramMediaType",
     "InstagramPost",
     "InstagramRestrictedError",
-    "InstagramSidecarNode",
 ]
