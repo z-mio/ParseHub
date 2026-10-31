@@ -71,11 +71,12 @@ class InstagramParser(BaseParser):
                         title=post.title,
                         content=post.caption,
                         video=VideoRef(
-                            url=info.url,
+                            # yt-dlp 的 info.url 是帖子页，provider 的 video_url 才是媒体直链
+                            url=item.video_url or info.url,
                             thumb_url=item.display_url or info.thumbnail,
                             width=info.width,
                             height=info.height,
-                            duration=int(info.duration or item.duration),
+                            duration=int(item.duration or info.duration),
                         ),
                     )
                 if not item.video_url:

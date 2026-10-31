@@ -116,10 +116,53 @@ class InstagramAPI:
                 cookies=self.cookie or None,
             ) as session:
                 if self.cookie:
-                    return await self._get_cookie_post(session, shortcode)
-                return await self._get_logged_out_post(session, shortcode)
+                    post = await self._get_cookie_post(session, shortcode)
+                else:
+                    post = await self._get_logged_out_post(session, shortcode)
+                return await self._fill_missing_video_fields(session, post, shortcode)
         except requests.RequestsError as exc:
             raise InstagramAPIError(f"请求 Instagram 失败: {exc}") from exc
+
+    async def _fill_missing_video_fields(
+        self,
+        session: requests.AsyncSession,
+        post: InstagramPost,
+        shortcode: str,
+    ) -> InstagramPost:
+        """用 embed 补齐 v1 / GraphQL 缺失的视频直链和时长。"""
+        if not any(
+            (post.type is InstagramMediaType.VIDEO or item.is_video)
+            and (not item.video_url or item.duration <= 0)
+            for item in post.media
+        ):
+            return post
+
+        try:
+            node = await self._fetch_embed(session, shortcode)
+        except requests.RequestsError:
+            return post
+        if node is None:
+            return post
+
+        try:
+            embed = InstagramPost.from_graph(node)
+        except InstagramAPIError:
+            return post
+
+        for index, item in enumerate(post.media):
+            if post.type is not InstagramMediaType.VIDEO and not item.is_video:
+                continue
+            source = embed.media[index] if index < len(embed.media) else None
+            if source is None and len(post.media) == 1 and len(embed.media) == 1:
+                source = embed.media[0]
+            if source is None:
+                continue
+            if not item.video_url and source.video_url:
+                item.video_url = source.video_url
+                item.is_video = True
+            if item.duration <= 0 and source.duration > 0:
+                item.duration = source.duration
+        return post
 
     async def _get_logged_out_post(self, session: requests.AsyncSession, shortcode: str) -> InstagramPost:
         detail = "未返回帖子数据"
