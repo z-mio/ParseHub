@@ -8,8 +8,8 @@ from ..errors import (
     ParseError,
 )
 from .callback import ProgressCallback, ProgressUnit
-from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, MediaFile, VideoFile
-from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, MediaRef, VideoRef
+from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, MediaFile, MusicFile, VideoFile
+from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, MediaRef, MusicRef, VideoRef
 from .platform import Platform
 from .post import PostType
 from .result import (
@@ -17,6 +17,7 @@ from .result import (
     DownloadResult,
     ImageParseResult,
     MultimediaParseResult,
+    MusicParseResult,
     ParseResult,
     RichTextParseResult,
     VideoParseResult,
@@ -33,12 +34,14 @@ __all__ = [
     "MediaRef",
     "AniRef",
     "VideoRef",
+    "MusicRef",
     "ImageRef",
     "LivePhotoRef",
     "DownloadResult",
     "ParseResult",
     "ImageParseResult",
     "VideoParseResult",
+    "MusicParseResult",
     "MultimediaParseResult",
     "RichTextParseResult",
     "AnyMediaRef",
@@ -49,6 +52,7 @@ __all__ = [
     "ImageFile",
     "AniFile",
     "LivePhotoFile",
+    "MusicFile",
     "AnyMediaFile",
     "ProgressCallback",
     "ProgressUnit",

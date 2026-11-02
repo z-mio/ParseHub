@@ -20,8 +20,8 @@ from ..utils.downloader import download
 from ..utils.fallback import FallbackStage, run_fallback
 from ..utils.helpers import run_sync
 from .callback import ProgressCallback
-from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, VideoFile
-from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, VideoRef
+from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, MusicFile, VideoFile
+from .media_ref import AniRef, AnyMediaRef, ImageRef, LivePhotoRef, MusicRef, VideoRef
 from .platform import Platform
 from .post import PostType
 
@@ -155,6 +155,8 @@ class ParseResult(ABC):  # noqa: B024
                     mf = ImageFile(path=f, width=media.width, height=media.height)
                 case VideoRef():
                     mf = VideoFile(path=f, width=media.width, height=media.height, duration=media.duration)
+                case MusicRef():
+                    mf = MusicFile(path=f, duration=media.duration)
                 case AniRef():
                     mf = AniFile(path=f, width=media.width, height=media.height, duration=media.duration)
                 case LivePhotoRef():
@@ -361,6 +363,21 @@ class VideoParseResult(ParseResult):
         )
 
 
+class MusicParseResult(ParseResult):
+    """单个音乐"""
+
+    type = PostType.MUSIC
+
+    def __init__(
+        self,
+        title: str = "",
+        music: str | MusicRef | None = None,
+        content: str = "",
+    ):
+        music = MusicRef(url=music) if isinstance(music, str) else music
+        super().__init__(title=title, media=music, content=content)
+
+
 class ImageParseResult(ParseResult):
     """单图 / 多图 / 图集 / 实况照片"""
 
@@ -464,4 +481,4 @@ class DownloadResult:
         return f"{self.__class__.__name__}(media={media_count}, output_dir={self.output_dir})"
 
 
-AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult
+AnyParseResult = VideoParseResult | ImageParseResult | MultimediaParseResult | RichTextParseResult | MusicParseResult

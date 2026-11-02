@@ -131,6 +131,7 @@ class TestParserRegistry(unittest.TestCase):
         self.assertEqual(len(by_id), len(platforms))
         self.assertEqual(by_id["tieba"]["name"], Platform.TIEBA.display_name)
         self.assertIn("图文", by_id["tieba"]["supported_types"])
+        self.assertIn("音乐", by_id["bilibili"]["supported_types"])
         self.assertEqual(parsehub.get_platform("https://tieba.baidu.com/p/9939510114"), Platform.TIEBA)
         self.assertIsNone(parsehub.get_platform("https://example.invalid/not-supported"))
 
@@ -554,6 +555,8 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://www.bilibili.com/video/av123456",
                 "https://www.bilibili.com/opus/1234567890123456789",
                 "https://t.bilibili.com/1234567890123456789",
+                "https://www.bilibili.com/audio/au2854883",
+                "https://m.bilibili.com/audio/au2854883",
                 "https://b23.tv/abc123",
                 "https://bili2233.cn/abc123",
             ],
@@ -687,6 +690,8 @@ class TestPlatformUrlMatching(unittest.TestCase):
             "https://www.youtube.com/live/1h_uc3K4Cpg",
             "https://www.youtube.com/post/Ugkxexample",
             "https://www.youtube.com/@example",
+            "https://www.bilibili.com/audio/home",
+            "https://www.bilibili.com/audio/am10624",
         ]
 
         for url in urls:

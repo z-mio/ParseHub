@@ -37,7 +37,7 @@ A lightweight, asynchronous, ready-to-use social media parser and media download
 | **YouTube**     |  ✅   |             | 🎵 Music                              |
 | **Facebook**    |  ✅   |             |                                       |
 | **Threads**     |  ✅   |     ✅      |                                       |
-| **Bilibili**    |  ✅   |             | 📝 Updates                            |
+| **Bilibili**    |  ✅   |             | 📝 Updates, 🎵 Music                  |
 | **Douyin**      |  ✅   |     ✅      | ☀️ Daily posts                        |
 | **TikTok**      |  ✅   |     ✅      |                                       |
 | **Weibo**       |  ✅   |     ✅      |                                       |

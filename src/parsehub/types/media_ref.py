@@ -38,6 +38,22 @@ class VideoRef(MediaRef):
 
 
 @dataclass(kw_only=True)
+class MusicRef(MediaRef):
+    """音乐
+    Attributes:
+        url: URL
+        ext: 默认扩展名
+        thumb_url: 缩略图 URL
+        width: 宽度
+        height: 高度
+        duration: 音乐时长，单位: 秒
+    """
+
+    ext: str = "m4a"
+    duration: int = 0
+
+
+@dataclass(kw_only=True)
 class ImageRef(MediaRef):
     """图片
     Attributes:
@@ -87,6 +103,6 @@ class LivePhotoRef(MediaRef):
     duration: int = 3
 
 
-AnyMediaRef = ImageRef | VideoRef | AniRef | LivePhotoRef
+AnyMediaRef = ImageRef | VideoRef | AniRef | LivePhotoRef | MusicRef
 
-__all__ = ["MediaRef", "VideoRef", "ImageRef", "AniRef", "LivePhotoRef", "AnyMediaRef"]
+__all__ = ["MediaRef", "VideoRef", "MusicRef", "ImageRef", "AniRef", "LivePhotoRef", "AnyMediaRef"]

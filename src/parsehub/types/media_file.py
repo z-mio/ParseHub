@@ -79,6 +79,20 @@ class AniFile(MediaFile):
 
 
 @dataclass(kw_only=True)
+class MusicFile(MediaFile):
+    """本地音乐
+    Attributes:
+        path: 路径
+        duration: 音乐时长，单位: 秒
+    """
+
+    duration: int = 0
+
+    def __post_init__(self) -> None:
+        """音乐不做宽高探测；时长由解析结果传入。"""
+
+
+@dataclass(kw_only=True)
 class LivePhotoFile(MediaFile):
     """本地 Live Photo
     Attributes:
@@ -100,6 +114,6 @@ class LivePhotoFile(MediaFile):
             self.duration = info.duration
 
 
-AnyMediaFile = MediaFile | VideoFile | ImageFile | AniFile | LivePhotoFile
+AnyMediaFile = MediaFile | VideoFile | ImageFile | AniFile | LivePhotoFile | MusicFile
 
-__all__ = ["MediaFile", "VideoFile", "ImageFile", "AniFile", "LivePhotoFile", "AnyMediaFile"]
+__all__ = ["MediaFile", "VideoFile", "ImageFile", "AniFile", "LivePhotoFile", "MusicFile", "AnyMediaFile"]
