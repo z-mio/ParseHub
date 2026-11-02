@@ -9,3 +9,4 @@ class PostType(StrEnum):
     VIDEO = "video"
     MULTIMEDIA = "multimedia"
     RICHTEXT = "richtext"
+    MUSIC = "music"

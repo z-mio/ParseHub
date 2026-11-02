@@ -125,6 +125,27 @@ class BiliAPI:
         )
         return cast(dict[str, Any], response.json())
 
+    async def get_music_info(self, url: str) -> dict:
+        """获取音乐详细信息"""
+        sid = self.get_music_id(url)
+        if not sid:
+            raise ValueError(f"Invalid url: {url}")
+        response = await self._get_client().get(
+            "https://www.bilibili.com/audio/music-service-c/web/song/info",
+            params={"sid": sid},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    async def get_music_url(self, sid: str) -> dict:
+        """获取音乐播放链接"""
+        response = await self._get_client().get(
+            "https://www.bilibili.com/audio/music-service-c/web/url",
+            params={"sid": sid},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
     async def get_buvid(self):
         """获取 buvid"""
         response = await self._get_client().get(
@@ -187,6 +208,11 @@ class BiliAPI:
             idx = ALPHABET.index(bvid[DECODE_MAP[i]])
             tmp = tmp * BASE + idx
         return f"av{(tmp & MASK_CODE) ^ XOR_CODE}"
+
+    @staticmethod
+    def get_music_id(url: str) -> str | None:
+        m = re.search(r"/audio/au(\d+)", url)
+        return m.group(1) if m else None
 
     def get_bvid(self, url: str):
         m_bv = re.search(r"BV[0-9A-Za-z]{10,}", url)

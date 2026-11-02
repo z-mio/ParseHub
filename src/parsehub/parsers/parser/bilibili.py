@@ -12,6 +12,8 @@ from ...types import (
     ImageParseResult,
     ImageRef,
     LivePhotoRef,
+    MusicParseResult,
+    MusicRef,
     ParseError,
     Platform,
     ProgressCallback,
@@ -25,17 +27,21 @@ from ..base.ytdlp import YtParser, YtVideoParseResult
 
 class BiliParse(BaseParser):
     __platform__ = Platform.BILIBILI
-    __supported_type__ = ["视频", "动态"]
-    __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|\b\d{18,19}\b)|b23.tv|bili2233.cn).*"
+    __supported_type__ = ["视频", "动态", "音乐"]
+    __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|audio/au\d+|\b\d{18,19}\b)|b23.tv|bili2233.cn).*"
     __reserved_parameters__ = ["p"]
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
-    async def _do_parse(self, raw_url: str) -> YtVideoParseResult | BiliVideoParseResult | ImageParseResult:
+    async def _do_parse(
+        self, raw_url: str
+    ) -> YtVideoParseResult | BiliVideoParseResult | BiliMusicParseResult | ImageParseResult:
         parsed = urlparse(raw_url)
         if parsed.hostname == "mall.bilibili.com":
             raise ParseError("不支持解析商品")
         if parsed.path.startswith("/bangumi/"):
             raise ParseError("不支持解析番剧和影视")
+        if BiliAPI.get_music_id(raw_url):
+            return await self.bili_music_parse(raw_url)
         if await self.is_dynamic(raw_url):
             dynamic = await self.get_dynamic_info(raw_url)
             content = self.hashtag_handler(dynamic.content or "")
@@ -142,6 +148,36 @@ class BiliParse(BaseParser):
             ),
         )
 
+    async def bili_music_parse(self, url: str) -> BiliMusicParseResult:
+        async with BiliAPI(proxy=self.proxy) as bili:
+            info_response = await bili.get_music_info(url)
+            if not (info := info_response.get("data")):
+                if info_response.get("code") == 4511001:
+                    raise ContentUnavailableError("音乐未找到或已下架")
+                raise ParseError(f"获取音乐信息失败: {info_response.get('message') or '未知错误'}")
+
+            play_response = await bili.get_music_url(str(info["id"]))
+            cdns: list[str] = (play_response.get("data") or {}).get("cdns") or []
+            if not cdns:
+                raise ParseError("获取音乐链接失败")
+
+        return BiliMusicParseResult(
+            title=info.get("title") or "",
+            music=MusicRef(
+                url=cdns[0],
+                ext=self._music_ext(cdns[0]),
+                thumb_url=info.get("cover") or None,
+                backup_urls=cdns[1:],
+                duration=int(info.get("duration") or 0),
+            ),
+            content=info.get("intro") or "",
+        )
+
+    @staticmethod
+    def _music_ext(url: str) -> str:
+        suffix = Path(urlparse(url).path).suffix
+        return suffix.removeprefix(".") or "m4a"
+
     async def ytp_parse(self, url: str) -> YtVideoParseResult:
         return await BiliYtParse(proxy=self.proxy, cookie=self.cookie)._do_parse(url)
 
@@ -205,7 +241,34 @@ class BiliVideoParseResult(VideoParseResult):
         )
 
 
+class BiliMusicParseResult(MusicParseResult):
+    async def _do_download(
+        self,
+        *,
+        output_dir: Path,
+        callback: ProgressCallback | None = None,
+        callback_args: tuple = (),
+        callback_kwargs: dict | None = None,
+        proxy: str | None = None,
+        headers: dict | None = None,
+        connections: int = 4,
+        concurrency: int = 4,
+    ) -> DownloadResult:
+        headers = {"referer": "https://www.bilibili.com", "User-Agent": UA}
+        return await super()._do_download(
+            output_dir=output_dir,
+            callback=callback,
+            callback_args=callback_args,
+            callback_kwargs=callback_kwargs,
+            proxy=proxy,
+            headers=headers,
+            connections=connections,
+            concurrency=concurrency,
+        )
+
+
 __all__ = [
     "BiliParse",
     "BiliVideoParseResult",
+    "BiliMusicParseResult",
 ]
