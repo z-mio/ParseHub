@@ -66,7 +66,7 @@ class InstagramParser(BaseParser):
                 except ParseError as e:
                     logger.warning(f"Instagram yt-dlp 解析失败, 使用直链视频: {e}")
                 else:
-                    return YtVideoParseResult(
+                    return InstagramYtVideoParseResult(
                         dl=info,
                         title=post.title,
                         content=post.caption,
@@ -121,6 +121,12 @@ class InstagramParser(BaseParser):
 
 class InstagramYtParse(YtParser, register=False):
     pass
+
+
+class InstagramYtVideoParseResult(YtVideoParseResult):
+    @property
+    def cli_args(self) -> list[str]:
+        return [*super().cli_args, "-S", "vcodec:h264"]
 
 
 __all__ = ["InstagramParser"]
