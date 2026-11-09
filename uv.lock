@@ -1063,7 +1063,7 @@ wheels = [
 
 [[package]]
 name = "parsehub"
-version = "2.4.0"
+version = "2.4.1"
 source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -1106,39 +1106,39 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiofiles", specifier = ">=23.2" },
-    { name = "argcomplete", marker = "extra == 'cli'", specifier = ">=3.6.3" },
-    { name = "beautifulsoup4", specifier = ">=4.12.3" },
-    { name = "cryptography", specifier = ">=49.0.0" },
-    { name = "curl-cffi", specifier = ">=0.13" },
+    { name = "aiofiles", specifier = ">=25.1.0" },
+    { name = "argcomplete", marker = "extra == 'cli'", specifier = ">=3.7.2" },
+    { name = "beautifulsoup4", specifier = ">=4.15.0" },
+    { name = "cryptography", specifier = ">=50.0.2" },
+    { name = "curl-cffi", specifier = ">=0.17.0" },
     { name = "gmssl", specifier = ">=3.2.2" },
-    { name = "httpx", extras = ["socks"], specifier = ">=0.24.1" },
-    { name = "json5", specifier = ">=0.12" },
-    { name = "loguru", specifier = ">=0.6.0" },
-    { name = "lxml", specifier = ">=5.3.0" },
-    { name = "markdown", specifier = ">=3.7" },
-    { name = "markdownify", specifier = ">=1.1.0" },
-    { name = "opencv-python-headless", specifier = ">=4.13.0.92" },
-    { name = "pillow", specifier = ">=12.1.0" },
-    { name = "platformdirs", marker = "extra == 'cli'", specifier = ">=4.5.1" },
-    { name = "pydantic", specifier = ">=1.10.19" },
+    { name = "httpx", extras = ["socks"], specifier = ">=0.28.1" },
+    { name = "json5", specifier = ">=0.17.3" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "lxml", specifier = ">=6.1.3" },
+    { name = "markdown", specifier = ">=3.11.3" },
+    { name = "markdownify", specifier = ">=1.2.3" },
+    { name = "opencv-python-headless", specifier = ">=5.0.0.93" },
+    { name = "pillow", specifier = ">=13.0.0" },
+    { name = "platformdirs", marker = "extra == 'cli'", specifier = ">=4.14.5" },
+    { name = "pydantic", specifier = ">=2.14.3" },
     { name = "pydub", specifier = ">=0.25.1" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "python-slugify", extras = ["unidecode"], specifier = ">=8.0.4" },
-    { name = "requests" },
+    { name = "python-dotenv", specifier = ">=1.2.4" },
+    { name = "python-slugify", extras = ["unidecode"], specifier = ">=9.1.3" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "signerpy", specifier = ">=0.12.0" },
-    { name = "tenacity", specifier = ">=8.5.0" },
-    { name = "urlextract", specifier = ">=1.9.0" },
+    { name = "tenacity", specifier = ">=9.2.1" },
+    { name = "urlextract", specifier = ">=1.10.0" },
     { name = "xhshow", specifier = ">=0.2.0" },
-    { name = "yt-dlp", extras = ["default"], specifier = ">=2026.10.26.220202.dev0" },
+    { name = "yt-dlp", extras = ["default"], specifier = ">=2026.11.4.232659.dev0" },
 ]
 provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "mypy", specifier = ">=2.1.0" },
-    { name = "pytest", specifier = ">=9.0.3" },
-    { name = "ruff", specifier = ">=0.14.14" },
+    { name = "mypy", specifier = ">=2.4.1" },
+    { name = "pytest", specifier = ">=9.2.0" },
+    { name = "ruff", specifier = ">=0.17.4" },
 ]
 
 [[package]]
