@@ -98,12 +98,8 @@ class InstagramParser(BaseParser):
     async def _parse(self, shortcode: str) -> InstagramPost:
         stages: list[FallbackStage[InstagramPost]] = [FallbackStage("匿名", lambda: self._fetch(shortcode))]
         if self.cookie.get_value():
-            stages.append(
-                FallbackStage("cookie", lambda: self._fetch(shortcode, self.cookie), cookie=True)
-            )
-        return await self._fallback(
-            *stages, stop=lambda e: not isinstance(e.__cause__, InstagramRestrictedError)
-        )
+            stages.append(FallbackStage("cookie", lambda: self._fetch(shortcode, self.cookie), cookie=True))
+        return await self._fallback(*stages, stop=lambda e: not isinstance(e.__cause__, InstagramRestrictedError))
 
     async def _fetch(self, shortcode: str, cookie: SecretCookie | None = None) -> InstagramPost:
         api = InstagramAPI(proxy=self.proxy, cookie=cookie.get_value() if cookie else None, timeout=30)

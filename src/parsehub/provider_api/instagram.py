@@ -131,8 +131,7 @@ class InstagramAPI:
     ) -> InstagramPost:
         """用 embed 补齐 v1 / GraphQL 缺失的视频直链和时长。"""
         if not any(
-            (post.type is InstagramMediaType.VIDEO or item.is_video)
-            and (not item.video_url or item.duration <= 0)
+            (post.type is InstagramMediaType.VIDEO or item.is_video) and (not item.video_url or item.duration <= 0)
             for item in post.media
         ):
             return post

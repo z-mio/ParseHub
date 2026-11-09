@@ -95,9 +95,7 @@ class WXChannels:
 
         feed_data = feed_result.get("data") or {}
         feed_error = feed_data.get("errMsg") or {}
-        error_text = " ".join(
-            _strip_html(str(feed_error.get(key) or "")) for key in ("title", "content")
-        ).strip()
+        error_text = " ".join(_strip_html(str(feed_error.get(key) or "")) for key in ("title", "content")).strip()
         if feed_result.get("errCode") != 0:
             message = feed_result.get("errMsg") or "微信视频号解析失败"
             raise WXChannelsError(str(message))
