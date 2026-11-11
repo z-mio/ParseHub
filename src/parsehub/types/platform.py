@@ -14,6 +14,7 @@ class Platform(Enum):
     MEDIUM = ("medium", "Medium")
     FACEBOOK = ("facebook", "Facebook")
     INSTAGRAM = ("instagram", "Instagram")
+    JANDAN = ("jandan", "煎蛋")
     KUAISHOU = ("kuaishou", "快手")
     PIPIX = ("pipix", "皮皮虾")
     THREADS = ("threads", "Threads")

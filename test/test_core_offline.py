@@ -2,9 +2,11 @@ import unittest
 from urllib.parse import parse_qs, urlparse
 
 from parsehub import ParseHub
-from parsehub.errors import ParseError, UnknownPlatform
+from parsehub.errors import ContentUnavailableError, ParseError, UnknownPlatform
 from parsehub.parsers.base import BaseParser
-from parsehub.types import ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
+from parsehub.parsers.parser.jandan import JandanParser
+from parsehub.provider_api.jandan import Jandan
+from parsehub.types import AniRef, ImageParseResult, ImageRef, Platform, VideoParseResult, VideoRef
 from parsehub.utils.helpers import SecretCookie, match_url, run_sync
 
 
@@ -259,6 +261,12 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://www.instagram.com/user.name/reel/C0example/",
                 "https://www.instagram.com/reels/DaGI8bPS3ed/",
             ],
+            Platform.JANDAN: [
+                "https://jandan.net/t/6209188",
+                "https://jandan.net/t/6209188#comments",
+                "https://jandan.net/p/124273",
+                "jandan.net/p/124273/",
+            ],
             Platform.KUAISHOU: [
                 "https://www.kuaishou.com/short-video/3xexample",
                 "https://v.kuaishou.com/example",
@@ -363,6 +371,66 @@ class TestPlatformUrlMatching(unittest.TestCase):
         for url in urls:
             with self.subTest(url=url):
                 self.assertIsNone(parsehub.get_platform(url))
+
+
+class TestJandanParsing(unittest.TestCase):
+    def test_topic_post_title_falls_back_to_first_line(self):
+        html = """
+        <html><body>
+            <h1>No.6209189</h1>
+            <div class="post-author">kasusa</div>
+            <div class="post-content">
+                说不定人口变少 ， 是为了以后大家都能永生做准备。<br/>
+                生物技术。
+            </div>
+        </body></html>
+        """
+
+        post = Jandan._parse_html(html, "https://jandan.net/t/6209189")
+
+        self.assertEqual(post.title, "说不定人口变少 ， 是为了以后大家都能永生做准备。")
+        self.assertIn("生物技术。", post.markdown_content)
+        self.assertEqual(post.images, [])
+
+    def test_article_title_and_image_urls(self):
+        html = """
+        <html><body>
+            <h1> 在220万倍大气压下，科学家发现冰的晶体结构发生扭曲 </h1>
+            <div class="post-content">
+                <p>正文</p>
+                <p><img alt="配图" data-src="//img.wangmoyu.com/a.jpg" src="/placeholder.gif"/></p>
+                <p><img src="/static/b.png"/></p>
+                <p><img src="data:image/png;base64,AAAA"/></p>
+                <p><img data-src="https://img.wangmoyu.com/a.jpg" src="/placeholder.gif"/></p>
+            </div>
+        </body></html>
+        """
+
+        post = Jandan._parse_html(html, "https://jandan.net/p/124273")
+
+        self.assertEqual(post.title, "在220万倍大气压下，科学家发现冰的晶体结构发生扭曲")
+        self.assertEqual(
+            post.images,
+            ["https://img.wangmoyu.com/a.jpg", "https://jandan.net/static/b.png"],
+        )
+        self.assertIn("![配图](https://img.wangmoyu.com/a.jpg)", post.markdown_content)
+        self.assertNotIn("placeholder.gif", post.markdown_content)
+
+    def test_missing_post_content_is_content_unavailable(self):
+        with self.assertRaises(ContentUnavailableError):
+            Jandan._parse_html("<html><body><h1>404</h1></body></html>", "https://jandan.net/t/1")
+
+    def test_gif_becomes_ani_ref(self):
+        media = [
+            JandanParser._ref("https://img.toto.im/large/a.gif"),
+            JandanParser._ref("https://img.toto.im/large/a.GIF?width=100"),
+            JandanParser._ref("https://img.toto.im/mw1024/a.jpg"),
+            JandanParser._ref("https://img.wangmoyu.com/mw1024/a.png"),
+            JandanParser._ref("https://img.wangmoyu.com/mw1024/no-suffix"),
+        ]
+
+        self.assertEqual([type(ref) for ref in media], [AniRef, AniRef, ImageRef, ImageRef, ImageRef])
+        self.assertEqual([ref.ext for ref in media], ["gif", "gif", "jpg", "png", "jpg"])
 
 
 class TestRunSyncInsideEventLoop(unittest.IsolatedAsyncioTestCase):

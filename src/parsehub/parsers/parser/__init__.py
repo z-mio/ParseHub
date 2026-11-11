@@ -6,6 +6,7 @@ from .douban import *
 from .douyin import *
 from .facebook import *
 from .instagram import *
+from .jandan import *
 from .medium import *
 from .threads import *
 from .tieba import *
