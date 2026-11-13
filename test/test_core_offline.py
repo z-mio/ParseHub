@@ -259,6 +259,12 @@ class TestPlatformUrlMatching(unittest.TestCase):
                 "https://www.instagram.com/user.name/reel/C0example/",
                 "https://www.instagram.com/reels/DaGI8bPS3ed/",
             ],
+            Platform.JANDAN: [
+                "https://jandan.net/t/6209188",
+                "https://jandan.net/t/6209188#comments",
+                "https://jandan.net/p/124273",
+                "jandan.net/p/124273/",
+            ],
             Platform.KUAISHOU: [
                 "https://www.kuaishou.com/short-video/3xexample",
                 "https://v.kuaishou.com/example",
