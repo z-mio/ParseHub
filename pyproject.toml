@@ -63,9 +63,6 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/parsehub"]
 
-[tool.uv]
-package = true
-
 [project.urls]
 Repository = "https://github.com/z-mio/parsehub"
 Issues = "https://github.com/z-mio/parsehub/issues"

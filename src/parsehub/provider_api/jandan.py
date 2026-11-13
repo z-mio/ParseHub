@@ -13,7 +13,6 @@ from ..errors import ContentUnavailableError
 from ..utils.helpers import UA
 
 _POST_NO_RE = re.compile(r"No\.\s*\d+")
-_IMAGE_SOURCE_ATTRS = ("data-src", "data-original", "data-lazy-src", "src")
 
 
 @dataclass
@@ -42,16 +41,18 @@ class Jandan:
             raise ContentUnavailableError("煎蛋内容不存在或已删除")
         if not 200 <= response.status_code < 300:
             raise JandanError(f"HTTP {response.status_code}")
-        return Jandan._parse_html(response.text, str(response.url))
+        return self._parse_html(response.text, str(response.url))
 
-    @classmethod
-    def _parse_html(cls, html: str, page_url: str) -> JandanPost:
+    @staticmethod
+    def _parse_html(html: str, page_url: str) -> JandanPost:
         soup = BeautifulSoup(html, "lxml")
         content = soup.select_one(".post-content")
         if content is None:
-            raise ContentUnavailableError("煎蛋内容不存在或已删除")
+            raise JandanError("未找到煎蛋正文")
 
         heading = soup.find("h1")
+        for a in content.find_all("a", href=True):
+            a["href"] = urljoin(page_url, str(a["href"]))
         converter = _JandanMarkdownConverter(page_url)
         markdown_content = converter.convert(str(content)).strip()
         return JandanPost(
@@ -87,8 +88,8 @@ class _JandanMarkdownConverter(MarkdownConverter):
 
     def convert_img(self, el: Any, text: Any, parent_tags: Any) -> str:
         alt = el.attrs.get("alt") or ""
-        source = next((el.attrs[name] for name in _IMAGE_SOURCE_ATTRS if el.attrs.get(name)), "")
-        url = urljoin(self.page_url, source.strip()) if source and not source.startswith("data:") else ""
+        source = el.attrs.get("src") or ""
+        url = urljoin(self.page_url, source) if source else ""
         if not url:
             return alt
         if url not in self.images:

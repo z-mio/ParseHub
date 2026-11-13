@@ -1,10 +1,9 @@
+from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 from ...provider_api.jandan import Jandan, JandanError
 from ...types import AniRef, ImageRef, ParseError, Platform, RichTextParseResult
 from ..base.base import BaseParser
-
-_IMAGE_EXTENSIONS = {"avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "tif", "tiff", "webp"}
 
 
 class JandanParser(BaseParser):
@@ -15,10 +14,10 @@ class JandanParser(BaseParser):
     @staticmethod
     def _ref(url: str) -> ImageRef | AniRef:
         """正文里的动图也是 <img>; 扩展名取自 URL."""
-        suffix = urlsplit(url).path.rpartition(".")[2].lower()
-        if suffix not in _IMAGE_EXTENSIONS:
-            suffix = "jpg"
-        return AniRef(url=url) if suffix == "gif" else ImageRef(url=url, ext=suffix)
+        suffix = PurePosixPath(urlsplit(url).path).suffix.lstrip(".").lower()
+        if suffix == "gif":
+            return AniRef(url=url)
+        return ImageRef(url=url, ext=suffix) if suffix else ImageRef(url=url)
 
     async def _do_parse(self, raw_url: str) -> RichTextParseResult:
         try:

@@ -6,5 +6,3 @@ __pycache__/
 .claude
 .claude-flow
 .swarm
-build/
-dist/

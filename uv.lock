@@ -1064,7 +1064,7 @@ wheels = [
 [[package]]
 name = "parsehub"
 version = "2.4.1"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "beautifulsoup4" },
