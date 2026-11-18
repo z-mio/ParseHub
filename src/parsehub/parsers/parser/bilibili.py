@@ -24,17 +24,30 @@ from ...utils.helpers import UA
 from ..base.base import BaseParser, FallbackStage
 from ..base.ytdlp import YtParser, YtVideoParseResult
 
+_INTL_HOSTS = ("bilibili.tv",)
+_BILI_COM_HOSTS = ("www.bilibili.com", "m.bilibili.com", "t.bilibili.com")
+# 语言前缀理论上覆盖 ISO 639-1 / BCP 47: 2-3 位语言码 + 可选 2-4 位后缀 (如 en、ja、zh-Hans)
+_LOCALE_PREFIX = re.compile(r"^/[a-zA-Z]{2,3}(?:-[a-zA-Z]{2,4})?/(?=(?:video|opus|audio)/)")
+
 
 class BiliParse(BaseParser):
     __platform__ = Platform.BILIBILI
     __supported_type__ = ["视频", "动态", "音乐"]
-    __match__ = r"^(http(s)?://)?((((w){3}.|(m).|(t).)?bilibili\.com)/(video|opus|audio/au\d+|\b\d{18,19}\b)|b23.tv|bili2233.cn).*"
+    __match__ = (
+        r"^(http(s)?://)?("
+        r"(www\.|m\.|t\.)?bilibili\.com/([a-zA-Z]{2,3}(?:-[a-zA-Z]{2,4})?/)?(video|opus|audio/au\d+|\b\d{18,19}\b)"
+        r"|(www\.|m\.)?bilibili\.tv/([a-zA-Z]{2}/)?(play/\d+/\d+|video/\d+)"
+        r"|b23\.tv|bili2233\.cn"
+        r").*"
+    )
     __reserved_parameters__ = ["p"]
     __redirect_keywords__ = ["b23.tv", "bili2233.cn"]
 
     async def _do_parse(
         self, raw_url: str
     ) -> YtVideoParseResult | BiliVideoParseResult | BiliMusicParseResult | ImageParseResult:
+        if self.is_intl_url(raw_url):
+            return await self.ytp_parse(raw_url)
         parsed = urlparse(raw_url)
         if parsed.hostname == "mall.bilibili.com":
             raise ParseError("不支持解析商品")
@@ -65,6 +78,12 @@ class BiliParse(BaseParser):
             )
 
     @staticmethod
+    def is_intl_url(url: str) -> bool:
+        """是否哔哩哔哩国际版链接"""
+        hostname = (urlparse(url).hostname or "").lower()
+        return any(hostname == host or hostname.endswith(f".{host}") for host in _INTL_HOSTS)
+
+    @staticmethod
     def _is_bvid(url: str) -> bool:
         if url.lower().startswith("bv"):
             return True
@@ -85,6 +104,8 @@ class BiliParse(BaseParser):
         else:
             raw_url = await super().get_raw_url(url, **kwargs)
             u = urlparse(raw_url)
+            if (u.hostname or "").lower() == "m.bilibili.tv":
+                u = u._replace(netloc="www.bilibili.tv")
             q = urlencode([(k, v) for k, v in parse_qsl(u.query) if (k, v) != ("p", "1")])
             return u._replace(query=q).geturl()
 
@@ -179,7 +200,15 @@ class BiliParse(BaseParser):
         return suffix.removeprefix(".") or "m4a"
 
     async def ytp_parse(self, url: str) -> YtVideoParseResult:
-        return await BiliYtParse(proxy=self.proxy, cookie=self.cookie)._do_parse(url)
+        return await BiliYtParse(proxy=self.proxy, cookie=self.cookie)._do_parse(self._yt_dlp_url(url))
+
+    @staticmethod
+    def _yt_dlp_url(url: str) -> str:
+        """yt-dlp 只认国内站路径, 语言前缀页面 (如 /en/video/...) 需去掉前缀"""
+        u = urlparse(url)
+        if (u.hostname or "").lower() in _BILI_COM_HOSTS:
+            u = u._replace(path=_LOCALE_PREFIX.sub("/", u.path, count=1))
+        return u.geturl()
 
     @staticmethod
     def change_source(url: str) -> str:
