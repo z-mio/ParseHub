@@ -33,6 +33,24 @@ class ContentUnavailableError(ParseError):
     MSG = __doc__
 
 
+class UnsupportedError(ContentUnavailableError):
+    """不支持"""
+
+    MSG = __doc__
+
+
+class InvalidUrlError(ContentUnavailableError):
+    """链接无效"""
+
+    MSG = __doc__
+
+
+class LoginRequiredError(ContentUnavailableError):
+    """需要登录"""
+
+    MSG = __doc__
+
+
 @dataclass(frozen=True)
 class FallbackAttempt:
     name: str

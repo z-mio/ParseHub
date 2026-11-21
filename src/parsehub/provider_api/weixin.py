@@ -9,7 +9,7 @@ import json5
 from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
 
-from ..errors import ParseError
+from ..errors import ContentUnavailableError, UnsupportedError
 from ..utils.helpers import UA
 
 
@@ -43,7 +43,7 @@ def _load_payload(html: str) -> dict[str, Any]:
     """
     scripts = [s.text for s in BeautifulSoup(html, "lxml").find_all("script") if _PAYLOAD_NAME in s.text]
     if not scripts:
-        raise ParseError(f"未找到 {_PAYLOAD_NAME} 数据")
+        raise ContentUnavailableError(f"未找到 {_PAYLOAD_NAME} 数据")
 
     text = scripts[0].split(_PAYLOAD_NAME, 1)[1]
     text = _IMPLICIT_INT_RE.sub(r"\1", text)
@@ -109,6 +109,7 @@ class WX:
     async def parse(url: str, proxy: str | None = None) -> "WX":
         async with httpx.AsyncClient(proxy=proxy) as client:
             response = await client.get(url, headers={"User-Agent": UA})
+        response.raise_for_status()
         return WX._parse_data(response.text)
 
     @classmethod
@@ -117,7 +118,7 @@ class WX:
         try:
             item_show_type = WXItemShowType(int(data["item_show_type"]))
         except (KeyError, TypeError, ValueError) as e:
-            raise ParseError(f"不支持的内容类型: {data.get('item_show_type')!r}") from e
+            raise UnsupportedError(f"内容类型: {data.get('item_show_type')!r}") from e
 
         match item_show_type:
             case WXItemShowType.ARTICLE:

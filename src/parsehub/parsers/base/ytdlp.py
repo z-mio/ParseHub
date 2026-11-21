@@ -14,10 +14,12 @@ from typing import Any, cast
 from loguru import logger
 
 from ...types import (
+    ContentUnavailableError,
     DownloadError,
     DownloadResult,
     ParseError,
     ProgressCallback,
+    UnsupportedError,
     VideoFile,
     VideoParseResult,
     VideoRef,
@@ -400,12 +402,12 @@ class YtParser(BaseParser, register=False):
             "is_upcoming",
             "was_live",
         ):
-            raise ParseError("不支持直播")
+            raise UnsupportedError("直播")
 
         if dl.get("_type") == "playlist":
             entries = dl.get("entries") or []
             if not entries:
-                raise ParseError("解析视频信息失败: playlist entries is empty")
+                raise ContentUnavailableError("解析视频信息失败: playlist entries is empty")
             dl = entries[0]
             url = dl.get("webpage_url") or url
         title = dl["title"]

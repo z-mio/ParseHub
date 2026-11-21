@@ -5,7 +5,10 @@ from ..errors import (
     DownloadFallbackError,
     FallbackAttempt,
     FallbackError,
+    InvalidUrlError,
+    LoginRequiredError,
     ParseError,
+    UnsupportedError,
 )
 from .callback import ProgressCallback, ProgressUnit
 from .media_file import AniFile, AnyMediaFile, ImageFile, LivePhotoFile, MediaFile, MusicFile, VideoFile
@@ -28,6 +31,9 @@ __all__ = [
     "DownloadFallbackError",
     "ParseError",
     "ContentUnavailableError",
+    "UnsupportedError",
+    "InvalidUrlError",
+    "LoginRequiredError",
     "FallbackAttempt",
     "FallbackError",
     "ContentUnavailableFallbackError",

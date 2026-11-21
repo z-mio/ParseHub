@@ -10,7 +10,7 @@ import httpx
 from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
 
-from ..errors import ContentUnavailableError
+from ..errors import ContentUnavailableError, UnsupportedError
 from ..utils.helpers import UA
 
 _ID_RE = re.compile(r"toutiao\.com/(?:(?:article|video|w|group|item)/|a|i)(\d+)")
@@ -61,7 +61,7 @@ class Toutiao:
     async def parse(self, url: str) -> ToutiaoArticle | ToutiaoVideoPost | ToutiaoMicroPost:
         match = _ID_RE.search(url)
         if not match:
-            raise ToutiaoError("不支持的今日头条链接")
+            raise UnsupportedError("该今日头条链接")
 
         async with httpx.AsyncClient(proxy=self.proxy, timeout=30, headers={"User-Agent": UA}) as client:
             response = await client.get(_INFO_API.format(match.group(1)))

@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 from markdown import markdown
 from markdownify import MarkdownConverter
 
+from ..errors import UnsupportedError
+
 TOPIC_API = "https://m.douban.com/rexxar/api/v2/group/topic/{}"
 IMAGE_REFERER = "https://www.douban.com/"
 """豆瓣图床有防盗链, 下载图片时必须带上 Referer"""
@@ -33,7 +35,7 @@ class Douban:
     def get_topic_id(url: str) -> str:
         if match := re.search(TOPIC_URL_RE, url):
             return match.group(1)
-        raise DoubanError("暂不支持该豆瓣链接, 目前仅支持小组话题")
+        raise UnsupportedError("该豆瓣链接, 目前仅支持小组话题")
 
     async def fetch_topic_data(self, url: str) -> dict[str, Any]:
         headers = {"User-Agent": MOBILE_UA, "Referer": "https://m.douban.com/"}

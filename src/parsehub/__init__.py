@@ -6,7 +6,10 @@ from .errors import ContentUnavailableError as ContentUnavailableError
 from .errors import ContentUnavailableFallbackError as ContentUnavailableFallbackError
 from .errors import FallbackAttempt as FallbackAttempt
 from .errors import FallbackError as FallbackError
+from .errors import InvalidUrlError as InvalidUrlError
+from .errors import LoginRequiredError as LoginRequiredError
 from .errors import ParseError, UnknownPlatform
+from .errors import UnsupportedError as UnsupportedError
 from .parsers.base import BaseParser
 from .types import Platform
 from .types.callback import ProgressCallback

@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from loguru import logger
 
-from .. import ParseError
+from .. import LoginRequiredError, ParseError
 from ..utils.helpers import UA
 
 
@@ -116,7 +116,7 @@ class KuaiShouAPI:
             response.raise_for_status()
             raw_data = response.json()
             if not (data := raw_data.get("data")):
-                raise Exception("did 未填")
+                raise LoginRequiredError("cookie 未填 did")
             if err := raw_data.get("errors"):
                 match err[0]["message"]:
                     case "Need captcha":
@@ -130,8 +130,6 @@ class KuaiShouAPI:
 
     @staticmethod
     def get_video_id(url: str) -> str:
-        if "/photo/" in url:
-            raise ValueError("暂不支持图文解析")
         return url.split("/")[-1]
 
 

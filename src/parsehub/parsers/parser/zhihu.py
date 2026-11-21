@@ -2,6 +2,7 @@ from ...provider_api.zhihu import ZhihuAPI, ZhihuPin, ZhihuPinType, ZhihuQA, Zhi
 from ...types import (
     ImageParseResult,
     ImageRef,
+    LoginRequiredError,
     MultimediaParseResult,
     Platform,
     RichTextParseResult,
@@ -20,7 +21,7 @@ class ZhihuParser(BaseParser):
         self, raw_url: str
     ) -> RichTextParseResult | MultimediaParseResult | ImageParseResult | VideoParseResult:
         if not (c := self.cookie.get_value()):
-            raise ValueError("知乎需要配置已登录的 Cookie")
+            raise LoginRequiredError("配置已登录的 Cookie")
         result = await ZhihuAPI(cookie=c, proxy=self.proxy).parse(raw_url)
         match result:
             case ZhihuQA():

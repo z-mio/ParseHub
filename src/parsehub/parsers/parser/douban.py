@@ -28,10 +28,12 @@ class DoubanParser(BaseParser):
     async def _do_parse(self, raw_url: str) -> Union["DoubanRichTextParseResult", "DoubanImageParseResult"]:
         try:
             topic = await Douban(proxy=self.proxy, cookie=self.cookie.get_value()).parse(raw_url)
+        except ParseError:
+            raise
         except DoubanError as e:
-            raise ParseError(f"豆瓣解析失败: {e.msg}") from e
+            raise ParseError(e.msg or "未知错误") from e
         except Exception as e:
-            raise ParseError("豆瓣解析失败: 未知错误") from e
+            raise ParseError("未知错误") from e
 
         photos = [self.to_media_ref(p) for p in topic.photos]
 

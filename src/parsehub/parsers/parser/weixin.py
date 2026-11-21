@@ -1,5 +1,12 @@
 from ...provider_api.weixin import WX, WXItemShowType
-from ...types import AnyParseResult, ImageParseResult, ImageRef, ParseError, Platform, RichTextParseResult
+from ...types import (
+    AnyParseResult,
+    ImageParseResult,
+    ImageRef,
+    Platform,
+    RichTextParseResult,
+    UnsupportedError,
+)
 from ..base.base import BaseParser
 
 
@@ -34,7 +41,7 @@ class WXParser(BaseParser):
                     content=wx.text_content,
                 )
             case _:
-                raise ParseError(f"不支持的内容类型: {wx.item_show_type!r}")
+                raise UnsupportedError(f"内容类型: {wx.item_show_type!r}")
 
 
 __all__ = ["WXParser"]

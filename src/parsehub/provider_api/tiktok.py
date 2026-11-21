@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from ..errors import ContentUnavailableError
+from ..errors import ContentUnavailableError, InvalidUrlError, LoginRequiredError
 from ..utils.helpers import UA
 
 TIKTOK_ITEM_PAGE = "https://www.tiktok.com/@_/video/{aweme_id}"
@@ -58,7 +58,7 @@ class TikTokWebCrawler:
         resolved_url = await self.resolve_url(url)
         item_ref = self.extract_item_ref_from_url(resolved_url)
         if not item_ref:
-            raise ValueError(f"无法从链接中提取作品 ID: {resolved_url}")
+            raise InvalidUrlError(f"无法提取作品 ID: {resolved_url}")
         return await self.fetch_item(item_ref.aweme_id)
 
     def _client(self) -> httpx.AsyncClient:
@@ -78,7 +78,7 @@ class TikTokWebCrawler:
             return markdown_match.group(1).rstrip(".,;，。；'\")]}）】>」』")
         match = cls._URL.search(text)
         if not match:
-            raise ValueError("未找到 TikTok URL")
+            raise InvalidUrlError("未找到 URL")
         return match.group(0).rstrip(".,;，。；'\")]}）】>」』")
 
     @classmethod
@@ -99,7 +99,7 @@ class TikTokWebCrawler:
             resolved = str(response.url)
 
         if "notfound" in resolved.lower():
-            raise ValueError("TikTok 页面不可用，可能是地区、代理或链接问题")
+            raise ValueError("页面不可用, 可能是地区、代理或链接问题")
         return resolved
 
     async def fetch_item(self, aweme_id: str) -> dict[str, Any]:
@@ -123,7 +123,7 @@ class TikTokWebCrawler:
             for attempt in range(self.max_retries):
                 response = await client.get(url)
                 if urlparse(str(response.url)).path == "/login":
-                    raise RuntimeError("TikTok 要求登录才能访问这个内容")
+                    raise LoginRequiredError("访问该内容")
                 response.raise_for_status()
                 webpage = response.text
                 if self._search_universal_data(webpage):
@@ -200,8 +200,8 @@ class TikTokWebCrawler:
         if item:
             return cast(dict[str, Any], item)
         if status in (10216, 10222):
-            raise RuntimeError("这个 TikTok 内容需要登录或无权访问")
+            raise LoginRequiredError("该内容或无权访问")
         status_msg = detail.get("statusMsg") or detail.get("statusMessage") or status
         if status == 10204:
-            raise ContentUnavailableError(f"TikTok 作品不存在或不可见: {status_msg}")
+            raise ContentUnavailableError(f"作品不存在或不可见: {status_msg}")
         raise RuntimeError(f"页面中没有作品详情，status={status_msg}")

@@ -3,7 +3,16 @@ from typing import Union
 import httpx
 
 from ...provider_api.tieba import TieBa, TieBaError, TieBaPostType, TieBaVideo
-from ...types import AniRef, ImageParseResult, ImageRef, ParseError, Platform, VideoParseResult, VideoRef
+from ...types import (
+    AniRef,
+    ContentUnavailableError,
+    ImageParseResult,
+    ImageRef,
+    ParseError,
+    Platform,
+    VideoParseResult,
+    VideoRef,
+)
 from ..base.base import BaseParser
 
 
@@ -15,15 +24,17 @@ class TieBaParser(BaseParser):
     async def _do_parse(self, raw_url: str) -> Union["ImageParseResult", "VideoParseResult"]:
         try:
             tb = await TieBa(self.proxy).parse(raw_url)
+        except ParseError:
+            raise
         except TieBaError as e:
-            raise ParseError(e.msg if e.msg else "贴吧解析失败: 未知错误") from e
+            raise ParseError(e.msg or "未知错误") from e
         except Exception as e:
-            raise ParseError("贴吧解析失败: 未知错误") from e
+            raise ParseError("未知错误") from e
 
         match tb.type:
             case TieBaPostType.VIDEO:
                 if not isinstance(tb.media, TieBaVideo):
-                    raise ParseError("贴吧解析失败: 未获取到视频")
+                    raise ContentUnavailableError("未获取到视频")
                 return VideoParseResult(
                     title=tb.title,
                     video=VideoRef(

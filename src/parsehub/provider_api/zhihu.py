@@ -33,6 +33,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ..types import ContentUnavailableError, InvalidUrlError, LoginRequiredError, UnsupportedError
+
 __all__ = ["get_x_zse_96", "ZhihuAPI", "ZhihuQA", "ZhihuZhuanLan", "ZhihuPin", "ZhihuPinType", "ZhihuMedia"]
 
 from bs4 import BeautifulSoup
@@ -176,14 +178,17 @@ class ZhihuAPI:
     def _json(r: httpx.Response) -> dict:
         data = dict(r.json())
         if err := data.get("error"):
-            raise ValueError(f"知乎接口错误 {err.get('code')}: {err.get('message')}")
+            msg = f"知乎接口错误 {err.get('code')}: {err.get('message')}"
+            if err.get("code") == 4041:
+                raise ContentUnavailableError(msg)
+            raise ValueError(msg)
         return data
 
     @property
     def d_c0(self) -> str:
         v = self.cookie.get("d_c0")
         if not v:
-            raise ValueError("d_c0 is not found in cookie")
+            raise LoginRequiredError("cookie 中缺少 d_c0")
         return v
 
     @staticmethod
@@ -217,7 +222,7 @@ class ZhihuAPI:
             return await self.parse_pin(raw_url)
         if "daily.zhihu.com" in raw_url or "/story/" in raw_url:
             return await self.parse_daily(raw_url)
-        raise ValueError("不支持的类型")
+        raise UnsupportedError("该类型")
 
     async def parse_daily(self, raw_url: str) -> ZhihuQA | ZhihuZhuanLan | ZhihuPin:
         story_id = self._get_daily_id(raw_url)
@@ -230,7 +235,7 @@ class ZhihuAPI:
                 origin_url = str(a.get("href"))
                 break
         if not origin_url:
-            raise ValueError("未在知乎日报中找到原文链接")
+            raise InvalidUrlError("未在日报中找到原文链接")
         return await self.parse(origin_url)
 
     async def parse_qa(self, raw_url: str) -> ZhihuQA:
@@ -327,28 +332,28 @@ class ZhihuAPI:
         """返回问题和回答 id,  没有回答 id 时返回 None"""
         r = re.search(r"/question/(\d+)(?:/answer/(\d+))?", raw_url)
         if not r:
-            raise ValueError("从链接中提取 问答 id 错误")
+            raise InvalidUrlError("无法提取问答 id")
         return r.group(1), r.group(2) if r.group(2) else None
 
     @staticmethod
     def _get_zl_id(raw_url: str) -> str:
         r = re.search(r"/p/(\d+)", raw_url)
         if not r:
-            raise ValueError("从链接中提取 专栏 id 错误")
+            raise InvalidUrlError("无法提取专栏 id")
         return r.group(1)
 
     @staticmethod
     def _get_pin_id(raw_url: str) -> str:
         r = re.search(r"/pin/(\d+)", raw_url)
         if not r:
-            raise ValueError("从链接中提取 圈子 id 错误")
+            raise InvalidUrlError("无法提取圈子 id")
         return r.group(1)
 
     @staticmethod
     def _get_daily_id(raw_url: str) -> str:
         r = re.search(r"/story/(\d+)", raw_url)
         if not r:
-            raise ValueError("从链接中提取 日报 id 错误")
+            raise InvalidUrlError("无法提取日报 id")
         return r.group(1)
 
 

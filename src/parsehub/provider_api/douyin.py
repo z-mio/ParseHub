@@ -20,7 +20,7 @@ import httpx
 from gmssl import func, sm3
 from SignerPy import get, sign, trace_id
 
-from ..errors import ParseError
+from ..errors import InvalidUrlError, ParseError
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -760,7 +760,7 @@ class DouyinWebCrawler:
     def _signed_query(self, params: dict[str, str]) -> tuple[str, dict[str, str]]:
         uifid = next((v for name in WEB_SIGN_UIFID_COOKIES if (v := self.cookie.get(name))), None)
         if not uifid:
-            raise ParseError("抖音 cookie 缺少 UIFID_TEMP, 无法生成网页签名")
+            raise ParseError("cookie 缺少 UIFID_TEMP, 无法生成网页签名")
         pairs = [*params.items(), ("a_bogus", ABogus().get_value(params))]
         if verify_fp := self.cookie.get("s_v_web_id"):
             pairs += [("verifyFp", verify_fp), ("fp", verify_fp)]
@@ -786,7 +786,7 @@ class DouyinWebCrawler:
             match = pattern.search(raw_url)
             if match:
                 return match.group(1)
-        raise ValueError("未在响应的地址中找到 aweme_id")
+        raise InvalidUrlError("未在响应的地址中找到 aweme_id")
 
     async def fetch_one_video(self, aweme_id: str) -> dict:
         async with httpx.AsyncClient(
@@ -826,17 +826,17 @@ class DouyinWebCrawler:
                     if attempt + 1 < 3:
                         await asyncio.sleep(1)
                     else:
-                        raise ParseError(f"抖音网页端请求失败: {e}") from e
+                        raise ParseError(f"网页端请求失败: {e}") from e
                     continue
                 if response.status_code != 200:
-                    raise ParseError(f"抖音网页端请求被拒绝: HTTP {response.status_code} {response.text[:80]}")
+                    raise ParseError(f"网页端请求被拒绝: HTTP {response.status_code} {response.text[:80]}")
                 if not response.content:
-                    raise ParseError("抖音网页端返回空响应, cookie 可能已被限流")
+                    raise ParseError("网页端返回空响应, cookie 可能已被限流")
                 try:
                     return cast(dict[str, Any], response.json())
                 except (ValueError, UnicodeDecodeError) as e:
-                    raise ParseError("抖音网页端返回非 JSON 响应") from e
-            raise ParseError("抖音网页端请求失败: 未知错误")
+                    raise ParseError("网页端返回非 JSON 响应") from e
+            raise ParseError("网页端请求失败: 未知错误")
 
     async def parse(self, raw_url: str) -> dict:
         aweme_id = await self.get_aweme_id(raw_url)
@@ -913,11 +913,11 @@ class DouyinMobileCrawler:
             match = pattern.search(raw_url)
             if match:
                 return match.group(1)
-        raise ParseError("未在响应地址中找到 aweme_id")
+        raise InvalidUrlError("未在响应地址中找到 aweme_id")
 
     def _mobile_query(self, aweme_id: str) -> dict:
         if self.device is None:
-            raise ParseError("抖音移动端设备未注册")
+            raise ParseError("移动端设备未注册")
 
         params = get(
             {
@@ -1071,7 +1071,7 @@ class DouyinMobileCrawler:
             if device:
                 return device
             last_error = f"{host} returned invalid device ids: {payload}"
-        raise ParseError(f"注册抖音移动端设备失败: {last_error}")
+        raise ParseError(f"注册移动端设备失败: {last_error}")
 
     async def register_device(self, client: httpx.AsyncClient | None = None) -> DouyinMobileDevice:
         close_client = client is None
@@ -1117,13 +1117,13 @@ class DouyinMobileCrawler:
             if close_client:
                 await client.aclose()
         if len(devices) < count:
-            raise ParseError(f"注册抖音移动端设备池失败: 仅获取到 {len(devices)}/{count} 组设备（{last_error}）")
+            raise ParseError(f"注册移动端设备池失败: 仅获取到 {len(devices)}/{count} 组设备（{last_error}）")
         return devices
 
     @classmethod
     def _next_pooled_device(cls) -> DouyinMobileDevice:
         if not cls._device_pool:
-            raise ParseError("抖音移动端设备池未初始化")
+            raise ParseError("移动端设备池未初始化")
         device = cls._device_pool[cls._device_pool_index % len(cls._device_pool)]
         cls._device_pool_index = (cls._device_pool_index + 1) % len(cls._device_pool)
         return device
@@ -1149,7 +1149,7 @@ class DouyinMobileCrawler:
     async def _select_device(self, client: httpx.AsyncClient) -> DouyinMobileDevice:
         if self._fixed_device:
             if self.device is None:
-                raise ParseError("抖音移动端设备未配置")
+                raise ParseError("移动端设备未配置")
             return self.device
 
         await self._ensure_device_pool(client)
@@ -1197,7 +1197,7 @@ class DouyinMobileCrawler:
                         break
                 await asyncio.sleep(0.15)
         error_summary = "; ".join(f"{msg}×{count}" for msg, count in errors.most_common()) or "unknown"
-        raise ParseError(f"获取抖音作品失败: {error_summary}")
+        raise ParseError(f"获取作品失败: {error_summary}")
 
     async def parse(self, raw_url: str) -> dict:
         aweme_id = await self.get_aweme_id(raw_url)

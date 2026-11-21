@@ -62,7 +62,7 @@ class DouyinParser(BaseParser):
     def _build_video_result(result: "DouyinApiResult") -> VideoParseResult:
         """构建视频解析结果"""
         if result.video is None:
-            raise ParseError("抖音解析失败: 未获取到视频")
+            raise ContentUnavailableError("未获取到视频")
         return DouyinVideoParseResult(
             title=result.desc,
             video=result.video,
@@ -187,8 +187,10 @@ class DouyinApiResult:
             filter_detail = json_dict.get("filter_detail") or {}
             if reason := filter_detail.get("filter_reason"):
                 detail_msg = filter_detail.get("detail_msg") or filter_detail.get("notice") or ""
-                raise ContentUnavailableError(f"抖音 {reason} {detail_msg}".strip())
-            raise ParseError("抖音解析失败: 未获取到作品详情")
+                if reason == "story_25_filter":  # 移动端接口可以拿到, 需落到下一个 fallback stage
+                    raise ParseError(f"{reason} {detail_msg}".strip())
+                raise ContentUnavailableError(f"{reason} {detail_msg}".strip())
+            raise ParseError("未获取到作品详情")
 
         desc = data.get("desc", "")
 
@@ -277,7 +279,7 @@ class DouyinApiResult:
         """解析视频"""
         video_data = data.get("video")
         if not video_data:
-            raise ParseError("抖音解析失败: 未获取到视频数据")
+            raise ParseError("未获取到视频数据")
 
         video_info = parse_video_info(video_data)
 

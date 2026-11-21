@@ -7,9 +7,11 @@ from ...types import (
     ImageParseResult,
     ImageRef,
     LivePhotoRef,
+    LoginRequiredError,
     MultimediaParseResult,
     ParseError,
     Platform,
+    UnsupportedError,
     VideoParseResult,
     VideoRef,
 )
@@ -26,9 +28,9 @@ class XHSParser(BaseParser):
     async def get_raw_url(self, url: str, *, clean_all: bool = False, headers: dict | None = None) -> str:
         url = await super().get_raw_url(url, clean_all=clean_all, headers=MOBILE_HEADERS)
         if "/login" in url:
-            raise ParseError("该帖子需要登录后查看")
+            raise LoginRequiredError("查看该帖子")
         elif "/404/sec" in url:
-            raise ParseError("被小红书风控拦截")
+            raise ParseError("被风控拦截")
         elif "/404" in url:
             raise ContentUnavailableError("帖子不存在")
         return url
@@ -61,7 +63,7 @@ class XHSParser(BaseParser):
         match result.type:
             case XHSPostType.VIDEO:
                 if not result.media:
-                    raise ParseError("未获取到视频")
+                    raise ContentUnavailableError("未获取到视频")
                 v: XHSMedia = result.media[0]
                 return VideoParseResult(
                     video=VideoRef(
@@ -89,7 +91,7 @@ class XHSParser(BaseParser):
                     content=desc,
                 )
             case _:
-                raise ParseError("不支持的类型")
+                raise UnsupportedError("该类型")
 
     @staticmethod
     def hashtag_handler(desc: str | None) -> str:

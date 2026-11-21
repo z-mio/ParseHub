@@ -17,6 +17,7 @@ from ...types import (
     ParseError,
     Platform,
     ProgressCallback,
+    UnsupportedError,
     VideoParseResult,
     VideoRef,
 )
@@ -50,9 +51,9 @@ class BiliParse(BaseParser):
             return await self.ytp_parse(raw_url)
         parsed = urlparse(raw_url)
         if parsed.hostname == "mall.bilibili.com":
-            raise ParseError("不支持解析商品")
+            raise UnsupportedError("解析商品")
         if parsed.path.startswith("/bangumi/"):
-            raise ParseError("不支持解析番剧和影视")
+            raise UnsupportedError("解析番剧和影视")
         if BiliAPI.get_music_id(raw_url):
             return await self.bili_music_parse(raw_url)
         if await self.is_dynamic(raw_url):

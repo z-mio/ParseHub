@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ..errors import InvalidUrlError
+
 
 class WeiboAPI:
     def __init__(self, proxy: str | None = None):
@@ -86,7 +88,7 @@ class WeiboAPI:
         resolve_url = await self.resolve_url(url)
         id_ = await self.get_id_by_url(resolve_url)
         if not id_:
-            raise ValueError("Invalid URL")
+            raise InvalidUrlError()
         if self.is_tv(resolve_url):
             result = await self.tv_show(id_)
             return WeiboTVContent.parse(result)
