@@ -187,6 +187,8 @@ class DouyinApiResult:
             filter_detail = json_dict.get("filter_detail") or {}
             if reason := filter_detail.get("filter_reason"):
                 detail_msg = filter_detail.get("detail_msg") or filter_detail.get("notice") or ""
+                if reason == "story_25_filter":  # 移动端接口可以拿到, 需落到下一个 fallback stage
+                    raise ParseError(f"{reason} {detail_msg}".strip())
                 raise ContentUnavailableError(f"{reason} {detail_msg}".strip())
             raise ParseError("未获取到作品详情")
 
