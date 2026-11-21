@@ -48,7 +48,7 @@ class Jandan:
         soup = BeautifulSoup(html, "lxml")
         content = soup.select_one(".post-content")
         if content is None:
-            raise JandanError("未找到煎蛋正文")
+            raise ContentUnavailableError("未找到煎蛋正文")
 
         heading = soup.find("h1")
         for a in content.find_all("a", href=True):

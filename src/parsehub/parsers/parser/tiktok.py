@@ -6,6 +6,7 @@ from typing import Any, Self, Union
 from ... import ProgressCallback
 from ...provider_api.tiktok import TikTokWebCrawler
 from ...types import (
+    ContentUnavailableError,
     DownloadResult,
     ImageParseResult,
     ImageRef,
@@ -45,7 +46,7 @@ class TikTokParser(BaseParser):
     @staticmethod
     def _build_video_result(result: "TikTokApiResult") -> VideoParseResult:
         if result.video is None:
-            raise ParseError("TikTok 解析失败: 未获取到视频")
+            raise ContentUnavailableError("TikTok 解析失败: 未获取到视频")
         return TikTokVideoParseResult(
             title=result.desc,
             video=result.video,
@@ -192,7 +193,7 @@ def parse_video_info(video_data: dict) -> dict:
             )
 
     if not candidates:
-        raise ParseError("TikTok 解析失败: 未获取到无水印视频下载地址")
+        raise ContentUnavailableError("TikTok 解析失败: 未获取到无水印视频下载地址")
 
     return max(candidates, key=lambda x: x["quality"])
 
@@ -212,7 +213,7 @@ class TikTokApiResult:
     @classmethod
     def parse(cls, json_dict: dict) -> Self:
         if not json_dict:
-            raise ParseError("TikTok 解析失败: 未获取到作品详情")
+            raise ContentUnavailableError("TikTok 解析失败: 未获取到作品详情")
 
         desc = json_dict.get("desc", "")
         image_post_info: dict = json_dict.get("image_post_info", {}) or json_dict.get("imagePost", {})
@@ -243,7 +244,7 @@ class TikTokApiResult:
                 )
 
         if not image_list:
-            raise ParseError("TikTok 解析失败: 未获取到无水印图文下载地址")
+            raise ContentUnavailableError("TikTok 解析失败: 未获取到无水印图文下载地址")
 
         return cls(
             type=TikTokMediaType.IMAGE,
@@ -255,7 +256,7 @@ class TikTokApiResult:
     def _parse_video(cls, data: dict, desc: str) -> Self:
         video_data = data.get("video", {})
         if not video_data:
-            raise ParseError("TikTok 解析失败: 未获取到视频数据")
+            raise ContentUnavailableError("TikTok 解析失败: 未获取到视频数据")
 
         video_info = parse_video_info(video_data)
 

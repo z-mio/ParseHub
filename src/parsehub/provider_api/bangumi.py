@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
+from ..errors import UnsupportedError
 from ..utils.helpers import UA
 
 _TAG_RE = re.compile(
@@ -36,7 +37,7 @@ class Bangumi:
     async def parse(self, url: str) -> BangumiPost:
         match = _URL_RE.search(url)
         if not match:
-            raise BangumiError("不支持的 Bangumi 链接")
+            raise UnsupportedError("该 Bangumi 链接")
 
         kind = match.group(1) or match.group(2) or match.group(3)
         topic_id = match.group(4)

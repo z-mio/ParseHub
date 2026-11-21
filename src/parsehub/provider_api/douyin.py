@@ -20,7 +20,7 @@ import httpx
 from gmssl import func, sm3
 from SignerPy import get, sign, trace_id
 
-from ..errors import ParseError
+from ..errors import InvalidUrlError, ParseError
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -786,7 +786,7 @@ class DouyinWebCrawler:
             match = pattern.search(raw_url)
             if match:
                 return match.group(1)
-        raise ValueError("未在响应的地址中找到 aweme_id")
+        raise InvalidUrlError("未在响应的地址中找到 aweme_id")
 
     async def fetch_one_video(self, aweme_id: str) -> dict:
         async with httpx.AsyncClient(
@@ -913,7 +913,7 @@ class DouyinMobileCrawler:
             match = pattern.search(raw_url)
             if match:
                 return match.group(1)
-        raise ParseError("未在响应地址中找到 aweme_id")
+        raise InvalidUrlError("未在响应地址中找到 aweme_id")
 
     def _mobile_query(self, aweme_id: str) -> dict:
         if self.device is None:

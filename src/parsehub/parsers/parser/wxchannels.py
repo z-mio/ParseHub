@@ -1,5 +1,5 @@
 from ...provider_api.wxchannels import WXChannels, WXChannelsError
-from ...types import ParseError, Platform, VideoParseResult, VideoRef
+from ...types import LoginRequiredError, ParseError, Platform, VideoParseResult, VideoRef
 from ..base.base import BaseParser
 
 
@@ -16,7 +16,7 @@ class WXChannelsParser(BaseParser):
     async def _do_parse(self, raw_url: str) -> VideoParseResult:
         cookie = self.cookie.get_value()
         if not cookie:
-            raise ValueError("微信视频号需要配置腾讯元宝 (yuanbao.tencent.com) 登录 Cookie")
+            raise LoginRequiredError("配置腾讯元宝 (yuanbao.tencent.com) Cookie")
 
         cookie_text = "; ".join(f"{key}={value}" for key, value in cookie.items())
         try:

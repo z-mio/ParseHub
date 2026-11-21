@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from ..errors import InvalidUrlError
 from ..utils.helpers import UA
 
 
@@ -179,21 +180,21 @@ class ThreadsAPI:
             try:
                 pk = pk * 64 + cls.SHORTCODE_ALPHABET.index(ch)
             except ValueError as exc:
-                raise ValueError(f"无效的 Threads 帖子 ID: {code}") from exc
+                raise InvalidUrlError(f"帖子 ID: {code}") from exc
         return pk
 
     @staticmethod
     def get_username_by_url(url: str) -> str:
         u = re.search(r"/(@[\w.]+)/post/", url)
         if not u:
-            raise ValueError("从 URL 中获取用户名失败")
+            raise InvalidUrlError("获取用户名失败")
         return u[1]
 
     @staticmethod
     def get_post_id_by_url(url: str) -> str:
         p = re.search(r"/post/([\w-]+)", url)
         if not p:
-            raise ValueError("从 URL 中获取帖子 ID 失败")
+            raise InvalidUrlError("获取帖子 ID 失败")
         return p[1]
 
 

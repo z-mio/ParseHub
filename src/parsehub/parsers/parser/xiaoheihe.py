@@ -3,12 +3,13 @@ from ...provider_api.xiaoheihe import XiaoHeiHeAPI, XiaoHeiHeMediaType, XiaoHeiH
 from ...types import (
     AniRef,
     AnyParseResult,
+    ContentUnavailableError,
     ImageParseResult,
     ImageRef,
     MultimediaParseResult,
-    ParseError,
     Platform,
     RichTextParseResult,
+    UnsupportedError,
     VideoParseResult,
     VideoRef,
 )
@@ -40,12 +41,12 @@ class XiaoHeiHeParser(BaseParser):
                     media=self.__parse_images(xhh),
                     markdown_content=xhh.content,
                 )
-        raise ParseError("不支持的类型")
+        raise UnsupportedError("该类型")
 
     @staticmethod
     def __parse_video(xhh: XiaoHeiHePost) -> VideoRef:
         if not xhh.media:
-            raise ParseError("未获取到视频")
+            raise ContentUnavailableError("未获取到视频")
         media = xhh.media[0]
         return VideoRef(url=media.url, thumb_url=media.thumb_url)
 

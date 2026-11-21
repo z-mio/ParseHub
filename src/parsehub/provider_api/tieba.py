@@ -6,6 +6,8 @@ from typing import Any, cast
 
 import httpx
 
+from ..errors import InvalidUrlError
+
 
 class TieBa:
     def __init__(self, proxy: str | None = None):
@@ -35,7 +37,7 @@ class TieBa:
     def get_kz(url: str) -> str:
         if match := re.search(r"/p/(\d+)", url):
             return match.group(1)
-        raise ValueError("无法从 URL 中提取帖子 ID")
+        raise InvalidUrlError("无法提取帖子 ID")
 
     async def fetch_post_data(self, url: str) -> dict:
         kz = self.get_kz(url)

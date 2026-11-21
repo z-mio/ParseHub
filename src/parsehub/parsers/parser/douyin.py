@@ -62,7 +62,7 @@ class DouyinParser(BaseParser):
     def _build_video_result(result: "DouyinApiResult") -> VideoParseResult:
         """构建视频解析结果"""
         if result.video is None:
-            raise ParseError("抖音解析失败: 未获取到视频")
+            raise ContentUnavailableError("抖音解析失败: 未获取到视频")
         return DouyinVideoParseResult(
             title=result.desc,
             video=result.video,

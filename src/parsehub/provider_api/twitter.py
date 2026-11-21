@@ -9,7 +9,7 @@ from typing import Literal, NamedTuple
 import httpx
 from loguru import logger
 
-from ..types import ContentUnavailableError
+from ..types import ContentUnavailableError, InvalidUrlError
 from ..utils.helpers import UA
 
 
@@ -90,14 +90,16 @@ class Twitter:
 
         if not legacy:
             if result.get("__typename") == "TweetTombstone":
-                raise Exception("error -2: 该推文开启了限制, 匿名用户无法查看")
+                raise ContentUnavailableError("error -2: 该推文开启了限制, 匿名用户无法查看")
             match result.get("reason"):
                 case "Suspended":
                     raise ContentUnavailableError("error -5: 这个帖子来自一个被冻结的账号")
                 case "BounceDeleted":
                     raise ContentUnavailableError("error -5: 这个帖子违反了 X 规则")
                 case "Protected":
-                    raise Exception("error -3: 你无法查看这个帖子，因为该账号所有者限制了可以查看其帖子的用户")
+                    raise ContentUnavailableError(
+                        "error -3: 你无法查看这个帖子，因为该账号所有者限制了可以查看其帖子的用户"
+                    )
             raise Exception(f"error -3: {result.get('reason')}")
 
         if article := result.get("article", {}):
@@ -161,7 +163,7 @@ class Twitter:
     def get_id_by_url(url: str) -> str:
         match = re.search(r"status/(\d+)", url)
         if not match:
-            raise ValueError(f"Invalid tweet url: {url}")
+            raise InvalidUrlError(url)
         return match[1]
 
     def check_cookie(self) -> bool:

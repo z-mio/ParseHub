@@ -94,7 +94,7 @@ class KuaiShouParser(BaseParser):
             if cover:
                 return ImageParseResult(title=content, photo=[ImageRef(url=cover)])
 
-            raise ParseError("快手解析失败 -3")
+            raise ContentUnavailableError("快手解析失败 -3")
 
 
 __all__ = ["KuaiShouParser"]

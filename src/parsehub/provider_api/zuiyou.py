@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ..errors import InvalidUrlError
+
 
 class MediaType(Enum):
     VIDEO = "video"
@@ -66,5 +68,5 @@ class ZuiYou:
     def get_id_by_url(url: str) -> int:
         pid = dict(qc.split("=") for qc in urlparse(url).query.split("&") if "=" in qc).get("pid")
         if not pid:
-            raise ValueError(f"无法从 URL 中提取 pid: {url}")
+            raise InvalidUrlError(f"无法提取 pid: {url}")
         return int(pid)

@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from curl_cffi import requests
 
-from ..errors import ContentUnavailableError
+from ..errors import ContentUnavailableError, UnsupportedError
 
 _ID_RE = re.compile(r"(?:^|-)([0-9a-f]{8,12})$")
 _GRAPHQL_URL = "https://medium.com/_/graphql"
@@ -77,7 +77,7 @@ class Medium:
         path_segment = path.rsplit("/", 1)[-1]
         match = _ID_RE.search(path_segment)
         if not match:
-            raise MediumError("不支持的 Medium 链接")
+            raise UnsupportedError("该 Medium 链接")
         post_id = match.group(1)
 
         async with requests.AsyncSession(impersonate="chrome", proxy=self.proxy, timeout=30) as session:

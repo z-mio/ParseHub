@@ -22,6 +22,8 @@ from cryptography.hazmat.primitives.ciphers.base import Cipher
 from cryptography.hazmat.primitives.ciphers.modes import CBC, ECB
 from markdownify import MarkdownConverter
 
+from ..errors import InvalidUrlError, LoginRequiredError
+
 
 def original_image_url(url: str) -> str:
     path = url.split("?", 1)[0]
@@ -118,7 +120,7 @@ class XiaoHeiHeAPI:
         match = re.search(r"/link/([^/?]+)", parsed.path)
         if match:
             return match.group(1)
-        raise ValueError(f"获取 link_id 失败: {url}")
+        raise InvalidUrlError(f"获取 link_id 失败: {url}")
 
     async def link_tree(self, link_id: str) -> dict[str, Any]:
         sig_params = XiaoHeiHeSign().sign("/bbs/app/link/tree")
@@ -154,11 +156,11 @@ class XiaoHeiHeAPI:
             case "ok":
                 return cast(dict[str, Any], data["result"])
             case "login":
-                raise Exception(f"需要登录: {msg}")
+                raise LoginRequiredError(msg)
             case "show_captcha":
                 raise Exception("需要过验证码")
             case "relogin":
-                raise Exception(f"需要重新登录: {msg}")
+                raise LoginRequiredError(msg)
             case "failed":
                 raise Exception(f"请求失败: {msg}")
             case "lack_token":

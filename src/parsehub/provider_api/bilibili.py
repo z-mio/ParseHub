@@ -12,7 +12,7 @@ from typing import Any, Self, cast
 
 import httpx
 
-from ..errors import ContentUnavailableError
+from ..errors import ContentUnavailableError, InvalidUrlError, UnsupportedError
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
@@ -46,7 +46,7 @@ class BiliAPI:
         """获取动态信息"""
         match = re.search(r"\b\d{18,19}\b", url)
         if not match:
-            raise ValueError(f"Invalid dynamic url: {url}")
+            raise InvalidUrlError(f"动态 {url}")
         dyn_id = match.group(0)
         params = {
             "timezone_offset": "-480",
@@ -82,7 +82,7 @@ class BiliAPI:
         """获取视频详细信息"""
         bvid = self.get_bvid(url)
         if not bvid:
-            raise ValueError(f"Invalid url: {url}")
+            raise InvalidUrlError(url)
         response = await self._get_client().get(
             "https://api.bilibili.com/x/web-interface/view/detail",
             params={"bvid": bvid},
@@ -129,7 +129,7 @@ class BiliAPI:
         """获取音乐详细信息"""
         sid = self.get_music_id(url)
         if not sid:
-            raise ValueError(f"Invalid url: {url}")
+            raise InvalidUrlError(url)
         response = await self._get_client().get(
             "https://www.bilibili.com/audio/music-service-c/web/song/info",
             params={"sid": sid},
@@ -306,7 +306,7 @@ class BiliDynamic:
         }
         major_parser = major_parsers.get(MajorType(major_type), None)
         if not major_parser:
-            raise ValueError(f"Unknown major type: {major_type}")
+            raise UnsupportedError(f"major type: {major_type}")
         return major_parser(module_dynamic, major)
 
     @classmethod

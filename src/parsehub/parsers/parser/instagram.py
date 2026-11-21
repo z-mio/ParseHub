@@ -13,9 +13,11 @@ from ...types import (
     ContentUnavailableError,
     ImageParseResult,
     ImageRef,
+    InvalidUrlError,
     MultimediaParseResult,
     ParseError,
     Platform,
+    UnsupportedError,
     VideoParseResult,
     VideoRef,
 )
@@ -33,7 +35,7 @@ class InstagramParser(BaseParser):
     async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult:
         shortcode = self.get_short_code(raw_url)
         if not shortcode:
-            raise ValueError("Instagram帖子链接无效")
+            raise InvalidUrlError("Instagram 帖子")
 
         post = await self._parse(shortcode)
 
@@ -80,7 +82,7 @@ class InstagramParser(BaseParser):
                         ),
                     )
                 if not item.video_url:
-                    raise ParseError("未获取到视频地址")
+                    raise ContentUnavailableError("未获取到视频地址")
                 return VideoParseResult(
                     video=VideoRef(
                         url=item.video_url,
@@ -93,7 +95,7 @@ class InstagramParser(BaseParser):
                     content=post.caption,
                 )
             case _:
-                raise ParseError("不支持的类型")
+                raise UnsupportedError("该类型")
 
     async def _parse(self, shortcode: str) -> InstagramPost:
         stages: list[FallbackStage[InstagramPost]] = [FallbackStage("匿名", lambda: self._fetch(shortcode))]

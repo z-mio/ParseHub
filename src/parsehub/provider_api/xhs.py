@@ -14,7 +14,7 @@ import httpx
 from bs4 import BeautifulSoup
 from xhshow import Xhshow
 
-from ..errors import ContentUnavailableError, ParseError
+from ..errors import ContentUnavailableError, LoginRequiredError, ParseError
 from ..utils.helpers import UA
 
 PC_HEADERS = {
@@ -43,7 +43,7 @@ class XHSAPI:
             except httpx.HTTPError as e:
                 raise ParseError(f"请求失败: {e!r}") from e
             if "/login" in str(result.url):
-                raise ParseError("该帖子需要登录后查看")
+                raise LoginRequiredError("查看该帖子")
             elif "/404/sec" in str(result.url):
                 raise ParseError("被小红书风控拦截")
             elif "/404" in str(result.url):
@@ -100,7 +100,7 @@ class XHSAPI:
         else:
             raise ParseError("该帖子需要登录后查看")
         if not note:
-            raise ParseError("未获取到内容, 该帖子可能需要登录后查看")
+            raise LoginRequiredError("查看该帖子内容")
 
         title = note["title"]
         desc = note["desc"]

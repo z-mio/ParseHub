@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from markdown import markdown
 from markdownify import MarkdownConverter
 
+from ..errors import ContentUnavailableError, InvalidUrlError
 from ..utils.helpers import UA
 
 
@@ -26,8 +27,8 @@ class Coolapk:
             content = soup.find(class_="feed-article-message")
             if content is None:
                 if "s=" in url or "shareKey=" in url:
-                    raise ValueError("获取内容失败")
-                raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
+                    raise ContentUnavailableError("获取内容失败")
+                raise InvalidUrlError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
             markdown_content = MarkdownConverter(heading_style="ATX").convert(str(content))
             text_content = "".join(BeautifulSoup(markdown(markdown_content), "lxml").find_all(string=True))
             imgs = [f"https:{i['src']}" for i in content.find_all("img", {"class": "message-image"})]
@@ -39,4 +40,4 @@ class Coolapk:
             imgs = [f"https:{i['src']}" for i in message_image_group.find_all("img")] if message_image_group else []
             return cls("", "", feed_content, imgs)
 
-        raise ValueError("获取内容失败, 分享时请保留 shareKey 或 s 参数")
+        raise InvalidUrlError("获取内容失败, 分享时请保留 shareKey 或 s 参数")

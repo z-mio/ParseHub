@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from ..errors import ContentUnavailableError
+from ..errors import ContentUnavailableError, LoginRequiredError, UnsupportedError
 from ..utils.helpers import UA
 
 _SHARE_URL = "https://weixin.qq.com/sph/{}"
@@ -41,7 +41,7 @@ class WXChannels:
     async def parse(self, url: str) -> WXChannelsVideo:
         match = _ID_RE.search(url)
         if not match:
-            raise WXChannelsError("不支持的微信视频号链接")
+            raise UnsupportedError("该微信视频号链接")
         share_id = match.group(1) or match.group(2)
 
         async with httpx.AsyncClient(proxy=self.proxy, timeout=30) as client:
@@ -57,12 +57,12 @@ class WXChannels:
                 },
             )
             if response.status_code == 401:
-                raise WXChannelsError("Cookie 无效或已过期")
+                raise LoginRequiredError("Cookie 无效或已过期")
             response.raise_for_status()
             result = response.json()
             if error := result.get("error"):
                 if str(error.get("code")) == "20000":
-                    raise WXChannelsError("Cookie 无效或已过期")
+                    raise LoginRequiredError("Cookie 无效或已过期")
                 raise WXChannelsError(str(error.get("message") or error))
             if result.get("code") != 0:
                 raise WXChannelsError(str(result.get("message") or "微信视频号解析失败"))
@@ -109,7 +109,7 @@ class WXChannels:
             or ((feed_info.get("h265VideoInfo") or {}).get("videoUrl"))
         )
         if not video_url:
-            raise WXChannelsError("暂不支持该类型")
+            raise UnsupportedError("该类型")
 
         author_info = feed_data.get("authorInfo") or {}
         return WXChannelsVideo(
