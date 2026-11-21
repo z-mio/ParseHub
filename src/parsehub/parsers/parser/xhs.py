@@ -30,7 +30,7 @@ class XHSParser(BaseParser):
         if "/login" in url:
             raise LoginRequiredError("查看该帖子")
         elif "/404/sec" in url:
-            raise ParseError("被小红书风控拦截")
+            raise ParseError("被风控拦截")
         elif "/404" in url:
             raise ContentUnavailableError("帖子不存在")
         return url

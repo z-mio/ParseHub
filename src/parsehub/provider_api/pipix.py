@@ -26,14 +26,14 @@ class Pipix:
         soup = BeautifulSoup(data, "lxml")
         script = soup.find("script", {"id": "RENDER_DATA"})
         if script is None:
-            raise ContentUnavailableError("皮皮虾数据解析失败")
+            raise ContentUnavailableError("数据解析失败")
         raw_data = script.text
         json_data = unquote(raw_data)
         json_dict = json.loads(json_data)
 
         item = json_dict.get("ppxItemDetail", {}).get("item")
         if not item:
-            raise ContentUnavailableError("皮皮虾数据解析失败")
+            raise ContentUnavailableError("数据解析失败")
         ppt = PipixPostType(item["item_type"])
         content = item["content"]
         images = video = video_thumb = None

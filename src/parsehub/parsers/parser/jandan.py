@@ -23,7 +23,7 @@ class JandanParser(BaseParser):
         try:
             post = await Jandan(proxy=self.proxy).parse(raw_url)
         except JandanError as e:
-            raise ParseError(f"煎蛋解析失败: {e}") from e
+            raise ParseError(str(e)) from e
 
         return RichTextParseResult(
             title=post.title,

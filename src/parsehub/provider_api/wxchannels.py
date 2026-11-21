@@ -41,7 +41,7 @@ class WXChannels:
     async def parse(self, url: str) -> WXChannelsVideo:
         match = _ID_RE.search(url)
         if not match:
-            raise UnsupportedError("该微信视频号链接")
+            raise UnsupportedError("该链接")
         share_id = match.group(1) or match.group(2)
 
         async with httpx.AsyncClient(proxy=self.proxy, timeout=30) as client:
@@ -65,12 +65,12 @@ class WXChannels:
                     raise LoginRequiredError("Cookie 无效或已过期")
                 raise WXChannelsError(str(error.get("message") or error))
             if result.get("code") != 0:
-                raise WXChannelsError(str(result.get("message") or "微信视频号解析失败"))
+                raise WXChannelsError(str(result.get("message") or "解析失败"))
 
             data = result.get("data") or {}
             playable_url = data.get("playable_url") or ""
             if not data.get("wx_export_id") or not playable_url:
-                raise ContentUnavailableError("微信视频号视频不存在或已删除")
+                raise ContentUnavailableError("视频不存在或已删除")
 
             playable_query = parse_qs(urlparse(playable_url).query)
             token = (playable_query.get("token") or [""])[0]
@@ -97,7 +97,7 @@ class WXChannels:
         feed_error = feed_data.get("errMsg") or {}
         error_text = " ".join(_strip_html(str(feed_error.get(key) or "")) for key in ("title", "content")).strip()
         if feed_result.get("errCode") != 0:
-            message = feed_result.get("errMsg") or "微信视频号解析失败"
+            message = feed_result.get("errMsg") or "解析失败"
             raise WXChannelsError(str(message))
         if error_text:
             raise WXChannelsError(error_text)

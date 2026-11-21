@@ -25,7 +25,7 @@ class ToutiaoParser(BaseParser):
         try:
             post = await Toutiao(proxy=self.proxy).parse(raw_url)
         except ToutiaoError as e:
-            raise ParseError(f"今日头条解析失败: {e}") from e
+            raise ParseError(str(e)) from e
 
         if isinstance(post, ToutiaoVideoPost):
             video = post.video

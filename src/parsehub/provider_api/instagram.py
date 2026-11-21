@@ -54,7 +54,7 @@ class InstagramPost:
         else:
             media_items = [item]
         if not all(isinstance(media_item, dict) for media_item in media_items):
-            raise InstagramAPIError("Instagram 帖子数据格式无效")
+            raise InstagramAPIError("帖子数据格式无效")
         return cls(
             shortcode=str(item.get("code") or item.get("shortcode") or ""),
             type=media_type,
@@ -121,7 +121,7 @@ class InstagramAPI:
                     post = await self._get_logged_out_post(session, shortcode)
                 return await self._fill_missing_video_fields(session, post, shortcode)
         except requests.RequestsError as exc:
-            raise InstagramAPIError(f"请求 Instagram 失败: {exc}") from exc
+            raise InstagramAPIError(f"请求失败: {exc}") from exc
 
     async def _fill_missing_video_fields(
         self,
@@ -174,7 +174,7 @@ class InstagramAPI:
         except InstagramAPIError as exc:
             detail = str(exc)
         except requests.RequestsError as exc:
-            detail = f"请求 Instagram 失败: {exc}"
+            detail = f"请求失败: {exc}"
 
         try:
             node = await self._fetch_embed(session, shortcode)
@@ -183,7 +183,7 @@ class InstagramAPI:
         except InstagramAPIError as exc:
             detail = str(exc)
         except requests.RequestsError as exc:
-            detail = f"请求 Instagram Embed 失败: {exc}"
+            detail = f"请求 Embed 失败: {exc}"
 
         await self._check_ruling(session, media_id)
         raise InstagramAPIError(detail)
@@ -197,7 +197,7 @@ class InstagramAPI:
 
         match = re.search(r'\["LSD",\[\],\{"token":"([^"]+)"', response.text)
         if not match:
-            raise InstagramAPIError(f"未能获取 Instagram LSD token: {response.text[:300]}")
+            raise InstagramAPIError(f"未能获取 LSD token: {response.text[:300]}")
         lsd = match.group(1)
         csrf = session.cookies.get("csrftoken", "")
         headers = {
@@ -325,9 +325,9 @@ def _response_json(response: Any) -> dict[str, Any]:
     try:
         payload = response.json()
     except (ValueError, requests.RequestsError) as exc:
-        raise InstagramAPIError(f"Instagram 返回无效 JSON: {response.text[:300]}") from exc
+        raise InstagramAPIError(f"返回无效 JSON: {response.text[:300]}") from exc
     if not isinstance(payload, dict):
-        raise InstagramAPIError("Instagram 返回的数据格式无效")
+        raise InstagramAPIError("返回的数据格式无效")
     return payload
 
 
@@ -346,7 +346,7 @@ def _v1_type(item: dict[str, Any]) -> InstagramMediaType:
     media_type = item.get("media_type")
     if isinstance(media_type, int) and media_type in media_types:
         return media_types[media_type]
-    raise InstagramAPIError(f"不支持的 Instagram 媒体类型: {media_type}")
+    raise InstagramAPIError(f"不支持的媒体类型: {media_type}")
 
 
 def _v1_media(item: dict[str, Any]) -> InstagramMedia:
@@ -368,11 +368,11 @@ def _v1_media(item: dict[str, Any]) -> InstagramMedia:
 def _graph_type(node: dict[str, Any]) -> InstagramMediaType:
     typename = node.get("__typename")
     if not isinstance(typename, str):
-        raise InstagramAPIError(f"不支持的 Instagram 媒体类型: {typename}")
+        raise InstagramAPIError(f"不支持的媒体类型: {typename}")
     try:
         return InstagramMediaType(typename)
     except ValueError as exc:
-        raise InstagramAPIError(f"不支持的 Instagram 媒体类型: {typename}") from exc
+        raise InstagramAPIError(f"不支持的媒体类型: {typename}") from exc
 
 
 def _graph_media(node: dict[str, Any]) -> InstagramMedia:

@@ -27,14 +27,14 @@ class TieBaParser(BaseParser):
         except ParseError:
             raise
         except TieBaError as e:
-            raise ParseError(e.msg if e.msg else "贴吧解析失败: 未知错误") from e
+            raise ParseError(e.msg or "未知错误") from e
         except Exception as e:
-            raise ParseError("贴吧解析失败: 未知错误") from e
+            raise ParseError("未知错误") from e
 
         match tb.type:
             case TieBaPostType.VIDEO:
                 if not isinstance(tb.media, TieBaVideo):
-                    raise ContentUnavailableError("贴吧解析失败: 未获取到视频")
+                    raise ContentUnavailableError("未获取到视频")
                 return VideoParseResult(
                     title=tb.title,
                     video=VideoRef(

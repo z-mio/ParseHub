@@ -31,9 +31,9 @@ class DoubanParser(BaseParser):
         except ParseError:
             raise
         except DoubanError as e:
-            raise ParseError(f"豆瓣解析失败: {e.msg}") from e
+            raise ParseError(e.msg or "未知错误") from e
         except Exception as e:
-            raise ParseError("豆瓣解析失败: 未知错误") from e
+            raise ParseError("未知错误") from e
 
         photos = [self.to_media_ref(p) for p in topic.photos]
 

@@ -17,7 +17,7 @@ class PipixParser(BaseParser):
         except ParseError:
             raise
         except Exception as e:
-            raise ParseError("皮皮虾解析失败") from e
+            raise ParseError(str(e)) from e
 
         if ppx.video_url:
             return VideoParseResult(

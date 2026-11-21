@@ -22,7 +22,7 @@ class WXChannelsParser(BaseParser):
         try:
             video = await WXChannels(cookie=cookie_text, proxy=self.proxy).parse(raw_url)
         except WXChannelsError as e:
-            raise ParseError(f"微信视频号解析失败: {e}") from e
+            raise ParseError(str(e)) from e
 
         return VideoParseResult(title=video.title, video=VideoRef(url=video.video_url, thumb_url=video.thumb_url))
 

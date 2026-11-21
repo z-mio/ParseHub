@@ -12,7 +12,7 @@ class MediumParser(BaseParser):
         try:
             post = await Medium(proxy=self.proxy).parse(raw_url)
         except MediumError as e:
-            raise ParseError(f"Medium 解析失败: {e}") from e
+            raise ParseError(str(e)) from e
 
         return RichTextParseResult(
             title=post.title,

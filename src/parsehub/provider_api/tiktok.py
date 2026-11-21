@@ -99,7 +99,7 @@ class TikTokWebCrawler:
             resolved = str(response.url)
 
         if "notfound" in resolved.lower():
-            raise ValueError("TikTok 页面不可用，可能是地区、代理或链接问题")
+            raise ValueError("页面不可用, 可能是地区、代理或链接问题")
         return resolved
 
     async def fetch_item(self, aweme_id: str) -> dict[str, Any]:
@@ -123,7 +123,7 @@ class TikTokWebCrawler:
             for attempt in range(self.max_retries):
                 response = await client.get(url)
                 if urlparse(str(response.url)).path == "/login":
-                    raise LoginRequiredError("访问该 TikTok 内容")
+                    raise LoginRequiredError("访问该内容")
                 response.raise_for_status()
                 webpage = response.text
                 if self._search_universal_data(webpage):
@@ -200,8 +200,8 @@ class TikTokWebCrawler:
         if item:
             return cast(dict[str, Any], item)
         if status in (10216, 10222):
-            raise LoginRequiredError("该 TikTok 内容或无权访问")
+            raise LoginRequiredError("该内容或无权访问")
         status_msg = detail.get("statusMsg") or detail.get("statusMessage") or status
         if status == 10204:
-            raise ContentUnavailableError(f"TikTok 作品不存在或不可见: {status_msg}")
+            raise ContentUnavailableError(f"作品不存在或不可见: {status_msg}")
         raise RuntimeError(f"页面中没有作品详情，status={status_msg}")

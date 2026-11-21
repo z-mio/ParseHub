@@ -35,7 +35,7 @@ class InstagramParser(BaseParser):
     async def _do_parse(self, raw_url: str) -> VideoParseResult | ImageParseResult | MultimediaParseResult:
         shortcode = self.get_short_code(raw_url)
         if not shortcode:
-            raise InvalidUrlError("Instagram 帖子")
+            raise InvalidUrlError("无法提取帖子 ID")
 
         post = await self._parse(shortcode)
 
