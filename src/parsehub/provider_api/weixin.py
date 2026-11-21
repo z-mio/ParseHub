@@ -109,6 +109,7 @@ class WX:
     async def parse(url: str, proxy: str | None = None) -> "WX":
         async with httpx.AsyncClient(proxy=proxy) as client:
             response = await client.get(url, headers={"User-Agent": UA})
+        response.raise_for_status()
         return WX._parse_data(response.text)
 
     @classmethod

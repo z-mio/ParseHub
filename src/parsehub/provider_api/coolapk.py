@@ -20,6 +20,7 @@ class Coolapk:
     async def parse(cls, url: str, proxy: str | None = None) -> "Coolapk":
         async with httpx.AsyncClient(headers={"User-Agent": UA}, proxy=proxy) as client:
             result = await client.get(url)
+        result.raise_for_status()
         soup = BeautifulSoup(result.text, "lxml")
         # 酷安网页版不加载实况照片
         title_element = soup.find(class_="message-title")

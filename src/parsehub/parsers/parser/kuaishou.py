@@ -41,8 +41,10 @@ class KuaiShouParser(BaseParser):
         ksp = await KuaishouParser.create(
             raw_url, proxy=self.proxy, cookie=self.cookie.get_value() or COOKIE.get_value()
         )
-        if ksp.page_type == "UNKNOWN" and ksp.error_result in (223, 20113):
-            raise ContentUnavailableError(f"{ksp.error_result} {ksp.error_msg}")
+        if ksp.page_type == "UNKNOWN":
+            if ksp.error_result in (223, 20113):
+                raise ContentUnavailableError(f"{ksp.error_result} {ksp.error_msg}")
+            raise ParseError("未获取到页面数据")
         if (
             ksp.page_type == "VIDEO" or "/short-video/" in raw_url
         ):  # 地区风控导致获取到的 page_type 可能为 ATLAS 但实际为视频
